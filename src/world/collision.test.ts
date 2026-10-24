@@ -14,6 +14,13 @@ describe('moveWithCollisions', () => {
     expect(x).toBe(0.6)
   })
 
+  it('keeps the player inside a round room', () => {
+    const ring = { kind: 'ring' as const, x: 0, z: 0, radius: 5 }
+    expect(moveWithCollisions(0, 0, 1, 0, [ring])).toEqual([1, 0])
+    const [x] = moveWithCollisions(4.6, 0, 0.2, 0, [ring])
+    expect(x).toBe(4.6)
+  })
+
   it('slides along a wall when moving diagonally into it', () => {
     const [x, z] = moveWithCollisions(0.6, 0, 0.2, 0.3, [wall])
     expect(x).toBe(0.6)

@@ -207,17 +207,38 @@ const painters = {
     }
   },
 
-  /** Dense clipped hedge: overlapping leaf clusters with dark gaps. */
+  /** Foliage: clumps of light and shade, overlaid with individual pointed leaves. */
   hedge: (c) => {
     const { ctx, w, h, rand } = c
-    ctx.fillStyle = '#22381a'
+    ctx.fillStyle = '#1e3416'
     ctx.fillRect(0, 0, w, h)
-    const greens = ['#3a6226', '#4a7a30', '#5a8a38', '#2f5222', '#6a9a42']
-    for (let i = 0; i < w * h * 0.02; i++) {
+    // Clumps: soft lighter patches with darker gaps between them.
+    for (let i = 0; i < (w * h) / 900; i++) {
+      const x = rand() * w
+      const y = rand() * h
+      const r = 18 + rand() * 30
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r)
+      g.addColorStop(0, rgb('#4f7a32', (rand() - 0.5) * 0.08, 0.9))
+      g.addColorStop(1, 'rgba(30, 52, 22, 0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - r, y - r, r * 2, r * 2)
+    }
+    // Leaves: pointed ellipses in varied greens, lit from above.
+    const greens = ['#2f5222', '#3d6a28', '#4d7d30', '#5f8f3a', '#6f9e44', '#2a4a1e']
+    for (let i = 0; i < (w * h) / 60; i++) {
+      const x = rand() * w
+      const y = rand() * h
+      const len = 5 + rand() * 7
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(rand() * Math.PI * 2)
       ctx.fillStyle = greens[Math.floor(rand() * greens.length)]
       ctx.beginPath()
-      ctx.ellipse(rand() * w, rand() * h, 2 + rand() * 4, 1.5 + rand() * 2.5, rand() * Math.PI, 0, Math.PI * 2)
+      ctx.moveTo(-len, 0)
+      ctx.quadraticCurveTo(0, -len * 0.45, len, 0)
+      ctx.quadraticCurveTo(0, len * 0.45, -len, 0)
       ctx.fill()
+      ctx.restore()
     }
   },
 

@@ -10,7 +10,7 @@ export function arrivalAt(door: DoorDefinition): Placement {
   return {
     position: [
       x + Math.sin(door.rotationY) * ARRIVAL_DISTANCE,
-      EYE_HEIGHT,
+      door.position[1] + EYE_HEIGHT,
       z + Math.cos(door.rotationY) * ARRIVAL_DISTANCE,
     ],
     // The camera looks down -z at yaw 0, so face away from the door.

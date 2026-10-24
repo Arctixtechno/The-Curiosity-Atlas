@@ -190,7 +190,32 @@ export function Portico() {
           </mesh>
         ))}
       </group>
-      <pointLight position={[0, height - 0.3, 0.9]} color="#ffcf8a" intensity={2} distance={5} />
+      {/* A pair of carriage lanterns either side of the door. */}
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * 1.02, 2.05, 0.16]}>
+          <mesh position={[0, -0.05, -0.1]}>
+            <boxGeometry args={[0.05, 0.05, 0.2]} />
+            <meshStandardMaterial color="#111111" metalness={0.5} />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[0.18, 0.26, 0.18]} />
+            <meshStandardMaterial color="#ffe2b0" emissive="#ffc070" emissiveIntensity={1.4} transparent opacity={0.9} />
+          </mesh>
+          {[-1, 1].flatMap((sx) =>
+            [-1, 1].map((sz) => (
+              <mesh key={`${sx}${sz}`} position={[sx * 0.09, 0, sz * 0.09]}>
+                <boxGeometry args={[0.018, 0.28, 0.018]} />
+                <meshStandardMaterial color="#111111" metalness={0.5} />
+              </mesh>
+            )),
+          )}
+          <mesh position={[0, 0.17, 0]}>
+            <coneGeometry args={[0.15, 0.1, 4]} />
+            <meshStandardMaterial color="#111111" metalness={0.5} />
+          </mesh>
+          <pointLight color="#ffcf8a" intensity={1.4} distance={4} />
+        </group>
+      ))}
     </group>
   )
 }

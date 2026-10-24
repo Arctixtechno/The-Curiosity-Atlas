@@ -1,10 +1,11 @@
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { Painting } from '../components/Painting.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
-import { MAIN_HALL } from './dimensions.ts'
+import { HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
 
 const FOUNTAIN_RADIUS = 1.1
-const WAINSCOT_HEIGHT = 1
+const SKIRTING_HEIGHT = 0.18
 const BEAM_SPACING = 2.5
 
 function Fountain() {
@@ -41,29 +42,84 @@ function CeilingLamp({ z }: { z: number }) {
 }
 
 /** Dark wood panelling along the lower part of the long walls. */
-function WainscotPanel({ x, seed }: { x: number; seed: number }) {
-  const wood = useSurfaceTexture('wood', MAIN_HALL.length, WAINSCOT_HEIGHT, seed)
+/** Low wooden skirting board running round all four walls. */
+function Skirting() {
+  const hw = MAIN_HALL.width / 2 - 0.02
+  const hl = MAIN_HALL.length / 2 - 0.02
+  const pieces: { position: [number, number, number]; size: [number, number, number]; seed: number }[] = [
+    { position: [-hw, SKIRTING_HEIGHT / 2, 0], size: [0.04, SKIRTING_HEIGHT, MAIN_HALL.length], seed: 3 },
+    { position: [hw, SKIRTING_HEIGHT / 2, 0], size: [0.04, SKIRTING_HEIGHT, MAIN_HALL.length], seed: 4 },
+    { position: [0, SKIRTING_HEIGHT / 2, -hl], size: [MAIN_HALL.width, SKIRTING_HEIGHT, 0.04], seed: 5 },
+    { position: [0, SKIRTING_HEIGHT / 2, hl], size: [MAIN_HALL.width, SKIRTING_HEIGHT, 0.04], seed: 6 },
+  ]
   return (
-    <group position={[x, 0, 0]}>
-      <mesh position={[0, WAINSCOT_HEIGHT / 2, 0]} receiveShadow>
-        <boxGeometry args={[0.06, WAINSCOT_HEIGHT, MAIN_HALL.length]} />
-        <meshStandardMaterial color="#9a7658" map={wood} bumpMap={wood} bumpScale={0.5} roughness={0.6} />
+    <>
+      {pieces.map((p) => (
+        <SkirtingPiece key={p.seed} {...p} />
+      ))}
+    </>
+  )
+}
+
+function SkirtingPiece({ position, size, seed }: { position: [number, number, number]; size: [number, number, number]; seed: number }) {
+  const wood = useSurfaceTexture('wood', Math.max(size[0], size[2]), size[1], seed, 200)
+  return (
+    <group position={position}>
+      <mesh receiveShadow>
+        <boxGeometry args={size} />
+        <meshStandardMaterial color="#6e4a30" map={wood} roughness={0.5} />
       </mesh>
-      <mesh position={[0, WAINSCOT_HEIGHT + 0.03, 0]}>
-        <boxGeometry args={[0.1, 0.06, MAIN_HALL.length]} />
-        <meshStandardMaterial color="#4a2e1a" roughness={0.5} />
+      {/* Rounded moulding along the top edge. */}
+      <mesh position={[0, size[1] / 2, 0]} rotation={size[0] > size[2] ? [0, 0, Math.PI / 2] : [Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, Math.max(size[0], size[2]), 8]} />
+        <meshStandardMaterial color="#5a3a24" roughness={0.45} />
       </mesh>
     </group>
   )
 }
 
-/** Dark wood panelling along the lower part of the long walls. */
-function Wainscot() {
-  const x = MAIN_HALL.width / 2 - 0.03
+/** A potted plant for the corners. */
+function Plant({ x, z }: { x: number; z: number }) {
+  const leaves = useTiledTexture('hedge', 1.5, 1.5)
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.28, 0]} castShadow>
+        <cylinderGeometry args={[0.26, 0.2, 0.56, 20]} />
+        <meshStandardMaterial color="#2c3b3a" roughness={0.35} metalness={0.2} />
+      </mesh>
+      {[
+        [0, 1.0, 0, 0.42],
+        [0.18, 1.35, 0.08, 0.32],
+        [-0.15, 1.3, -0.06, 0.34],
+        [0.02, 1.65, 0.02, 0.26],
+      ].map(([px, py, pz, r], i) => (
+        <mesh key={i} position={[px, py, pz]} castShadow>
+          <icosahedronGeometry args={[r, 1]} />
+          <meshStandardMaterial color="#b8d098" map={leaves} roughness={0.9} flatShading />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.7, 0]}>
+        <cylinderGeometry args={[0.03, 0.04, 0.6, 6]} />
+        <meshStandardMaterial color="#4a3422" />
+      </mesh>
+    </group>
+  )
+}
+
+/** Paintings between the doors, each with its own picture light. */
+function Paintings() {
+  const x = MAIN_HALL.width / 2 - 0.01
+  const z = MAIN_HALL.length / 2 - 0.01
   return (
     <>
-      <WainscotPanel x={-x} seed={3} />
-      <WainscotPanel x={x} seed={4} />
+      <Painting name="seascape" position={[-x, 1.85, -6]} rotationY={Math.PI / 2} />
+      <Painting name="map" position={[-x, 1.85, -3]} rotationY={Math.PI / 2} width={1} />
+      <Painting name="botanical" position={[-x, 1.85, 3]} rotationY={Math.PI / 2} width={0.9} />
+      <Painting name="stars" position={[x, 1.85, -3]} rotationY={-Math.PI / 2} width={1} />
+      <Painting name="hills" position={[x, 1.85, 3]} rotationY={-Math.PI / 2} />
+      <Painting name="abstract" position={[x, 1.85, 6]} rotationY={-Math.PI / 2} width={0.9} />
+      <Painting name="hills" position={[-2.5, 1.85, -z]} rotationY={0} width={0.8} />
+      <Painting name="map" position={[2.5, 1.85, -z]} rotationY={0} width={0.8} />
     </>
   )
 }
@@ -111,7 +167,11 @@ export default function MainHall() {
         walls={{ color: '#ffffff', texture: 'plaster' }}
         ceiling={{ color: '#f2e8d8', texture: 'plaster' }}
       />
-      <Wainscot />
+      <Skirting />
+      <Paintings />
+      {HALL_PLANTS.map(([x, z]) => (
+        <Plant key={`${x}-${z}`} x={x} z={z} />
+      ))}
       <CeilingBeams />
       <Runner />
       <Fountain />

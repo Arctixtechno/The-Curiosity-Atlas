@@ -1,4 +1,6 @@
-import { RoundedBox, Sky } from '@react-three/drei'
+import { Sky } from '@react-three/drei'
+import { useLayoutEffect, useMemo, useRef } from 'react'
+import { Color, Object3D, type InstancedMesh } from 'three'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { COURTYARD } from './dimensions.ts'
@@ -9,24 +11,61 @@ const HOUSE_Z = -COURTYARD.length / 2
 const TERRACE_WIDTH = 44
 
 function Tree({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
-  const leaves = useTiledTexture('hedge', 2, 2)
+  const leaves = useTiledTexture('hedge', 1, 1)
+  const mesh = useRef<InstancedMesh>(null)
+  // A crown made of leafy clumps scattered through a few overlapping spheres.
+  const clumps = useMemo(() => {
+    let seed = Math.round(Math.abs(x * 97 + z * 31)) + 11
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+    const lobes = [
+      [0, 3.2, 0, 1.25],
+      [0.75, 2.8, 0.3, 0.9],
+      [-0.65, 2.9, -0.2, 0.95],
+      [0.1, 3.9, -0.3, 0.9],
+    ]
+    const list: [number, number, number, number][] = []
+    for (const [lx, ly, lz, lr] of lobes) {
+      for (let i = 0; i < 14; i++) {
+        const theta = rand() * Math.PI * 2
+        const phi = Math.acos(rand() * 2 - 1)
+        const r = lr * (0.6 + rand() * 0.35)
+        list.push([
+          lx + r * Math.sin(phi) * Math.cos(theta),
+          ly + r * Math.cos(phi) * 0.85,
+          lz + r * Math.sin(phi) * Math.sin(theta),
+          0.35 + rand() * 0.25,
+        ])
+      }
+    }
+    return list
+  }, [x, z])
+
+  useLayoutEffect(() => {
+    const dummy = new Object3D()
+    clumps.forEach(([px, py, pz, s], i) => {
+      dummy.position.set(px, py, pz)
+      dummy.rotation.set(px * 3, py * 2, pz * 5)
+      dummy.scale.setScalar(s)
+      dummy.updateMatrix()
+      mesh.current!.setMatrixAt(i, dummy.matrix)
+    })
+    mesh.current!.instanceMatrix.needsUpdate = true
+  }, [clumps])
+
   return (
     <group position={[x, 0, z]} scale={scale}>
       <mesh position={[0, 1.4, 0]} castShadow>
         <cylinderGeometry args={[0.12, 0.2, 2.8, 10]} />
         <meshStandardMaterial color="#3e2c1e" roughness={1} />
       </mesh>
-      {[
-        [0, 3.2, 0, 1.3],
-        [0.7, 2.8, 0.3, 0.9],
-        [-0.6, 2.9, -0.2, 0.95],
-        [0.1, 3.9, -0.3, 0.9],
-      ].map(([px, py, pz, r], i) => (
-        <mesh key={i} position={[px, py, pz]} castShadow>
-          <icosahedronGeometry args={[r, 2]} />
-          <meshStandardMaterial color="#c8dca8" map={leaves} roughness={1} flatShading />
-        </mesh>
-      ))}
+      <mesh position={[0, 3.1, 0]}>
+        <sphereGeometry args={[1.1, 12, 10]} />
+        <meshStandardMaterial color="#1a2c12" roughness={1} />
+      </mesh>
+      <instancedMesh ref={mesh} args={[undefined, undefined, clumps.length]} castShadow>
+        <icosahedronGeometry args={[1, 1]} />
+        <meshStandardMaterial color="#c4dca8" map={leaves} roughness={0.95} />
+      </instancedMesh>
     </group>
   )
 }
@@ -44,20 +83,75 @@ function PlanterTree({ x, z }: { x: number; z: number }) {
   )
 }
 
-/** A clipped box hedge along one side. */
+/**
+ * A clipped hedge: a dense scatter of small leafy clumps over its sides and top,
+ * each a slightly different green, so it reads as foliage rather than rows.
+ */
 function Hedge({ x, z, width, length }: { x: number; z: number; width: number; length: number }) {
-  const leaves = useTiledTexture('hedge', Math.max(width, length), COURTYARD.hedgeHeight)
+  const leaves = useTiledTexture('hedge', 3, 3)
+  const mesh = useRef<InstancedMesh>(null)
+  const alongX = width > length
+  const span = Math.max(width, length)
+  const depth = Math.min(width, length)
+  const h = COURTYARD.hedgeHeight
+  const face = useSurfaceTexture('hedge', span, h, Math.round(x + z) + 20)
+  const clumps = useMemo(() => {
+    let seed = Math.round(span * 1000 + x * 7 + z * 13) || 1
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+    const list: { pos: [number, number, number]; scale: [number, number, number]; shade: number }[] = []
+    // Clumps are flattened against the face they sit on: a clipped hedge has relief, not balls.
+    const add = (along: number, y: number, across: number, s: number, flat: 'across' | 'up') => {
+      const a = s * (1.4 + rand() * 0.6)
+      const n = s * 0.45
+      const sAcross = flat === 'across' ? n : s * 1.4
+      const sUp = flat === 'up' ? n : s
+      list.push({
+        pos: alongX ? [along, y, across] : [across, y, along],
+        scale: alongX ? [a, sUp, sAcross] : [sAcross, sUp, a],
+        // Lighter towards the top, where the sun catches it.
+        shade: 0.72 + rand() * 0.22 + (y / h) * 0.18,
+      })
+    }
+    // Both long faces, scattered at random rather than in rows.
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < span * 22; i++) {
+        add((rand() - 0.5) * (span - 0.1), 0.08 + rand() * (h - 0.12), side * (depth / 2 + 0.01), 0.1 + rand() * 0.07, 'across')
+      }
+    }
+    // The clipped top, slightly domed.
+    for (let i = 0; i < span * depth * 40; i++) {
+      const across = (rand() - 0.5) * depth
+      add((rand() - 0.5) * (span - 0.1), h - 0.02 - Math.abs(across) * 0.08, across, 0.1 + rand() * 0.07, 'up')
+    }
+    return list
+  }, [span, depth, alongX, x, z, h])
+
+  useLayoutEffect(() => {
+    const dummy = new Object3D()
+    const color = new Color()
+    clumps.forEach((c, i) => {
+      dummy.position.set(...c.pos)
+      dummy.scale.set(...c.scale)
+      dummy.updateMatrix()
+      mesh.current!.setMatrixAt(i, dummy.matrix)
+      mesh.current!.setColorAt(i, color.setRGB(c.shade * 0.85, c.shade, c.shade * 0.8))
+    })
+    mesh.current!.instanceMatrix.needsUpdate = true
+    if (mesh.current!.instanceColor) mesh.current!.instanceColor.needsUpdate = true
+  }, [clumps])
+
   return (
-    <RoundedBox
-      args={[width, COURTYARD.hedgeHeight, length]}
-      radius={0.12}
-      smoothness={3}
-      position={[x, COURTYARD.hedgeHeight / 2, z]}
-      castShadow
-      receiveShadow
-    >
-      <meshStandardMaterial color="#c0d8a0" map={leaves} bumpMap={leaves} bumpScale={3} roughness={1} />
-    </RoundedBox>
+    <group position={[x, 0, z]}>
+      {/* The clipped body of the hedge; the clumps add relief on top of it. */}
+      <mesh position={[0, h / 2 - 0.03, 0]}>
+        <boxGeometry args={[width - 0.02, h - 0.06, length - 0.02]} />
+        <meshStandardMaterial color="#c8dcb0" map={face} bumpMap={face} bumpScale={1.5} roughness={1} />
+      </mesh>
+      <instancedMesh ref={mesh} args={[undefined, undefined, clumps.length]} castShadow receiveShadow>
+        <icosahedronGeometry args={[1, 1]} />
+        <meshStandardMaterial color="#d4e6bc" map={leaves} roughness={0.95} />
+      </instancedMesh>
+    </group>
   )
 }
 

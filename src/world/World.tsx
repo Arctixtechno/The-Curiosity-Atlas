@@ -12,7 +12,7 @@ export function World() {
     <InteractionSystem>
       <Camera />
       <RoomManager />
-      <Player colliders={rooms[activeRoomId].colliders} />
+      <Player colliders={rooms[activeRoomId].colliders} floorHeight={rooms[activeRoomId].floorHeight} />
     </InteractionSystem>
   )
 }
