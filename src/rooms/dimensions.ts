@@ -56,6 +56,11 @@ export const OBSERVATORY = {
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }
+/** Bistro tables outside the café, as [x, z]. */
+export const CAFE_TABLES: [number, number][] = [
+  [-2.2, CAFE.frontZ - 1.7],
+  [2.2, CAFE.frontZ - 1.7],
+]
 
 /** Columned porch around the house's front door, relative to the house wall. */
 export const PORTICO = { columnX: 1.35, columnZ: 1.1, height: 3.3 }

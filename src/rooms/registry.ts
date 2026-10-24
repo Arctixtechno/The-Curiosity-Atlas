@@ -3,6 +3,7 @@ import { CafeExterior } from './CafeExterior.tsx'
 import {
   boxCollider,
   CAFE,
+  CAFE_TABLES,
   COURTYARD,
   EYE_HEIGHT,
   HALL_PLANTS,
@@ -89,6 +90,9 @@ export const rooms: Record<string, RoomDefinition> = {
     colliders: [
       ...wallColliders(COURTYARD.width, COURTYARD.length, 0.4),
       { minX: -CAFE.width / 2, maxX: CAFE.width / 2, minZ: CAFE.frontZ, maxZ: COURTYARD.length / 2 },
+      // Café tables and the chalkboard outside it.
+      ...CAFE_TABLES.map(([x, z]) => boxCollider(x, z, 1.6, 0.9)),
+      boxCollider(1.3, CAFE.frontZ - 0.75, 0.6, 0.5),
       boxCollider(-4.5, -2, 0.8, 0.8),
       boxCollider(4.5, -2, 0.8, 0.8),
       // Portico columns either side of the front door.
@@ -106,7 +110,7 @@ export const rooms: Record<string, RoomDefinition> = {
         signHeight: 2.68,
         target: { roomId: 'mainHall', doorId: 'entrance' },
       },
-      { id: 'cafe', label: 'Café', position: [0, 0, CAFE.frontZ - 0.05], rotationY: Math.PI },
+      { id: 'cafe', label: 'Café', position: [0, 0, CAFE.frontZ - 0.05], rotationY: Math.PI, color: '#5f9a7c', signHeight: 2.52 },
     ],
     load: () => import('./Courtyard.tsx'),
     visibleExteriors: ['cafe'],

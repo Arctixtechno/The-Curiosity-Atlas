@@ -190,6 +190,31 @@ const painters = {
     grain(c, 0.12)
   },
 
+  /** London stock brick in Flemish bond: yellow-grey bricks, the odd darker header, lime mortar. */
+  brick: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    ctx.fillStyle = '#cfc6b4'
+    ctx.fillRect(0, 0, w, h)
+    const course = 0.075 * ppm
+    const stretcher = 0.225 * ppm
+    const header = 0.1125 * ppm
+    const joint = Math.max(1, 0.01 * ppm)
+    for (let row = 0, y = 0; y < h; row++, y += course) {
+      // Alternate stretcher and header, offset every other course.
+      let x = row % 2 ? -(stretcher + header) / 2 : 0
+      for (let i = 0; x < w; i++) {
+        const isHeader = i % 2 === 1
+        const len = isHeader ? header : stretcher
+        const base = isHeader && rand() < 0.5 ? '#8a7258' : rand() < 0.08 ? '#b06a48' : '#c9a774'
+        ctx.fillStyle = rgb(base, (rand() - 0.5) * 0.12)
+        ctx.fillRect(x + joint / 2, y + joint / 2, len - joint, course - joint)
+        x += len
+      }
+    }
+    mottle(c, 0.6, 0.06)
+    grain(c, 0.14)
+  },
+
   /** Short grass. */
   grass: (c) => {
     const { ctx, w, h, rand } = c
