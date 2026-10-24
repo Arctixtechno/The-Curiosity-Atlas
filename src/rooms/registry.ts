@@ -9,6 +9,7 @@ import {
   HALL_PLANTS,
   MAIN_HALL,
   OBSERVATORY,
+  observatoryWallPoint,
   PORTICO,
   THEATRE,
   THEATRE_AISLE,
@@ -78,6 +79,8 @@ export const rooms: Record<string, RoomDefinition> = {
       boxCollider(...OBSERVATORY.telescope, 0.9, 0.9),
       boxCollider(...OBSERVATORY.orrery, 1.3, 1.3),
       boxCollider(...OBSERVATORY.globe, 0.9, 0.9),
+      boxCollider(...observatoryWallPoint(OBSERVATORY.deskAngle, 0.75), 1.6, 1.6),
+      boxCollider(...observatoryWallPoint(OBSERVATORY.bookcaseAngle, 0.3), 1.5, 1.5),
     ],
     doors: [
       { id: 'hall', label: 'Main Hall', position: [0, 0, OBSERVATORY.radius - 0.15], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'observatory' } },

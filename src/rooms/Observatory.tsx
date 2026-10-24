@@ -1,25 +1,156 @@
 import { Stars } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
-import { BackSide, Vector3, type Group } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { BackSide, CanvasTexture, Color, Object3D, SRGBColorSpace, Vector3, type Group, type InstancedMesh } from 'three'
 import { Glow } from '../components/Glow.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { getPainting } from '../components/paintings.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
-import { OBSERVATORY } from './dimensions.ts'
+import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
 
 const { radius: R, wallHeight: WALL_H } = OBSERVATORY
-const BRASS = { color: '#c9a55c', metalness: 0.9, roughness: 0.25 }
+// Moderate metalness: with no environment map, fully metallic brass renders almost black.
+const BRASS = { color: '#d4b064', metalness: 0.55, roughness: 0.28 }
 const IRON = { color: '#23262c', metalness: 0.6, roughness: 0.45 }
 /** The dome's shutter slit opens towards -z; the telescope points through it. */
 const SLIT_WIDTH = 0.5
 const TELESCOPE_ELEVATION = (50 * Math.PI) / 180
 
+/** Paints a canvas once into a texture, disposed when the room unloads. */
+function useCanvasTexture(width: number, height: number, draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    draw(canvas.getContext('2d')!, width, height)
+    const tex = new CanvasTexture(canvas)
+    tex.colorSpace = SRGBColorSpace
+    tex.anisotropy = 4
+    return tex
+  }, [width, height]) // Each call site passes a fixed painter.
+  useEffect(() => () => texture.dispose(), [texture])
+  return texture
+}
+
+function seededRandom(seed: number) {
+  let s = seed
+  return () => (s = (s * 16807) % 2147483647) / 2147483647
+}
+
+/** The inside of the dome, painted as a star chart: gilt stars, constellation lines and a faint grid. */
+function drawDome(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const rand = seededRandom(17)
+  const bg = ctx.createLinearGradient(0, 0, 0, h)
+  bg.addColorStop(0, '#101838')
+  bg.addColorStop(1, '#1f2c58')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, w, h)
+  // Meridians and two circles of declination.
+  ctx.strokeStyle = 'rgba(216, 178, 94, 0.18)'
+  ctx.lineWidth = 2
+  for (let i = 0; i < 24; i++) {
+    ctx.beginPath()
+    ctx.moveTo((i / 24) * w, 0)
+    ctx.lineTo((i / 24) * w, h)
+    ctx.stroke()
+  }
+  for (const y of [0.4, 0.75]) {
+    ctx.beginPath()
+    ctx.moveTo(0, y * h)
+    ctx.lineTo(w, y * h)
+    ctx.stroke()
+  }
+  // Background stars, thinner near the top where the texture is squeezed together at the pole.
+  for (let i = 0; i < 2600; i++) {
+    const y = Math.sqrt(rand()) * h
+    const x = rand() * w
+    ctx.fillStyle = rand() > 0.7 ? 'rgba(240, 210, 140, 0.9)' : 'rgba(230, 236, 255, 0.75)'
+    ctx.beginPath()
+    ctx.arc(x, y, 0.8 + rand() * 1.6, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  // Constellations: a few bright stars joined by gilt lines.
+  for (let c = 0; c < 22; c++) {
+    let x = rand() * w
+    let y = h * (0.3 + rand() * 0.62)
+    const points: [number, number][] = [[x, y]]
+    for (let i = 0; i < 3 + Math.floor(rand() * 4); i++) {
+      x += (rand() - 0.5) * 140
+      y += (rand() - 0.5) * 90
+      points.push([x, Math.max(h * 0.25, Math.min(h * 0.97, y))])
+    }
+    ctx.strokeStyle = 'rgba(216, 178, 94, 0.55)'
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    points.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)))
+    ctx.stroke()
+    for (const [px, py] of points) {
+      const g = ctx.createRadialGradient(px, py, 0, px, py, 9)
+      g.addColorStop(0, 'rgba(255, 236, 180, 1)')
+      g.addColorStop(1, 'rgba(255, 220, 140, 0)')
+      ctx.fillStyle = g
+      ctx.fillRect(px - 9, py - 9, 18, 18)
+    }
+  }
+}
+
+/** A compass-rose rug under the telescope. */
+function drawCompassRug(ctx: CanvasRenderingContext2D, w: number) {
+  const c = w / 2
+  ctx.fillStyle = '#1d2748'
+  ctx.beginPath()
+  ctx.arc(c, c, c, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = '#c9a55c'
+  for (const [r, lw] of [[0.95, 6], [0.88, 2], [0.62, 2], [0.2, 3]] as const) {
+    ctx.lineWidth = lw
+    ctx.beginPath()
+    ctx.arc(c, c, c * r, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  // Degree ticks between the outer rings.
+  ctx.lineWidth = 2
+  for (let i = 0; i < 72; i++) {
+    const a = (i / 72) * Math.PI * 2
+    const r0 = c * (i % 2 ? 0.9 : 0.885)
+    ctx.beginPath()
+    ctx.moveTo(c + Math.cos(a) * r0, c + Math.sin(a) * r0)
+    ctx.lineTo(c + Math.cos(a) * c * 0.93, c + Math.sin(a) * c * 0.93)
+    ctx.stroke()
+  }
+  // Sixteen-point star: long cardinal points, then shorter ones between.
+  for (const [count, length, offset, colors] of [
+    [8, 0.5, Math.PI / 8, ['#8a6c3a', '#b08a4c']],
+    [4, 0.82, 0, ['#c9a55c', '#e8cf8e']],
+  ] as const) {
+    for (let i = 0; i < count; i++) {
+      const a = offset + (i / count) * Math.PI * 2 - Math.PI / 2
+      for (const side of [0, 1]) {
+        ctx.fillStyle = colors[side]
+        ctx.beginPath()
+        ctx.moveTo(c, c)
+        ctx.lineTo(c + Math.cos(a) * c * length, c + Math.sin(a) * c * length)
+        const b = a + (side ? 1 : -1) * 0.22
+        ctx.lineTo(c + Math.cos(b) * c * 0.14, c + Math.sin(b) * c * 0.14)
+        ctx.fill()
+      }
+    }
+  }
+  ctx.fillStyle = '#e8cf8e'
+  ctx.font = `bold ${Math.round(c * 0.11)}px Georgia, serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ;['N', 'E', 'S', 'W'].forEach((letter, i) => {
+    const a = (i / 4) * Math.PI * 2 - Math.PI / 2
+    ctx.fillText(letter, c + Math.cos(a) * c * 0.74, c + Math.sin(a) * c * 0.74)
+  })
+}
+
 function Floor() {
   const wood = useSurfaceTexture('wood', R * 2, R * 2, 7)
-  const rug = useTiledTexture('carpet', 1, 1)
+  const rug = useCanvasTexture(1024, 1024, (ctx, w) => drawCompassRug(ctx, w))
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -27,8 +158,9 @@ function Floor() {
         <meshStandardMaterial color="#c8a888" map={wood} bumpMap={wood} bumpScale={0.5} roughness={0.6} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -0.6]} receiveShadow>
-        <circleGeometry args={[2.4, 48]} />
-        <meshStandardMaterial color="#5a6aa0" map={rug} roughness={1} />
+        <circleGeometry args={[2.4, 64]} />
+        {/* N faces the slit (-z). */}
+        <meshStandardMaterial map={rug} roughness={1} />
       </mesh>
     </>
   )
@@ -37,6 +169,7 @@ function Floor() {
 /** Round wall, skirting, the brass track the dome turns on, and the dome itself with its open slit. */
 function Shell() {
   const plaster = useSurfaceTexture('plaster', 2 * Math.PI * R, WALL_H, 8, 80)
+  const chart = useCanvasTexture(4096, 1024, drawDome)
   const phiStart = (3 * Math.PI) / 2 + SLIT_WIDTH / 2
   const ribs = [0, 1, 2, 3, 5, 6, 7].map((i) => (i * Math.PI) / 8)
   return (
@@ -55,7 +188,7 @@ function Shell() {
       </mesh>
       <mesh position={[0, WALL_H, 0]}>
         <sphereGeometry args={[R, 96, 32, phiStart, Math.PI * 2 - SLIT_WIDTH, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#1b2440" side={BackSide} roughness={0.85} />
+        <meshStandardMaterial map={chart} emissiveMap={chart} emissive="#ffffff" emissiveIntensity={0.35} side={BackSide} roughness={0.85} />
       </mesh>
       {/* Brass ribs over the dome, skipping the one that would cross the slit. */}
       {ribs.map((angle) => (
@@ -224,6 +357,199 @@ function CelestialGlobe() {
   )
 }
 
+/** Stands furniture against the curved wall at `angle`, with its local +z facing into the room. */
+function AgainstWall({ angle, inset, children }: { angle: number; inset: number; children: React.ReactNode }) {
+  const [x, z] = observatoryWallPoint(angle, inset)
+  return (
+    <group position={[x, 0, z]} rotation={[0, angle + Math.PI, 0]}>
+      {children}
+    </group>
+  )
+}
+
+/** A writing desk with an open star atlas, a green banker's lamp and a chair. */
+function Desk() {
+  const wood = useTiledTexture('wood', 1, 1)
+  const leftPage = useMemo(() => getPainting('stars'), [])
+  const rightPage = useMemo(() => getPainting('map'), [])
+  const walnut = { color: '#7a5034', map: wood, roughness: 0.45 }
+  useInteractable({
+    position: useMemo(() => {
+      const [x, z] = observatoryWallPoint(OBSERVATORY.deskAngle, 0.75)
+      return new Vector3(x, 1, z)
+    }, []),
+    radius: 2,
+    prompt: 'Star atlas: your own observations will be kept here',
+  })
+  return (
+    <AgainstWall angle={OBSERVATORY.deskAngle} inset={0.45}>
+      <mesh position={[0, 0.76, 0]} castShadow>
+        <boxGeometry args={[1.4, 0.05, 0.7]} />
+        <meshStandardMaterial {...walnut} />
+      </mesh>
+      {/* Drawer pedestals. */}
+      {[-0.5, 0.5].map((x) => (
+        <group key={x} position={[x, 0.37, 0]}>
+          <mesh>
+            <boxGeometry args={[0.38, 0.74, 0.64]} />
+            <meshStandardMaterial {...walnut} />
+          </mesh>
+          {[0.2, 0, -0.2].map((y) => (
+            <mesh key={y} position={[0, y, 0.325]}>
+              <boxGeometry args={[0.05, 0.015, 0.015]} />
+              <meshStandardMaterial {...BRASS} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {/* Leather writing inset and the open atlas. */}
+      <mesh position={[0, 0.786, 0.02]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.9, 0.5]} />
+        <meshStandardMaterial color="#2c4a36" roughness={0.6} />
+      </mesh>
+      {[
+        [-0.17, leftPage, 0.08],
+        [0.17, rightPage, -0.08],
+      ].map(([x, page, tilt]) => (
+        <mesh key={x as number} position={[x as number, 0.8, 0.05]} rotation={[-Math.PI / 2, tilt as number, 0]}>
+          <planeGeometry args={[0.33, 0.25]} />
+          <meshStandardMaterial map={page as CanvasTexture} roughness={0.9} />
+        </mesh>
+      ))}
+      {/* Banker's lamp with a glowing green shade. */}
+      <group position={[0.5, 0.79, -0.18]}>
+        <mesh position={[0, 0.02, 0]}>
+          <cylinderGeometry args={[0.08, 0.09, 0.03, 20]} />
+          <meshStandardMaterial {...BRASS} />
+        </mesh>
+        <mesh position={[0, 0.17, 0]}>
+          <cylinderGeometry args={[0.012, 0.012, 0.3, 8]} />
+          <meshStandardMaterial {...BRASS} />
+        </mesh>
+        <mesh position={[0, 0.33, 0.04]} rotation={[0.3, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.28, 20, 1, false, 0, Math.PI]} />
+          <meshStandardMaterial color="#1f6a46" emissive="#2a8a5a" emissiveIntensity={0.9} roughness={0.2} side={2} />
+        </mesh>
+        <Glow position={[-0.25, 0.015, 0.15]} rotation={[-Math.PI / 2, 0, 0]} size={[0.9, 0.7]} color="#ffd9a0" opacity={0.45} />
+        {/* A small, soft light: enough to read the desk by, with no shadows. */}
+        <pointLight position={[0, 0.25, 0.25]} color="#ffd9a0" intensity={1.6} distance={3} decay={2} />
+      </group>
+      {/* A pair of books and a brass magnifier. */}
+      {[
+        ['#6a2a22', -0.55, 0.06],
+        ['#22385a', -0.55, 0.11],
+      ].map(([color, x, y]) => (
+        <mesh key={color as string} position={[x as number, 0.79 + (y as number) / 2, -0.15]} rotation={[0, 0.2, 0]}>
+          <boxGeometry args={[0.24, 0.045, 0.32]} />
+          <meshStandardMaterial color={color as string} roughness={0.7} />
+        </mesh>
+      ))}
+      <mesh position={[0.32, 0.79, 0.2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.05, 0.008, 8, 24]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      {/* Chair, pulled out a little. */}
+      <group position={[0, 0, 0.7]} rotation={[0, 0.25, 0]}>
+        <mesh position={[0, 0.46, 0]}>
+          <boxGeometry args={[0.46, 0.06, 0.44]} />
+          <meshStandardMaterial color="#5a2a22" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.78, 0.2]}>
+          <boxGeometry args={[0.44, 0.56, 0.05]} />
+          <meshStandardMaterial {...walnut} />
+        </mesh>
+        {[-0.19, 0.19].flatMap((x) =>
+          [-0.18, 0.18].map((z) => (
+            <mesh key={`${x}${z}`} position={[x, 0.22, z]}>
+              <boxGeometry args={[0.04, 0.44, 0.04]} />
+              <meshStandardMaterial {...walnut} />
+            </mesh>
+          )),
+        )}
+      </group>
+    </AgainstWall>
+  )
+}
+
+/** A tall bookcase of leather-bound volumes, each spine a slightly different colour and height. */
+function Bookcase() {
+  const wood = useTiledTexture('wood', 1, 1)
+  const books = useRef<InstancedMesh>(null)
+  const width = 1.4
+  const shelves = [0.12, 0.6, 1.08, 1.56]
+  const list = useMemo(() => {
+    const rand = seededRandom(5)
+    const spines = ['#6a2a22', '#22385a', '#2c4a36', '#7a5a2a', '#4a2a3a', '#8a7a5a']
+    const out: { x: number; y: number; w: number; h: number; tilt: number; color: string }[] = []
+    for (const shelf of shelves) {
+      let x = -width / 2 + 0.06
+      while (x < width / 2 - 0.08) {
+        const w = 0.03 + rand() * 0.035
+        const h = 0.26 + rand() * 0.12
+        // Every so often a gap, with the next book leaning into it.
+        const tilt = rand() < 0.06 ? 0.25 : 0
+        out.push({ x: x + w / 2, y: shelf + 0.02 + h / 2, w, h, tilt, color: spines[Math.floor(rand() * spines.length)] })
+        x += w + (tilt ? 0.08 : 0.004)
+      }
+    }
+    return out
+  }, [])
+  useLayoutEffect(() => {
+    const dummy = new Object3D()
+    const color = new Color()
+    list.forEach((b, i) => {
+      dummy.position.set(b.x, b.y, 0)
+      dummy.rotation.set(0, 0, b.tilt)
+      dummy.scale.set(b.w, b.h, 0.22)
+      dummy.updateMatrix()
+      books.current!.setMatrixAt(i, dummy.matrix)
+      books.current!.setColorAt(i, color.set(b.color))
+    })
+    books.current!.instanceMatrix.needsUpdate = true
+    if (books.current!.instanceColor) books.current!.instanceColor.needsUpdate = true
+  }, [list])
+  const walnut = { color: '#6a4430', map: wood, roughness: 0.5 }
+  return (
+    <AgainstWall angle={OBSERVATORY.bookcaseAngle} inset={0.25}>
+      <mesh position={[0, 1.05, -0.13]}>
+        <boxGeometry args={[width, 2.1, 0.03]} />
+        <meshStandardMaterial {...walnut} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[(side * (width + 0.04)) / 2, 1.05, 0]}>
+          <boxGeometry args={[0.04, 2.1, 0.3]} />
+          <meshStandardMaterial {...walnut} />
+        </mesh>
+      ))}
+      {[...shelves, 2.06].map((y) => (
+        <mesh key={y} position={[0, y, 0]}>
+          <boxGeometry args={[width, 0.04, 0.3]} />
+          <meshStandardMaterial {...walnut} />
+        </mesh>
+      ))}
+      <mesh position={[0, 2.12, 0.02]}>
+        <boxGeometry args={[width + 0.12, 0.08, 0.36]} />
+        <meshStandardMaterial {...walnut} />
+      </mesh>
+      <instancedMesh ref={books} args={[undefined, undefined, list.length]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.75} />
+      </instancedMesh>
+      {/* Picture light over the shelves, washing the spines with warm light. */}
+      <mesh position={[0, 2.02, 0.2]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.025, 0.025, 0.9, 12]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <pointLight position={[0, 1.6, 0.6]} color="#ffd2a0" intensity={1.4} distance={2.6} decay={2} />
+      {/* A brass sextant resting on top. */}
+      <mesh position={[0.3, 2.3, 0]} rotation={[0, 0.4, 0]}>
+        <torusGeometry args={[0.13, 0.01, 6, 24, Math.PI / 3]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+    </AgainstWall>
+  )
+}
+
 /** Brass wall light: a soft pool of light on the wall, no hard source. */
 function WallLight({ angle }: { angle: number }) {
   const x = Math.sin(angle) * (R - 0.06)
@@ -264,6 +590,8 @@ export default function Observatory() {
       <Telescope />
       <Orrery />
       <CelestialGlobe />
+      <Desk />
+      <Bookcase />
       {[0.9, -0.9, 2.2, -2.2].map((a) => (
         <WallLight key={a} angle={a} />
       ))}

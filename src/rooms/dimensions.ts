@@ -52,6 +52,15 @@ export const OBSERVATORY = {
   telescope: [0, -1.2] as [number, number],
   orrery: [3, 1.6] as [number, number],
   globe: [-3, 1.6] as [number, number],
+  /** Furniture against the curved wall, by angle round the room (0 is the door, at +z). */
+  deskAngle: 2.5,
+  bookcaseAngle: -2.5,
+}
+
+/** A point `inset` metres in from the observatory wall, at `angle` round the room. */
+export function observatoryWallPoint(angle: number, inset: number): [number, number] {
+  const r = OBSERVATORY.radius - inset
+  return [Math.sin(angle) * r, Math.cos(angle) * r]
 }
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
 /** The café building sits against the far end of the courtyard. */
