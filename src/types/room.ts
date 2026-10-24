@@ -20,6 +20,12 @@ export interface DoorDefinition {
   rotationY: number
   /** Where the door leads. Doors without a target are not open yet. */
   target?: { roomId: string; doorId: string }
+  /** Prompt shown when the player can open it. Defaults to "Press E to enter the <label>". */
+  prompt?: string
+  /** Paint colour, multiplied over the wood texture. */
+  color?: string
+  /** Height of the sign above the floor. */
+  signHeight?: number
 }
 
 /** Standard room configuration (spec section 8.3). */

@@ -4,10 +4,17 @@ import type { Collider } from '../types/room.ts'
 // lazily loaded interiors (geometry).
 export const MAIN_HALL = { width: 8, length: 20, height: 3.6 }
 export const THEATRE = { width: 10, length: 14, height: 5 }
+/** Recliner rows (z) and seat/table positions (x): two pairs either side of a centre aisle. */
+export const THEATRE_ROWS = [-1.4, 1.6]
+export const THEATRE_SEAT_XS = [-2.55, -1.25, 1.25, 2.55]
+export const THEATRE_TABLE_XS = [-1.9, 1.9]
 export const OBSERVATORY = { width: 10, length: 10, height: 4 }
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }
+
+/** Columned porch around the house's front door, relative to the house wall. */
+export const PORTICO = { columnX: 1.35, columnZ: 1.1, height: 3.3 }
 
 export const WALL_THICKNESS = 0.2
 export const EYE_HEIGHT = 1.65

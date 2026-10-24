@@ -1,34 +1,90 @@
+import { RoundedBox } from '@react-three/drei'
 import { useEffect, useMemo } from 'react'
-import { CanvasTexture, SRGBColorSpace } from 'three'
+import { CanvasTexture, SRGBColorSpace, type Texture } from 'three'
 import { useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
-import { THEATRE } from './dimensions.ts'
+import { THEATRE, THEATRE_ROWS, THEATRE_SEAT_XS, THEATRE_TABLE_XS } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
 
-const SEAT_ROWS = [-1, 1.4]
-const SEATS_PER_ROW = 6
 const SCREEN = { width: 7, height: 3.4, y: 2.6 }
 const FRAME = 0.18
+const LEATHER = '#4a0e14'
 
-function Seat({ x, z }: { x: number; z: number }) {
-  const fabric = useTiledTexture('fabric', 1, 1)
+/** Leather that responds to light like a soft sheen rather than plastic. */
+function Leather({ map }: { map: Texture | null }) {
+  return <meshPhysicalMaterial color={LEATHER} map={map} bumpMap={map} bumpScale={0.6} roughness={0.5} clearcoat={0.25} clearcoatRoughness={0.6} />
+}
+
+/** A premium recliner facing the screen (local -z). `reclined` raises the footrest. */
+function Recliner({ x, z, reclined }: { x: number; z: number; reclined?: boolean }) {
+  const leather = useTiledTexture('leather', 2, 2)
+  const back = reclined ? 0.42 : 0.24
   return (
     <group position={[x, 0, z]}>
-      <mesh position={[0, 0.25, 0]} castShadow>
-        <boxGeometry args={[0.9, 0.5, 0.7]} />
-        <meshStandardMaterial color="#a8303a" map={fabric} bumpMap={fabric} bumpScale={1} roughness={0.95} />
-      </mesh>
-      <mesh position={[0, 0.65, 0.3]} castShadow>
-        <boxGeometry args={[0.9, 0.8, 0.15]} />
-        <meshStandardMaterial color="#a8303a" map={fabric} bumpMap={fabric} bumpScale={1} roughness={0.95} />
-      </mesh>
-      {[-0.47, 0.47].map((ax) => (
-        <mesh key={ax} position={[ax, 0.4, 0.05]} castShadow>
-          <boxGeometry args={[0.06, 0.25, 0.65]} />
-          <meshStandardMaterial color="#2a1a10" roughness={0.6} />
-        </mesh>
+      {/* Plinth */}
+      <RoundedBox args={[0.92, 0.22, 0.9]} radius={0.04} position={[0, 0.11, 0.05]} castShadow>
+        <meshStandardMaterial color="#1a1012" roughness={0.6} />
+      </RoundedBox>
+      {/* Seat cushion */}
+      <RoundedBox args={[0.6, 0.2, 0.72]} radius={0.08} smoothness={4} position={[0, 0.34, -0.02]} castShadow>
+        <Leather map={leather} />
+      </RoundedBox>
+      {/* Backrest, leaning back from its base */}
+      <group position={[0, 0.32, 0.36]} rotation={[back, 0, 0]}>
+        <RoundedBox args={[0.62, 0.86, 0.2]} radius={0.09} smoothness={4} position={[0, 0.43, 0]} castShadow>
+          <Leather map={leather} />
+        </RoundedBox>
+        <RoundedBox args={[0.42, 0.2, 0.1]} radius={0.05} smoothness={4} position={[0, 0.74, -0.12]}>
+          <Leather map={leather} />
+        </RoundedBox>
+      </group>
+      {/* Padded armrests */}
+      {[-0.4, 0.4].map((ax) => (
+        <RoundedBox key={ax} args={[0.17, 0.42, 0.86]} radius={0.07} smoothness={4} position={[ax, 0.43, 0.03]} castShadow>
+          <Leather map={leather} />
+        </RoundedBox>
       ))}
+      {/* Footrest: tucked in, or raised when reclined */}
+      <group position={[0, 0.3, -0.38]} rotation={[reclined ? -1.25 : 0, 0, 0]}>
+        <RoundedBox args={[0.58, 0.08, 0.4]} radius={0.035} position={[0, reclined ? 0 : -0.05, reclined ? -0.2 : 0.02]} castShadow>
+          <Leather map={leather} />
+        </RoundedBox>
+      </group>
     </group>
+  )
+}
+
+/** Small round side table with a cup holder, between recliners. */
+function SideTable({ x, z }: { x: number; z: number }) {
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.28, 0]}>
+        <cylinderGeometry args={[0.05, 0.08, 0.56, 12]} />
+        <meshStandardMaterial color="#1a1012" />
+      </mesh>
+      <mesh position={[0, 0.58, 0]} castShadow>
+        <cylinderGeometry args={[0.17, 0.17, 0.04, 24]} />
+        <meshStandardMaterial color="#5a3a22" roughness={0.4} />
+      </mesh>
+      <mesh position={[0.06, 0.61, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.045, 0.008, 8, 20]} />
+        <meshStandardMaterial color="#b08d57" metalness={0.8} roughness={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+/** One row: two pairs of recliners with a table between each pair, either side of a centre aisle. */
+function SeatRow({ z, reclinedSeats }: { z: number; reclinedSeats: number[] }) {
+  return (
+    <>
+      {THEATRE_SEAT_XS.map((x, i) => (
+        <Recliner key={x} x={x} z={z} reclined={reclinedSeats.includes(i)} />
+      ))}
+      {THEATRE_TABLE_XS.map((x) => (
+        <SideTable key={x} x={x} z={z + 0.1} />
+      ))}
+    </>
   )
 }
 
@@ -131,18 +187,15 @@ export default function Theatre() {
       <hemisphereLight args={['#f0dcc8', '#3a2228', 1.3]} />
       <RoomShell
         {...THEATRE}
-        floor={{ color: '#ffffff', texture: 'carpet', scale: 1.5 }}
-        walls={{ color: '#ffffff', texture: 'panel', scale: 2 }}
+        floor={{ color: '#ffffff', texture: 'carpet' }}
+        walls={{ color: '#ffffff', texture: 'panel' }}
         ceiling={{ color: '#2a2024' }}
       />
       <Screen />
       <Curtains />
 
-      {SEAT_ROWS.map((z) =>
-        Array.from({ length: SEATS_PER_ROW }, (_, i) => (
-          <Seat key={`${z}-${i}`} x={(i - (SEATS_PER_ROW - 1) / 2) * 1.05} z={z} />
-        )),
-      )}
+      <SeatRow z={THEATRE_ROWS[0]} reclinedSeats={[1]} />
+      <SeatRow z={THEATRE_ROWS[1]} reclinedSeats={[2]} />
 
       {[-2, 3].flatMap((z) => [-wallX, wallX].map((x) => <Sconce key={`${x}-${z}`} x={x} z={z} />))}
     </group>

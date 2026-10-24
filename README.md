@@ -8,7 +8,7 @@ The full vision is in the [master specification](docs/PROJECT_SPEC.md), and prog
 
 ## Current state: Phase 1
 
-You start in the main hall, with the Discovery Fountain in the middle. The theatre, the observatory and the courtyard (where the café's outside sits) open with <kbd>E</kbd>, and each door brings you back to where you left. The library, laboratory, philosophy lounge and café doors are there but locked until later phases. All rooms are placeholder geometry, with simple textures drawn in code (no image files to download). Walking has a gentle head bob, which turns off if your system is set to reduce motion.
+You start in the main hall, with the Discovery Fountain in the middle. The theatre, the observatory and the courtyard open with <kbd>E</kbd>. The courtyard sits in front of a white stucco townhouse with a columned porch, with the café's outside at the far end, and each door brings you back to where you left. The library, laboratory, philosophy lounge and café doors are there but locked until later phases. All rooms are placeholder geometry with textures drawn in code, so there are no image files to download. Floors and walls get a texture painted for their exact size, so patterns don't repeat. Walking has a gentle head bob in step with your footsteps, which turns off if your system is set to reduce motion.
 
 Each room's interior is its own code-split chunk. It starts downloading when you walk up to its door, is mounted only while you are inside, and is unmounted (freeing its geometry and materials) when you leave. Press <kbd>`</kbd> to see the Room Manager's view of every room's state.
 
@@ -29,6 +29,7 @@ Then open the address Vite prints (usually http://localhost:5173) and click to s
 | Mouse or arrow keys | Look around |
 | E | Open a door or interact |
 | Shift | Walk faster |
+| [ and ] | Lower or raise mouse sensitivity (remembered between visits) |
 | Q | Release the cursor |
 | Esc | Also releases the cursor, but the browser uses it to leave full screen too |
 | ` | Show room loading states |

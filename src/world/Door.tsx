@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import { Vector3, type Group } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
+import { useSurfaceTexture } from '../hooks/useTiledTexture.ts'
 import type { DoorDefinition } from '../types/room.ts'
 import { useInteractable } from './InteractionSystem.tsx'
 import { preloadRoom, travelThrough } from './travel.ts'
@@ -19,13 +20,14 @@ export function Door({ door }: { door: DoorDefinition }) {
   const opening = useRef(false)
   const near = useRef(false)
   const { target } = door
+  const wood = useSurfaceTexture('door', DOOR_WIDTH, DOOR_HEIGHT, 1, 400)
 
   const center = useMemo(() => new Vector3(door.position[0], 1.2, door.position[2]), [door.position])
 
   useInteractable({
     position: center,
     radius: 2.2,
-    prompt: target ? `Press E to enter the ${door.label}` : `${door.label}: opens in a later version`,
+    prompt: target ? (door.prompt ?? `Press E to enter the ${door.label}`) : `${door.label}: opens in a later version`,
     onInteract: target
       ? () => {
           opening.current = true
@@ -64,14 +66,20 @@ export function Door({ door }: { door: DoorDefinition }) {
       <group ref={hinge} position={[-DOOR_WIDTH / 2, 0, 0]}>
         <mesh position={[DOOR_WIDTH / 2, DOOR_HEIGHT / 2, 0]} castShadow>
           <boxGeometry args={[DOOR_WIDTH, DOOR_HEIGHT, 0.08]} />
-          <meshStandardMaterial color={target ? '#6e4527' : '#57402e'} roughness={0.6} />
+          <meshStandardMaterial
+            color={door.color ?? (target ? '#8a5a36' : '#6e5440')}
+            map={wood}
+            bumpMap={wood}
+            bumpScale={door.color ? 0.6 : 2}
+            roughness={door.color ? 0.3 : 0.55}
+          />
         </mesh>
         <mesh position={[DOOR_WIDTH - 0.17, 1.1, 0.06]}>
           <sphereGeometry args={[0.045, 12, 12]} />
           <meshStandardMaterial color="#c9a55c" metalness={0.8} roughness={0.3} />
         </mesh>
       </group>
-      <Label3D text={door.label} position={[0, DOOR_HEIGHT + 0.3, 0.05]} />
+      <Label3D text={door.label} position={[0, door.signHeight ?? DOOR_HEIGHT + 0.3, 0.05]} />
     </group>
   )
 }

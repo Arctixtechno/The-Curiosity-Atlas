@@ -17,6 +17,30 @@ export interface GameState {
   prompt: string | null
   /** Rooms whose doors the player is currently standing near. */
   nearbyRoomIds: ReadonlySet<string>
+  /** Mouse look speed multiplier (three.js default is 1). */
+  mouseSensitivity: number
+  /** Short message shown briefly in the corner, e.g. after changing a setting. */
+  toast: string | null
+}
+
+const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
+export const DEFAULT_SENSITIVITY = 2.6
+
+function loadSensitivity(): number {
+  try {
+    const saved = Number(localStorage.getItem(SENSITIVITY_KEY))
+    return saved > 0 ? saved : DEFAULT_SENSITIVITY
+  } catch {
+    return DEFAULT_SENSITIVITY
+  }
+}
+
+export function saveSensitivity(value: number) {
+  try {
+    localStorage.setItem(SENSITIVITY_KEY, String(value))
+  } catch {
+    // Storage can be unavailable (private windows); the setting just won't persist.
+  }
 }
 
 let state: GameState = {
@@ -26,6 +50,8 @@ let state: GameState = {
   transitioning: false,
   prompt: null,
   nearbyRoomIds: new Set(),
+  mouseSensitivity: loadSensitivity(),
+  toast: null,
 }
 
 const listeners = new Set<() => void>()

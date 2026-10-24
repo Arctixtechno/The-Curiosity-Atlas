@@ -7,7 +7,9 @@ import {
   EYE_HEIGHT,
   MAIN_HALL,
   OBSERVATORY,
+  PORTICO,
   THEATRE,
+  THEATRE_ROWS,
   wallColliders,
 } from './dimensions.ts'
 
@@ -20,7 +22,7 @@ const hallW = MAIN_HALL.width / 2 - 0.05
 const mainHallDoors: DoorDefinition[] = [
   { id: 'theatre', label: 'Theatre', position: [hallW, 0, 0], rotationY: -Math.PI / 2, target: { roomId: 'theatre', doorId: 'hall' } },
   { id: 'observatory', label: 'Observatory', position: [hallW, 0, -6], rotationY: -Math.PI / 2, target: { roomId: 'observatory', doorId: 'hall' } },
-  { id: 'entrance', label: 'Entrance', position: [0, 0, hallL], rotationY: Math.PI, target: { roomId: 'courtyard', doorId: 'hall' } },
+  { id: 'entrance', label: 'Courtyard', prompt: 'Press E to go out to the Courtyard', position: [0, 0, hallL], rotationY: Math.PI, target: { roomId: 'courtyard', doorId: 'hall' } },
   { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
   { id: 'laboratory', label: 'Laboratory', position: [-hallW, 0, 0], rotationY: Math.PI / 2 },
   { id: 'lounge', label: 'Philosophy Lounge', position: [-hallW, 0, 6], rotationY: Math.PI / 2 },
@@ -39,9 +41,13 @@ export const rooms: Record<string, RoomDefinition> = {
     displayName: 'Theatre',
     colliders: [
       ...wallColliders(THEATRE.width, THEATRE.length),
-      // Rows of seats.
-      boxCollider(0, -1, 6.4, 0.8),
-      boxCollider(0, 1.4, 6.4, 0.8),
+      // Recliner rows, either side of the centre aisle (footrests reach forward).
+      ...THEATRE_ROWS.flatMap((z) => [-1, 1].map((side) => ({
+        minX: side < 0 ? -3.05 : 0.75,
+        maxX: side < 0 ? -0.75 : 3.05,
+        minZ: z - 0.95,
+        maxZ: z + 0.6,
+      }))),
     ],
     doors: [
       { id: 'hall', label: 'Main Hall', position: [0, 0, THEATRE.length / 2 - 0.05], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'theatre' } },
@@ -65,9 +71,21 @@ export const rooms: Record<string, RoomDefinition> = {
       { minX: -CAFE.width / 2, maxX: CAFE.width / 2, minZ: CAFE.frontZ, maxZ: COURTYARD.length / 2 },
       boxCollider(-4.5, -2, 0.8, 0.8),
       boxCollider(4.5, -2, 0.8, 0.8),
+      // Portico columns either side of the front door.
+      boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
+      boxCollider(PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
     ],
     doors: [
-      { id: 'hall', label: 'Main Hall', position: [0, 0, -COURTYARD.length / 2 + 0.05], rotationY: 0, target: { roomId: 'mainHall', doorId: 'entrance' } },
+      {
+        id: 'hall',
+        label: 'Entrance',
+        prompt: 'Press E to go inside',
+        position: [0, 0, -COURTYARD.length / 2 + 0.05],
+        rotationY: 0,
+        color: '#141414',
+        signHeight: 3.05,
+        target: { roomId: 'mainHall', doorId: 'entrance' },
+      },
       { id: 'cafe', label: 'Café', position: [0, 0, CAFE.frontZ - 0.05], rotationY: Math.PI },
     ],
     load: () => import('./Courtyard.tsx'),

@@ -1,12 +1,11 @@
 import type { TextureName } from '../components/textures.ts'
-import { useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { useSurfaceTexture } from '../hooks/useTiledTexture.ts'
+import type { Collider } from '../types/room.ts'
 import { wallColliders } from './dimensions.ts'
 
 export interface Surface {
   color: string
   texture?: TextureName
-  /** Metres covered by one repeat of the texture. */
-  scale?: number
 }
 
 interface RoomShellProps {
@@ -20,20 +19,28 @@ interface RoomShellProps {
   wallThickness?: number
 }
 
-/** Floor, four walls and an optional flat ceiling, matching `wallColliders`. */
+function Wall({ collider, height, surface, seed }: { collider: Collider; height: number; surface: Surface; seed: number }) {
+  const sizeX = collider.maxX - collider.minX
+  const sizeZ = collider.maxZ - collider.minZ
+  const map = useSurfaceTexture(surface.texture, Math.max(sizeX, sizeZ), height, seed)
+  return (
+    <mesh position={[(collider.minX + collider.maxX) / 2, height / 2, (collider.minZ + collider.maxZ) / 2]} receiveShadow>
+      <boxGeometry args={[sizeX, height, sizeZ]} />
+      <meshStandardMaterial color={surface.color} map={map} bumpMap={map} bumpScale={0.3} roughness={0.95} />
+    </mesh>
+  )
+}
+
+/** Floor, four walls and an optional flat ceiling, matching `wallColliders`. Each surface gets its own texture. */
 export function RoomShell({ width, length, height, floor, walls, ceiling, wallThickness }: RoomShellProps) {
-  const floorScale = floor.scale ?? 2
-  const wallScale = walls.scale ?? 2.5
-  const floorMap = useTiledTexture(floor.texture, width / floorScale, length / floorScale)
-  const ceilingMap = useTiledTexture(ceiling?.texture, width / 3, length / 3)
-  const longWallMap = useTiledTexture(walls.texture, length / wallScale, height / wallScale)
-  const shortWallMap = useTiledTexture(walls.texture, width / wallScale, height / wallScale)
+  const floorMap = useSurfaceTexture(floor.texture, width, length, 1)
+  const ceilingMap = useSurfaceTexture(ceiling?.texture, width, length, 2, 64)
 
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[width, length]} />
-        <meshStandardMaterial color={floor.color} map={floorMap} bumpMap={floorMap} bumpScale={0.6} roughness={0.8} />
+        <meshStandardMaterial color={floor.color} map={floorMap} bumpMap={floorMap} bumpScale={0.6} roughness={0.75} />
       </mesh>
       {ceiling && (
         <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, height, 0]}>
@@ -42,16 +49,7 @@ export function RoomShell({ width, length, height, floor, walls, ceiling, wallTh
         </mesh>
       )}
       {wallColliders(width, length, wallThickness).map((c, i) => (
-        <mesh key={i} position={[(c.minX + c.maxX) / 2, height / 2, (c.minZ + c.maxZ) / 2]} receiveShadow>
-          <boxGeometry args={[c.maxX - c.minX, height, c.maxZ - c.minZ]} />
-          <meshStandardMaterial
-            color={walls.color}
-            map={i < 2 ? longWallMap : shortWallMap}
-            bumpMap={i < 2 ? longWallMap : shortWallMap}
-            bumpScale={0.4}
-            roughness={0.95}
-          />
-        </mesh>
+        <Wall key={i} collider={c} height={height} surface={walls} seed={10 + i} />
       ))}
     </group>
   )

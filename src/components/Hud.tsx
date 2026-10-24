@@ -10,6 +10,7 @@ export function Hud() {
   const transitioning = useGame((s) => s.transitioning)
   const prompt = useGame((s) => s.prompt)
   const activeRoomId = useGame((s) => s.activeRoomId)
+  const toast = useGame((s) => s.toast)
   const [showRoomStates, setShowRoomStates] = useState(false)
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function Hud() {
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
       <div className="room-name">{rooms[activeRoomId].displayName}</div>
       {showRoomStates && <RoomStates />}
+      {toast && <div className="toast">{toast}</div>}
       {isExploring ? (
         <>
           <div className="crosshair" aria-hidden="true" />
@@ -92,6 +94,10 @@ function Intro() {
           </li>
           <li>
             <kbd>Shift</kbd> Walk faster
+          </li>
+          <li>
+            <kbd>[</kbd>
+            <kbd>]</kbd> Mouse sensitivity
           </li>
           <li>
             <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)

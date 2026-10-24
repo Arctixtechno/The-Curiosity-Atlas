@@ -1,4 +1,4 @@
-import { useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { MAIN_HALL } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
@@ -35,50 +35,62 @@ function CeilingLamp({ z }: { z: number }) {
         <sphereGeometry args={[0.18, 16, 16]} />
         <meshStandardMaterial color="#ffe2b0" emissive="#ffcf85" emissiveIntensity={2} />
       </mesh>
-      <pointLight color="#ffcf85" intensity={14} distance={14} decay={1.5} castShadow />
+      <pointLight color="#ffcf85" intensity={14} distance={14} decay={1.5} />
+    </group>
+  )
+}
+
+/** Dark wood panelling along the lower part of the long walls. */
+function WainscotPanel({ x, seed }: { x: number; seed: number }) {
+  const wood = useSurfaceTexture('wood', MAIN_HALL.length, WAINSCOT_HEIGHT, seed)
+  return (
+    <group position={[x, 0, 0]}>
+      <mesh position={[0, WAINSCOT_HEIGHT / 2, 0]} receiveShadow>
+        <boxGeometry args={[0.06, WAINSCOT_HEIGHT, MAIN_HALL.length]} />
+        <meshStandardMaterial color="#9a7658" map={wood} bumpMap={wood} bumpScale={0.5} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, WAINSCOT_HEIGHT + 0.03, 0]}>
+        <boxGeometry args={[0.1, 0.06, MAIN_HALL.length]} />
+        <meshStandardMaterial color="#4a2e1a" roughness={0.5} />
+      </mesh>
     </group>
   )
 }
 
 /** Dark wood panelling along the lower part of the long walls. */
 function Wainscot() {
-  const wood = useTiledTexture('wood', MAIN_HALL.length / 2, 0.5)
   const x = MAIN_HALL.width / 2 - 0.03
   return (
     <>
-      {[-x, x].map((px) => (
-        <group key={px} position={[px, 0, 0]}>
-          <mesh position={[0, WAINSCOT_HEIGHT / 2, 0]} receiveShadow>
-            <boxGeometry args={[0.06, WAINSCOT_HEIGHT, MAIN_HALL.length]} />
-            <meshStandardMaterial color="#8a6a50" map={wood} bumpMap={wood} bumpScale={0.5} roughness={0.7} />
-          </mesh>
-          <mesh position={[0, WAINSCOT_HEIGHT + 0.03, 0]}>
-            <boxGeometry args={[0.1, 0.06, MAIN_HALL.length]} />
-            <meshStandardMaterial color="#4a2e1a" roughness={0.6} />
-          </mesh>
-        </group>
-      ))}
+      <WainscotPanel x={-x} seed={3} />
+      <WainscotPanel x={x} seed={4} />
     </>
   )
 }
 
+function Beam({ z, seed }: { z: number; seed: number }) {
+  const wood = useSurfaceTexture('wood', MAIN_HALL.width, 0.24, seed, 200)
+  return (
+    <mesh position={[0, MAIN_HALL.height - 0.12, z]}>
+      <boxGeometry args={[MAIN_HALL.width, 0.24, 0.22]} />
+      <meshStandardMaterial color="#8a6648" map={wood} roughness={0.8} />
+    </mesh>
+  )
+}
+
 function CeilingBeams() {
-  const wood = useTiledTexture('wood', 2, 0.25)
   const count = Math.floor(MAIN_HALL.length / BEAM_SPACING)
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <mesh key={i} position={[0, MAIN_HALL.height - 0.12, (i - (count - 1) / 2) * BEAM_SPACING]} castShadow>
-          <boxGeometry args={[MAIN_HALL.width, 0.24, 0.22]} />
-          <meshStandardMaterial color="#7a5a40" map={wood} roughness={0.8} />
-        </mesh>
+        <Beam key={i} z={(i - (count - 1) / 2) * BEAM_SPACING} seed={20 + i} />
       ))}
     </>
   )
 }
 
 function Runner() {
-  const carpet = useTiledTexture('carpet', 1, 6)
+  const carpet = useSurfaceTexture('carpet', 2.2, MAIN_HALL.length - 2, 5)
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} receiveShadow>
       <planeGeometry args={[2.2, MAIN_HALL.length - 2]} />

@@ -6,19 +6,18 @@ import { useKeyboard } from '../hooks/useKeyboard.ts'
 import { EYE_HEIGHT } from '../rooms/dimensions.ts'
 import type { Collider } from '../types/room.ts'
 import { moveWithCollisions } from './collision.ts'
-import { gameStore } from './store.ts'
+import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
+import { gameStore, saveSensitivity, useGame } from './store.ts'
 
 const WALK_SPEED = 2.2
 const RUN_SPEED = 4
-/** Mouse look speed (three.js default is 1). */
-const MOUSE_SENSITIVITY = 1.8
-/** Arrow-key look speed in radians per second. */
-const KEY_TURN_SPEED = 2
-const KEY_PITCH_SPEED = 1.3
+/** Arrow-key look speed in radians per second, and how quickly it eases in and out. */
+const KEY_TURN_SPEED = 2.4
+const KEY_PITCH_SPEED = 1.5
+const KEY_LOOK_EASE = 14
 const MAX_PITCH = Math.PI / 2 - 0.05
-/** Head bob height in metres, and bobs per metre walked. */
-const BOB_HEIGHT = 0.035
-const BOB_FREQUENCY = 1.6
+const SENSITIVITY_STEP = 0.2
+const SENSITIVITY_RANGE = [0.4, 6] as const
 
 const reduceMotion =
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -29,24 +28,42 @@ interface PlayerProps {
 
 const forward = new Vector3()
 const right = new Vector3()
+const move = new Vector3()
 const up = new Vector3(0, 1, 0)
 const euler = new Euler(0, 0, 0, 'YXZ')
 
 const held = (k: Set<string>, code: string) => Number(k.has(code))
 
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+function showToast(message: string) {
+  gameStore.set({ toast: message })
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => gameStore.set({ toast: null }), 1500)
+}
+
 /**
- * First-person player: WASD to walk, mouse or arrow keys to look, a gentle
- * head bob while walking (off when the system asks for reduced motion).
+ * First-person player: WASD to walk, mouse or arrow keys to look, and a head
+ * bob synced to footsteps (off when the system asks for reduced motion).
  */
 export function Player({ colliders }: PlayerProps) {
   const keys = useKeyboard()
-  const bobPhase = useRef(0)
+  const sensitivity = useGame((s) => s.mouseSensitivity)
+  const look = useRef({ yaw: 0, pitch: 0 })
+  const bob = useRef({ phase: 0, amount: 0, side: 0 })
 
-  // Q releases the mouse. Escape does too, but in full screen the browser
-  // also uses Escape to leave full screen, which can't be prevented.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Q releases the mouse. Escape does too, but in full screen the browser
+      // also uses Escape to leave full screen, which can't be prevented.
       if (e.code === 'KeyQ' && document.pointerLockElement) document.exitPointerLock()
+      if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+        const [min, max] = SENSITIVITY_RANGE
+        const step = e.code === 'BracketRight' ? SENSITIVITY_STEP : -SENSITIVITY_STEP
+        const next = Math.round(Math.min(max, Math.max(min, gameStore.get().mouseSensitivity + step)) * 10) / 10
+        gameStore.set({ mouseSensitivity: next })
+        saveSensitivity(next)
+        showToast(`Mouse sensitivity ${next.toFixed(1)}`)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -58,49 +75,58 @@ export function Player({ colliders }: PlayerProps) {
     const k = keys.current
     const dt = Math.min(delta, 0.05)
 
-    const turn = held(k, 'ArrowLeft') - held(k, 'ArrowRight')
-    const pitch = held(k, 'ArrowUp') - held(k, 'ArrowDown')
-    if (turn || pitch) {
+    // Arrow keys: ease the turn rate in and out so looking feels smooth.
+    const ease = Math.min(1, dt * KEY_LOOK_EASE)
+    const l = look.current
+    l.yaw += ((held(k, 'ArrowLeft') - held(k, 'ArrowRight')) * KEY_TURN_SPEED - l.yaw) * ease
+    l.pitch += ((held(k, 'ArrowUp') - held(k, 'ArrowDown')) * KEY_PITCH_SPEED - l.pitch) * ease
+    if (Math.abs(l.yaw) > 1e-3 || Math.abs(l.pitch) > 1e-3) {
       euler.setFromQuaternion(camera.quaternion)
-      euler.y += turn * KEY_TURN_SPEED * dt
-      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + pitch * KEY_PITCH_SPEED * dt))
+      euler.y += l.yaw * dt
+      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + l.pitch * dt))
       camera.quaternion.setFromEuler(euler)
     }
 
+    camera.getWorldDirection(forward)
+    forward.y = 0
+    forward.normalize()
+    right.crossVectors(forward, up)
+    // Take off last frame's sway so collisions use the real position.
+    const b = bob.current
+    camera.position.addScaledVector(right, -b.side)
+
     const ahead = held(k, 'KeyW') - held(k, 'KeyS')
     const side = held(k, 'KeyD') - held(k, 'KeyA')
+    const running = k.has('ShiftLeft') || k.has('ShiftRight')
     let moved = 0
 
     if (ahead || side) {
-      camera.getWorldDirection(forward)
-      forward.y = 0
-      forward.normalize()
-      right.crossVectors(forward, up)
-
-      const speed = k.has('ShiftLeft') || k.has('ShiftRight') ? RUN_SPEED : WALK_SPEED
-      // Cap the step so a long frame (e.g. tab switch) can't tunnel through walls.
-      const move = forward.multiplyScalar(ahead).add(right.multiplyScalar(side)).normalize().multiplyScalar(speed * dt)
-
+      const speed = running ? RUN_SPEED : WALK_SPEED
+      // Cap the step (via dt) so a long frame can't tunnel through walls.
+      move.copy(forward).multiplyScalar(ahead).addScaledVector(right, side).normalize().multiplyScalar(speed * dt)
       const [x, z] = moveWithCollisions(camera.position.x, camera.position.z, move.x, move.z, colliders)
       moved = Math.hypot(x - camera.position.x, z - camera.position.z)
       camera.position.x = x
       camera.position.z = z
     }
 
-    if (reduceMotion) return
-    if (moved > 0) {
-      bobPhase.current += moved * BOB_FREQUENCY * Math.PI * 2
-    } else {
-      // Settle back to the nearest resting point instead of snapping.
-      const rest = Math.round(bobPhase.current / Math.PI) * Math.PI
-      bobPhase.current += (rest - bobPhase.current) * Math.min(1, dt * 10)
+    if (reduceMotion) {
+      b.side = 0
+      camera.position.y = EYE_HEIGHT
+      return
     }
-    camera.position.y = EYE_HEIGHT + Math.abs(Math.sin(bobPhase.current)) * BOB_HEIGHT
+    // Half a cycle per stride; fade the bob in when walking and out when stopping.
+    b.phase += (moved / (running ? RUN_STRIDE : WALK_STRIDE)) * Math.PI
+    b.amount += ((moved > 0 ? (running ? 1.3 : 1) : 0) - b.amount) * Math.min(1, dt * 6)
+    const offset = headBobOffset(b.phase, b.amount)
+    b.side = offset.side
+    camera.position.y = EYE_HEIGHT + offset.up
+    camera.position.addScaledVector(right, b.side)
   })
 
   return (
     <PointerLockControls
-      pointerSpeed={MOUSE_SENSITIVITY}
+      pointerSpeed={sensitivity}
       onLock={() => gameStore.set({ isExploring: true })}
       onUnlock={() => {
         keys.current.clear()
