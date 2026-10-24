@@ -343,6 +343,74 @@ function WallLamp({ side, z }: { side: -1 | 1; z: number }) {
   )
 }
 
+/** Dropped soffit round the ceiling edge, hiding a warm LED cove that washes the ceiling with light. */
+const COVE = { width: 0.8, depth: 0.32 }
+function CeilingCove() {
+  const y = THEATRE.height - COVE.depth / 2
+  const sides: { pos: [number, number, number]; size: [number, number, number]; glow: [number, number, number]; glowSize: [number, number]; strip: [number, number, number]; stripSize: [number, number] }[] = [
+    -1, 1,
+  ].flatMap((s) => [
+    {
+      pos: [s * (HALF_W - COVE.width / 2), y, 0],
+      size: [COVE.width, COVE.depth, THEATRE.length],
+      glow: [s * (HALF_W - COVE.width - 0.7), THEATRE.height - 0.01, 0],
+      glowSize: [1.6, THEATRE.length - 2 * COVE.width],
+      strip: [s * (HALF_W - COVE.width), THEATRE.height - COVE.depth + 0.015, 0],
+      stripSize: [0.05, THEATRE.length - 2 * COVE.width],
+    },
+    {
+      pos: [0, y, s * (HALF_L - COVE.width / 2)],
+      size: [THEATRE.width, COVE.depth, COVE.width],
+      glow: [0, THEATRE.height - 0.01, s * (HALF_L - COVE.width - 0.7)],
+      glowSize: [THEATRE.width - 2 * COVE.width, 1.6],
+      strip: [0, THEATRE.height - COVE.depth + 0.015, s * (HALF_L - COVE.width)],
+      stripSize: [THEATRE.width - 2 * COVE.width, 0.05],
+    },
+  ])
+  return (
+    <>
+      {sides.map((c) => (
+        <group key={c.pos.join()}>
+          <mesh position={c.pos}>
+            <boxGeometry args={c.size} />
+            <meshStandardMaterial color="#2a1a14" roughness={0.6} />
+          </mesh>
+          {/* The hidden LED strip, then its light spreading across the ceiling. */}
+          <mesh position={c.strip} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={c.stripSize} />
+            <meshBasicMaterial color="#ffc890" toneMapped={false} />
+          </mesh>
+          <Glow position={c.glow} rotation={[Math.PI / 2, 0, 0]} size={c.glowSize} color={WARM} opacity={0.4} />
+        </group>
+      ))}
+    </>
+  )
+}
+
+/** Upholstered acoustic panel on a side wall, framed in a thin brass trim. */
+function AcousticPanel({ side, z, fabric }: { side: -1 | 1; z: number; fabric: Texture | null }) {
+  const w = 1.6
+  const h = 1.9
+  return (
+    <group position={[side * (HALF_W - 0.04), 2.9, z]} rotation={[0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+      <RoundedBox args={[w, h, 0.07]} radius={0.03} smoothness={3}>
+        <meshStandardMaterial color="#6a1e2a" map={fabric} roughness={1} />
+      </RoundedBox>
+      {[
+        [0, h / 2 + 0.01, w + 0.04, 0.02],
+        [0, -h / 2 - 0.01, w + 0.04, 0.02],
+        [w / 2 + 0.01, 0, 0.02, h],
+        [-w / 2 - 0.01, 0, 0.02, h],
+      ].map(([px, py, sw, sh]) => (
+        <mesh key={`${px}${py}`} position={[px, py, 0.02]}>
+          <boxGeometry args={[sw, sh, 0.04]} />
+          <meshStandardMaterial color="#c9a55c" metalness={0.5} roughness={0.3} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 /** Fibre-optic star ceiling: tiny points of light. */
 function StarCeiling() {
   const geometry = useMemo(() => {
@@ -350,7 +418,7 @@ function StarCeiling() {
     let seed = 7
     const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
     for (let i = 0; i < 420; i++) {
-      points.push((rand() - 0.5) * (THEATRE.width - 0.6), THEATRE.height - 0.02, (rand() - 0.5) * (THEATRE.length - 0.6))
+      points.push((rand() - 0.5) * (THEATRE.width - 2 * COVE.width - 0.4), THEATRE.height - 0.02, (rand() - 0.5) * (THEATRE.length - 2 * COVE.width - 0.4))
     }
     const g = new BufferGeometry()
     g.setAttribute('position', new Float32BufferAttribute(points, 3))
@@ -367,6 +435,7 @@ function StarCeiling() {
 /** Home cinema: tiered floor rising to the entrance, leather recliners, soft wall lamps and a star ceiling. */
 export default function Theatre() {
   const popcorn = usePopcornTexture()
+  const fabric = useTiledTexture('fabric', 3, 3)
   const rows = THEATRE_TIERS.filter((t) => t.rowZ !== undefined)
   return (
     <group>
@@ -389,8 +458,9 @@ export default function Theatre() {
         {...THEATRE}
         floor={{ color: '#ffffff', texture: 'carpet' }}
         walls={{ color: '#ffffff', texture: 'panel' }}
-        ceiling={{ color: '#161014' }}
+        ceiling={{ color: '#3a2430', texture: 'fabric' }}
       />
+      <CeilingCove />
       <StarCeiling />
       <SteppedFloor />
       <LandingRail />
@@ -408,6 +478,9 @@ export default function Theatre() {
       )}
 
       {[-4.5, 0, 4.5].flatMap((z) => [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} />))}
+      {[-6.6, -2.25, 2.25, 6.6].flatMap((z) =>
+        [-1, 1].map((side) => <AcousticPanel key={`${side}-${z}`} side={side as -1 | 1} z={z} fabric={fabric} />),
+      )}
     </group>
   )
 }
