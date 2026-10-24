@@ -1,17 +1,16 @@
 import { PointerLockControls } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useRef } from 'react'
 import { Vector3 } from 'three'
 import { useKeyboard } from '../hooks/useKeyboard.ts'
 import type { Collider } from '../types/room.ts'
 import { moveWithCollisions } from './collision.ts'
+import { gameStore } from './store.ts'
 
 const WALK_SPEED = 2.2
 const RUN_SPEED = 4
 
 interface PlayerProps {
   colliders: Collider[]
-  onLockChange: (locked: boolean) => void
 }
 
 const forward = new Vector3()
@@ -19,12 +18,12 @@ const right = new Vector3()
 const up = new Vector3(0, 1, 0)
 
 /** First-person player: mouse look via pointer lock, WASD to walk. */
-export function Player({ colliders, onLockChange }: PlayerProps) {
+export function Player({ colliders }: PlayerProps) {
   const keys = useKeyboard()
-  const locked = useRef(false)
 
   useFrame(({ camera }, delta) => {
-    if (!locked.current) return
+    const { isExploring, transitioning } = gameStore.get()
+    if (!isExploring || transitioning) return
     const k = keys.current
     const ahead = Number(k.has('KeyW') || k.has('ArrowUp')) - Number(k.has('KeyS') || k.has('ArrowDown'))
     const side = Number(k.has('KeyD') || k.has('ArrowRight')) - Number(k.has('KeyA') || k.has('ArrowLeft'))
@@ -47,14 +46,10 @@ export function Player({ colliders, onLockChange }: PlayerProps) {
 
   return (
     <PointerLockControls
-      onLock={() => {
-        locked.current = true
-        onLockChange(true)
-      }}
+      onLock={() => gameStore.set({ isExploring: true })}
       onUnlock={() => {
-        locked.current = false
         keys.current.clear()
-        onLockChange(false)
+        gameStore.set({ isExploring: false, prompt: null })
       }}
     />
   )

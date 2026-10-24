@@ -1,15 +1,37 @@
-import type { RoomDefinition } from '../types/room.ts'
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react'
+import { rooms } from '../rooms/registry.ts'
+import { Door } from './Door.tsx'
+import { useGame } from './store.ts'
 
-interface RoomManagerProps {
-  activeRoom: RoomDefinition
+// One lazy component per interior, so each room is its own code-split chunk.
+const interiors: Record<string, LazyExoticComponent<ComponentType>> = {}
+for (const room of Object.values(rooms)) {
+  if (room.load) interiors[room.id] = lazy(room.load)
 }
 
 /**
- * Decides which rooms are in the scene. In Phase 0 only the active room is
- * rendered; exterior, preloading and unloading states (spec section 4) come
- * in Phase 1.
+ * Coordinates which rooms are in the scene (spec section 4). Only the active
+ * room's interior is mounted; leaving a room unmounts it, which disposes its
+ * geometry and materials, while the browser keeps the loaded code cached.
+ * Neighbouring rooms appear only as lightweight exteriors.
  */
-export function RoomManager({ activeRoom }: RoomManagerProps) {
-  const Room = activeRoom.component
-  return <Room key={activeRoom.id} />
+export function RoomManager() {
+  const activeRoomId = useGame((s) => s.activeRoomId)
+  const room = rooms[activeRoomId]
+  const Interior = interiors[activeRoomId]
+
+  return (
+    <group key={activeRoomId}>
+      <Suspense fallback={null}>
+        <Interior />
+      </Suspense>
+      {room.visibleExteriors?.map((id) => {
+        const Exterior = rooms[id].exterior
+        return Exterior ? <Exterior key={id} /> : null
+      })}
+      {room.doors.map((door) => (
+        <Door key={door.id} door={door} />
+      ))}
+    </group>
+  )
 }

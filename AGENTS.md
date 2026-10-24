@@ -34,7 +34,14 @@ AI agents may modify the project when given appropriate access and instructions,
 
 Keep three concerns separate (spec section 8.2):
 
-- **Environment system**: `src/world/` (player, camera, room manager, interactions) and `src/rooms/` (one component per room, registered in `src/rooms/registry.ts`).
+- **Environment system**: `src/world/` (player, camera, room manager, doors, interactions) and `src/rooms/` (one component per room, registered in `src/rooms/registry.ts`).
+
+## Adding a room
+
+1. Add its sizes to `src/rooms/dimensions.ts`.
+2. Create `src/rooms/<Room>.tsx` with a **default export** (it is loaded with `import()` so it gets its own chunk). Use `RoomShell` for walls and `Atmosphere` for background and fog.
+3. Register it in `src/rooms/registry.ts` with its colliders, doors and `load`. Every open door needs a matching door in the target room that leads back; `npm test` checks this.
+4. Anything the player can use gets `useInteractable` from `src/world/InteractionSystem.tsx`, so prompts and the E key behave the same everywhere.
 - **Feature system**: `src/features/<feature>/` for discoveries, philosophy, cinema, tourism, experiments and knowledge.
 - **Service system**: `src/services/` for AI requests, storage, external APIs and auth.
 

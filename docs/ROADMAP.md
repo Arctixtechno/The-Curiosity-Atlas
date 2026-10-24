@@ -4,7 +4,7 @@ Taken from section 11 of the [master specification](./PROJECT_SPEC.md). The earl
 
 Status key: ✅ done · 🚧 in progress · ⬜ not started
 
-## Phase 0 — Project Foundation 🚧
+## Phase 0 — Project Foundation ✅
 
 Objective: establish the development environment.
 
@@ -18,34 +18,40 @@ Objective: establish the development environment.
 
 Deliverable: a website that loads an interactive 3D environment.
 
-## Phase 1 — Prototype 0.0.1: Explorable Property ⬜
+## Phase 1 — Prototype 0.0.1: Explorable Property 🚧
 
 Objective: demonstrate the core spatial experience.
 
-Required environments: main hallway, theatre, observatory, small courtyard, exterior representation of the café. Placeholder geometry is fine.
+Required environments (placeholder geometry is fine):
+
+- ✅ Main hallway
+- ✅ Theatre
+- ✅ Observatory
+- ✅ Small courtyard
+- ✅ Exterior representation of the café
 
 Functional requirements:
 
-- First-person movement
-- Mouse-controlled camera
-- Basic collisions
-- Interactive doors
-- Room transitions
-- Dynamic room loading
-- Basic lighting
-- Simple interaction prompts
-- Working navigation between environments
+- ✅ First-person movement
+- ✅ Mouse-controlled camera
+- ✅ Basic collisions
+- ✅ Interactive doors
+- ✅ Room transitions
+- ✅ Dynamic room loading
+- ✅ Basic lighting
+- ✅ Simple interaction prompts
+- ✅ Working navigation between environments
 
 Acceptance criteria:
 
-- The user can navigate the environment
-- Doors function consistently
-- Rooms load when needed
-- Exiting a room returns the user to the correct location
-- The application remains stable during repeated transitions
-- Unnecessary interior models are not all rendered simultaneously
+- ✅ The user can navigate the environment
+- ✅ Doors function consistently
+- ✅ Rooms load when needed
+- ✅ Exiting a room returns the user to the correct location
+- ✅ The application remains stable during repeated transitions
+- ✅ Unnecessary interior models are not all rendered simultaneously
 
-Deliverable: a playable website where the user can move through the property, open doors and enter individually loaded rooms. This is also the first milestone in spec section 17.
+Deliverable: a playable website where the user can move through the property, open doors and enter individually loaded rooms. This is also the first milestone in spec section 17. Marked in progress until it has been play-tested by hand.
 
 ## Phase 2 — Prototype 0.1: Core Curiosity Experience ⬜
 

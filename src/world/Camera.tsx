@@ -1,19 +1,16 @@
 import { useThree } from '@react-three/fiber'
 import { useLayoutEffect } from 'react'
+import { useGame } from './store.ts'
 
-interface CameraProps {
-  position: [number, number, number]
-  yaw: number
-}
-
-/** Places the first-person camera at a room's spawn point. */
-export function Camera({ position, yaw }: CameraProps) {
+/** Places the first-person camera wherever the player last arrived. */
+export function Camera() {
   const camera = useThree((state) => state.camera)
+  const arrival = useGame((s) => s.arrival)
 
   useLayoutEffect(() => {
-    camera.position.set(...position)
-    camera.rotation.set(0, yaw, 0, 'YXZ')
-  }, [camera, position, yaw])
+    camera.position.set(...arrival.position)
+    camera.rotation.set(0, arrival.yaw, 0, 'YXZ')
+  }, [camera, arrival])
 
   return null
 }

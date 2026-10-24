@@ -6,9 +6,11 @@ The Curiosity Atlas is a personal 3D space in the browser where you wander betwe
 
 The full vision is in the [master specification](docs/PROJECT_SPEC.md), and progress is tracked in the [roadmap](docs/ROADMAP.md).
 
-## Current state: Phase 0
+## Current state: Phase 1
 
-The project foundation is in place: a placeholder main hall you can walk around in first person, with the Discovery Fountain in the middle and doors to the future rooms. Doors don't open yet; that comes in Phase 1.
+You start in the main hall, with the Discovery Fountain in the middle. The theatre, the observatory and the courtyard (where the café's outside sits) open with <kbd>E</kbd>, and each door brings you back to where you left. The library, laboratory, philosophy lounge and café doors are there but locked until later phases. All rooms are placeholder geometry.
+
+Each room's interior is its own code-split chunk. It starts downloading when you walk up to its door, is mounted only while you are inside, and is unmounted (freeing its geometry and materials) when you leave. Press <kbd>`</kbd> to see the Room Manager's view of every room's state.
 
 ## Running it
 
@@ -25,8 +27,10 @@ Then open the address Vite prints (usually http://localhost:5173) and click to s
 | --- | --- |
 | W A S D / arrow keys | Move |
 | Mouse | Look around |
+| E | Open a door or interact |
 | Shift | Walk faster |
 | Esc | Release the cursor |
+| ` | Show room loading states |
 
 Other scripts:
 
@@ -43,8 +47,8 @@ React, TypeScript and Vite, with Three.js, React Three Fiber and Drei for the 3D
 ```
 public/            3D models, textures and audio
 src/
-  world/           Player, camera, room manager, collisions
-  rooms/           One component per room, plus the room registry
+  world/           Player, camera, room manager, doors, interactions, collisions
+  rooms/           One lazily loaded component per room, the room registry and shared dimensions
   features/        Discoveries, philosophy, cinema, tourism, experiments, knowledge
   components/      HTML/CSS interface pieces (HUD, panels)
   services/        AI, storage and external APIs (later phases)
