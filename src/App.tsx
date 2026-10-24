@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Hud } from './components/Hud.tsx'
+import { FeaturePanels } from './features/FeaturePanels.tsx'
 import { World } from './world/World.tsx'
 
 export default function App() {
@@ -9,6 +10,7 @@ export default function App() {
         <World />
       </Canvas>
       <Hud />
+      <FeaturePanels />
     </>
   )
 }

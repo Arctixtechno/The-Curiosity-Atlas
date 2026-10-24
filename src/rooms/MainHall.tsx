@@ -1,3 +1,4 @@
+import { FountainInteraction } from '../features/discoveries/FountainInteraction.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { MAIN_HALL } from './dimensions.ts'
@@ -115,6 +116,7 @@ export default function MainHall() {
       <CeilingBeams />
       <Runner />
       <Fountain />
+      <FountainInteraction />
       <CeilingLamp z={-6} />
       <CeilingLamp z={6} />
     </group>
