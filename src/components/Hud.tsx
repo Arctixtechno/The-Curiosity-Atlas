@@ -82,7 +82,10 @@ function Intro() {
             <kbd>D</kbd> Move
           </li>
           <li>
-            <kbd>Mouse</kbd> Look around
+            <kbd>Mouse</kbd> or <kbd>←</kbd>
+            <kbd>↑</kbd>
+            <kbd>↓</kbd>
+            <kbd>→</kbd> Look around
           </li>
           <li>
             <kbd>E</kbd> Open doors and interact
@@ -91,7 +94,7 @@ function Intro() {
             <kbd>Shift</kbd> Walk faster
           </li>
           <li>
-            <kbd>Esc</kbd> Release cursor
+            <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)
           </li>
         </ul>
       </div>

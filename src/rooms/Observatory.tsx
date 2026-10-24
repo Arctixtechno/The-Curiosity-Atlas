@@ -28,7 +28,11 @@ export default function Observatory() {
     <group>
       <Atmosphere background="#03040c" />
       <hemisphereLight args={['#8a9fe0', '#2a2430', 1.3]} />
-      <RoomShell {...OBSERVATORY} floorColor="#3a3330" wallColor="#4a4560" />
+      <RoomShell
+        {...OBSERVATORY}
+        floor={{ color: '#9a9aa8', texture: 'wood' }}
+        walls={{ color: '#8a88b0', texture: 'plaster' }}
+      />
 
       <mesh position={[0, OBSERVATORY.height, 0]}>
         <sphereGeometry args={[DOME_RADIUS, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2]} />

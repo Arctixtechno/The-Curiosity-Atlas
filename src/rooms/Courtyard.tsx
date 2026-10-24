@@ -33,8 +33,8 @@ export default function Courtyard() {
         width={COURTYARD.width}
         length={COURTYARD.length}
         height={COURTYARD.hedgeHeight}
-        floorColor="#b9a888"
-        wallColor="#4f6b3a"
+        floor={{ color: '#ffffff', texture: 'stone', scale: 3 }}
+        walls={{ color: '#5f8a44', texture: 'fabric', scale: 0.8 }}
         wallThickness={0.4}
       />
       {/* The house wall the entrance door sits in. */}
