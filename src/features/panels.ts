@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 // one releases the mouse so the visitor can click and type; closing one with
 // a click captures it again so exploring carries on.
 
-export type PanelId = 'fountain' | 'library'
+export type PanelId = 'fountain' | 'library' | 'lounge'
 
 let open: PanelId | null = null
 const listeners = new Set<() => void>()

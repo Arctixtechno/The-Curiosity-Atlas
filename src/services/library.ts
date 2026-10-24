@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react'
 // survive changes to the curated list, and so later features (conversations,
 // videos) can save into the same library.
 
-export type LibraryItemKind = 'discovery'
+export type LibraryItemKind = 'discovery' | 'insight'
 
 export interface LibraryItem {
   /** Unique per saved thing, e.g. "discovery:ship-of-theseus". */

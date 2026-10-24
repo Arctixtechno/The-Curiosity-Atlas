@@ -2,14 +2,22 @@ import { useEffect } from 'react'
 import { useGame } from '../world/store.ts'
 import { FountainPanel } from './discoveries/FountainPanel.tsx'
 import { LibraryPanel } from './library/LibraryPanel.tsx'
-import { closePanel, openPanel, useOpenPanel } from './panels.ts'
+import { LoungePanel } from './philosophy/LoungePanel.tsx'
+import { closePanel, openPanel, useOpenPanel, type PanelId } from './panels.ts'
 import './FeaturePanels.css'
+
+const PANEL_NAMES: Record<PanelId, string> = {
+  fountain: 'Discovery Fountain',
+  library: 'Library of Discoveries',
+  lounge: 'Philosophy Lounge',
+}
 
 const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
 
 /**
- * HTML overlay for the central features (Discovery Fountain, Library). Sits
+ * HTML overlay for the central features (Discovery Fountain, Library,
+ * Philosophy Lounge). Sits
  * above the HUD; L opens the Library from anywhere, Escape closes a panel.
  */
 export function FeaturePanels() {
@@ -39,11 +47,13 @@ export function FeaturePanels() {
   return (
     // Clicks inside must not reach the document, where they would recapture the mouse.
     <div className="feature-backdrop" onClick={(e) => (e.stopPropagation(), e.target === e.currentTarget && closePanel(true))}>
-      <section className="feature-panel" role="dialog" aria-modal="true" aria-label={panel === 'fountain' ? 'Discovery Fountain' : 'Library of Discoveries'}>
+      <section className="feature-panel" role="dialog" aria-modal="true" aria-label={PANEL_NAMES[panel]}>
         <button className="panel-close" onClick={() => closePanel(true)} aria-label="Close and keep exploring">
           ×
         </button>
-        {panel === 'fountain' ? <FountainPanel /> : <LibraryPanel />}
+        {panel === 'fountain' && <FountainPanel />}
+        {panel === 'library' && <LibraryPanel />}
+        {panel === 'lounge' && <LoungePanel />}
       </section>
     </div>
   )
