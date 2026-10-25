@@ -267,6 +267,44 @@ const painters = {
     }
   },
 
+  /**
+   * Clipped box or privet: small leaves packed in layers, darker deeper in
+   * and brighter on the outside where the light reaches, with dark gaps.
+   */
+  boxleaf: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    ctx.fillStyle = '#132310'
+    ctx.fillRect(0, 0, w, h)
+    const layers = [
+      { greens: ['#1f3a17', '#24421a', '#2a4a1d'], count: 0.9 },
+      { greens: ['#2f5521', '#3a6427', '#33592a'], count: 1 },
+      { greens: ['#4a7a2f', '#578a37', '#3f6c2a', '#6a9a40'], count: 0.75 },
+      { greens: ['#78a84a', '#88b656', '#6e9e45'], count: 0.18 },
+    ]
+    for (const { greens, count } of layers) {
+      const n = ((w * h) / (ppm * ppm)) * 9000 * count
+      for (let i = 0; i < n; i++) {
+        const x = rand() * w
+        const y = rand() * h
+        const len = (0.009 + rand() * 0.008) * ppm
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(rand() * Math.PI * 2)
+        ctx.fillStyle = greens[Math.floor(rand() * greens.length)]
+        ctx.beginPath()
+        ctx.ellipse(0, 0, len, len * 0.55, 0, 0, Math.PI * 2)
+        ctx.fill()
+        // A glint along one side of the leaf, where it catches the sky.
+        ctx.fillStyle = 'rgba(220, 240, 190, 0.12)'
+        ctx.beginPath()
+        ctx.ellipse(-len * 0.2, -len * 0.18, len * 0.6, len * 0.22, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+    }
+    mottle(c, 0.25, 0.06)
+  },
+
   /** Theatre carpet with a small repeating diamond pattern. */
   carpet: (c) => {
     const { ctx, w, h, ppm } = c
@@ -467,6 +505,7 @@ const TILE_SIZES: Partial<Record<TextureName, [number, number]>> = {
   leather: [0.5, 512],
   marble: [1, 512],
   hedge: [1, 384],
+  boxleaf: [1, 512],
   grass: [2, 256],
   fabric: [0.5, 512],
 }

@@ -6,7 +6,11 @@ import {
   CAFE_TABLES,
   COURTYARD,
   EYE_HEIGHT,
+  HALL_FURNITURE,
   HALL_PLANTS,
+  LAB_COAT_STAND,
+  COURTYARD_BENCH,
+  DOOR_POTS,
   LABORATORY,
   MAIN_HALL,
   MAP_TABLE,
@@ -71,6 +75,9 @@ export const rooms: Record<string, RoomDefinition> = {
       boxCollider(0, 0, 2.2, 2.2),
       ...HALL_PLANTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       boxCollider(...MAP_TABLE, 1.1, 1.6),
+      boxCollider(...HALL_FURNITURE.coatStand, 0.5, 0.5),
+      boxCollider(...HALL_FURNITURE.bench, 0.5, 1.6),
+      boxCollider(...HALL_FURNITURE.console, 0.45, 1.2),
     ],
     doors: mainHallDoors,
     load: () => import('./MainHall.tsx'),
@@ -137,6 +144,7 @@ export const rooms: Record<string, RoomDefinition> = {
       ...wallColliders(LABORATORY.width, LABORATORY.length),
       boxCollider(...LABORATORY.gasBench, LABORATORY.bench.width + 0.2, LABORATORY.bench.depth + 0.2),
       boxCollider(...LABORATORY.buoyancyBench, LABORATORY.bench.width + 0.2, LABORATORY.bench.depth + 0.2),
+      boxCollider(...LAB_COAT_STAND, 0.5, 0.5),
       // Glassware shelves along the far wall.
       {
         minX: -LABORATORY.width / 2,
@@ -167,6 +175,8 @@ export const rooms: Record<string, RoomDefinition> = {
       boxCollider(1.3, CAFE.frontZ - 0.75, 0.6, 0.5),
       boxCollider(-4.5, -2, 0.8, 0.8),
       boxCollider(4.5, -2, 0.8, 0.8),
+      boxCollider(...COURTYARD_BENCH, 0.5, 1.6),
+      ...DOOR_POTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       // Portico columns either side of the front door.
       boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
       boxCollider(PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),

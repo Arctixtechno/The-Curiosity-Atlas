@@ -13,8 +13,8 @@ const DOOR_HEIGHT = 2.3
 const OPEN_ANGLE = -1.4
 /** Start loading the room behind a door once the player is this close. */
 const PRELOAD_RADIUS = 5
-/** Classic London front-door navy, light enough for the paint and panels to read. */
-const FRONT_DOOR_COLOR = '#2b4a78'
+/** Deep London front-door navy. */
+const FRONT_DOOR_COLOR = '#1d3157'
 
 /** A door on a room's wall. Open doors lead to another room; the rest are locked for now. */
 export function Door({ door }: { door: DoorDefinition }) {

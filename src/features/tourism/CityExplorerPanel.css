@@ -19,6 +19,7 @@
 
 .city-map {
   height: 360px;
+  border: 1px solid rgba(224, 164, 88, 0.25);
   border-radius: 8px;
   /* Shown while tiles load, or if they can't. */
   background: #d9cdb4;
@@ -62,9 +63,7 @@
 }
 
 .city-tag {
-  margin-left: 8px;
-  color: #7fc7a4;
-  font-size: 0.75rem;
+  color: #9fd8b8;
 }
 
 .city-stamps {
@@ -112,5 +111,50 @@
 }
 
 .city-credit {
-  margin-top: 14px;
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(224, 164, 88, 0.2);
+}
+
+.city-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.city-groups .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.city-groups .button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.city-groups .city-dot {
+  width: 9px;
+  height: 9px;
+}
+
+.city-kind {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+/* Leaflet's place-name tooltip, in the panel's colours. */
+.leaflet-tooltip.city-tooltip {
+  border: 1px solid rgba(224, 164, 88, 0.45);
+  border-radius: 6px;
+  background: rgba(24, 18, 12, 0.92);
+  box-shadow: none;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.leaflet-tooltip-top.city-tooltip::before {
+  border-top-color: rgba(224, 164, 88, 0.45);
 }

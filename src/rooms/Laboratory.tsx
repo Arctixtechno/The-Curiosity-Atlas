@@ -1,12 +1,13 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import { CanvasTexture, SRGBColorSpace, Vector3, type Group } from 'three'
+import { CoatStand, Stool, WallClock } from '../components/Furnishings.tsx'
 import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
-import { LABORATORY } from './dimensions.ts'
+import { LAB_COAT_STAND, LABORATORY } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
 
 const { width: W, length: L, height: H, bench: BENCH } = LABORATORY
@@ -405,6 +406,11 @@ export default function Laboratory() {
       <BuoyancyStation />
       <Chalkboard />
       <Shelves />
+      {[LABORATORY.gasBench, LABORATORY.buoyancyBench].flatMap(([x, z]) =>
+        [-0.6, 0.6].map((dx) => <Stool key={`${x}${dx}`} position={[x + dx, 0, z + BENCH.depth / 2 + 0.45]} />),
+      )}
+      <WallClock position={[W / 2 - 0.04, 2.7, 1]} rotationY={-Math.PI / 2} />
+      <CoatStand position={[LAB_COAT_STAND[0], 0, LAB_COAT_STAND[1]]} coat="#eeece4" scarf="#3a5a7a" />
       <Pendant x={-2.6} z={-2} />
       <Pendant x={2.6} z={-2} />
       <Pendant x={0} z={2.5} />

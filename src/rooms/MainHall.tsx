@@ -1,8 +1,9 @@
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { Bench, CoatStand, ConsoleTable, Flowers } from '../components/Furnishings.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { MapTable } from '../features/tourism/MapTable.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
-import { HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
+import { HALL_FURNITURE, HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
 
 const FOUNTAIN_RADIUS = 1.1
@@ -62,7 +63,15 @@ function Skirting() {
   )
 }
 
-function SkirtingPiece({ position, size, seed }: { position: [number, number, number]; size: [number, number, number]; seed: number }) {
+function SkirtingPiece({
+  position,
+  size,
+  seed,
+}: {
+  position: [number, number, number]
+  size: [number, number, number]
+  seed: number
+}) {
   const wood = useSurfaceTexture('wood', Math.max(size[0], size[2]), size[1], seed, 200)
   return (
     <group position={position}>
@@ -177,6 +186,20 @@ export default function MainHall() {
       <Runner />
       <Fountain />
       <MapTable />
+      <CoatStand position={[HALL_FURNITURE.coatStand[0], 0, HALL_FURNITURE.coatStand[1]]} />
+      <Bench position={[HALL_FURNITURE.bench[0], 0, HALL_FURNITURE.bench[1]]} rotationY={Math.PI / 2} />
+      <ConsoleTable position={[HALL_FURNITURE.console[0], 0, HALL_FURNITURE.console[1]]} rotationY={Math.PI / 2}>
+        <Flowers position={[0.25, 0, 0]} />
+        {/* A small stack of books. */}
+        <mesh position={[-0.25, 0.03, 0]} rotation={[0, 0.2, 0]}>
+          <boxGeometry args={[0.24, 0.06, 0.17]} />
+          <meshStandardMaterial color="#6a2c22" roughness={0.8} />
+        </mesh>
+        <mesh position={[-0.24, 0.085, 0.01]} rotation={[0, -0.1, 0]}>
+          <boxGeometry args={[0.21, 0.05, 0.15]} />
+          <meshStandardMaterial color="#2c4a5a" roughness={0.8} />
+        </mesh>
+      </ConsoleTable>
       <CeilingLamp z={-6} />
       <CeilingLamp z={6} />
     </group>

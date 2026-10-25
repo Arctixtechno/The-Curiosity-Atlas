@@ -3,16 +3,25 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { planWalk } from './geo.ts'
-import { ALL_PLACES, NEIGHBOURHOODS, type Neighbourhood, type Place } from './places.ts'
+import {
+  ALL_PLACES,
+  groupOf,
+  KIND_NAMES,
+  NEIGHBOURHOODS,
+  PLACE_GROUPS,
+  type Neighbourhood,
+  type Place,
+  type PlaceGroupId,
+} from './places.ts'
 import { updatePassport, usePassport } from './passport.ts'
 import './CityExplorerPanel.css'
 
 const WALK_LENGTHS = [60, 120, 180, 240]
-const COLOURS = { place: '#e0a458', gem: '#7fc7a4', visited: '#9aa7b8', selected: '#fff4dc' }
+const COLOURS = { visited: '#8a929c', selected: '#fff4dc', edge: '#2a1d12' }
 
+/** Each place is coloured by its group, and greyed once you've been. */
 function markerColour(place: Place, visited: boolean) {
-  if (visited) return COLOURS.visited
-  return place.hiddenGem ? COLOURS.gem : COLOURS.place
+  return visited ? COLOURS.visited : groupOf(place.kind).colour
 }
 
 function formatMinutes(minutes: number) {
@@ -30,19 +39,21 @@ export function CityExplorerPanel() {
   const [area, setArea] = useState<Neighbourhood>(NEIGHBOURHOODS[0])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [walkLength, setWalkLength] = useState<number | null>(null)
+  const [group, setGroup] = useState<PlaceGroupId | null>(null)
   const passport = usePassport()
 
+  const shown = group ? area.places.filter((p) => groupOf(p.kind).id === group) : area.places
   const selected = area.places.find((p) => p.id === selectedId) ?? null
   const walk = useMemo(
     () =>
       walkLength
         ? planWalk(
-            area.places.filter((p) => !passport[p.id]?.visited),
+            shown.filter((p) => !passport[p.id]?.visited),
             area.centre,
             walkLength,
           )
         : null,
-    [area, walkLength, passport],
+    [area, walkLength, passport, shown],
   )
 
   const visitedCount = ALL_PLACES.filter((p) => passport[p.id]?.visited).length
@@ -50,6 +61,7 @@ export function CityExplorerPanel() {
 
   const chooseArea = (n: Neighbourhood) => {
     setArea(n)
+    setGroup(null)
     setSelectedId(null)
     setWalkLength(null)
   }
@@ -70,8 +82,34 @@ export function CityExplorerPanel() {
         ))}
       </div>
 
+      <div className="city-groups" role="group" aria-label="Show places">
+        <button className={`button button-quiet${group ? '' : ' button-active'}`} onClick={() => setGroup(null)}>
+          Everything
+        </button>
+        {PLACE_GROUPS.map((g) => {
+          const count = area.places.filter((p) => groupOf(p.kind).id === g.id).length
+          return (
+            <button
+              key={g.id}
+              className={`button button-quiet${group === g.id ? ' button-active' : ''}`}
+              disabled={!count}
+              onClick={() => setGroup(group === g.id ? null : g.id)}
+            >
+              <span className="city-dot" style={{ background: g.colour }} />
+              {g.name} <span className="muted">{count}</span>
+            </button>
+          )
+        })}
+      </div>
+
       <div className="city-layout">
-        <CityMap area={area} selectedId={selectedId} onSelect={setSelectedId} walk={walk?.stops.map((s) => s.stop) ?? null} />
+        <CityMap
+          area={area}
+          places={shown}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          walk={walk?.stops.map((s) => s.stop) ?? null}
+        />
 
         <div className="city-side">
           {selected ? (
@@ -80,13 +118,16 @@ export function CityExplorerPanel() {
             <>
               <p>{area.blurb}</p>
               <ul className="city-places">
-                {area.places.map((p) => (
+                {shown.map((p) => (
                   <li key={p.id}>
                     <button className="city-place" onClick={() => setSelectedId(p.id)}>
                       <span className="city-dot" style={{ background: markerColour(p, !!passport[p.id]?.visited) }} />
                       <span>
                         {p.name}
-                        {p.hiddenGem && <span className="city-tag">hidden gem</span>}
+                        <span className="city-kind">
+                          {KIND_NAMES[p.kind]}
+                          {p.hiddenGem && <span className="city-tag"> · hidden gem</span>}
+                        </span>
                       </span>
                       <span className="city-stamps" aria-label="In your passport">
                         {passport[p.id]?.visited && <span title="Visited">✓</span>}
@@ -146,13 +187,13 @@ export function CityExplorerPanel() {
       </p>
       <p className="muted">Your passport is kept in this browser only.</p>
 
-      <p className="muted city-credit">
+      <footer className="muted city-credit">
         Map data ©{' '}
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
           OpenStreetMap
         </a>{' '}
         contributors. Place facts from each place's linked source.
-      </p>
+      </footer>
     </Panel>
   )
 }
@@ -166,7 +207,7 @@ function PlaceDetails({ place, onBack }: { place: Place; onBack: () => void }) {
       </button>
       <h4>{place.name}</h4>
       <p className="muted">
-        {place.kind}
+        {KIND_NAMES[place.kind]}
         {place.hiddenGem ? ' · hidden gem' : ''} · allow about {formatMinutes(place.visitMinutes)}
       </p>
       <p>{place.description}</p>
@@ -205,11 +246,13 @@ function PlaceDetails({ place, onBack }: { place: Place; onBack: () => void }) {
 /** The Leaflet map: OpenStreetMap tiles, a dot per place, and the planned walk as a line. */
 function CityMap({
   area,
+  places,
   selectedId,
   onSelect,
   walk,
 }: {
   area: Neighbourhood
+  places: Place[]
   selectedId: string | null
   onSelect: (id: string) => void
   walk: Place[] | null
@@ -251,20 +294,20 @@ function CityMap({
         { color: COLOURS.selected, weight: 3, dashArray: '6 6', opacity: 0.85 },
       ).addTo(group)
     }
-    for (const place of area.places) {
+    for (const place of places) {
       const selected = place.id === selectedId
       L.circleMarker(place.at, {
-        radius: selected ? 10 : 7,
-        color: selected ? COLOURS.selected : '#2a1d12',
-        weight: 2,
+        radius: selected ? 7 : 5,
+        color: selected ? COLOURS.selected : COLOURS.edge,
+        weight: selected ? 2 : 1.5,
         fillColor: markerColour(place, !!passport[place.id]?.visited),
         fillOpacity: 0.95,
       })
-        .bindTooltip(place.name)
+        .bindTooltip(place.name, { className: 'city-tooltip', direction: 'top', offset: [0, -6] })
         .on('click', () => select.current(place.id))
         .addTo(group)
     }
-  }, [area, selectedId, walk, passport])
+  }, [places, selectedId, walk, passport])
 
   return <div ref={container} className="city-map" aria-label={`Map of ${area.name}`} />
 }

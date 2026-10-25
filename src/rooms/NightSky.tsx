@@ -18,6 +18,7 @@ import {
   type Mesh,
   type MeshBasicMaterial,
 } from 'three'
+import { useGame } from '../world/store.ts'
 
 // A night sky generated afresh on every visit: a Milky Way band, coloured
 // stars, faint nebulae, a cratered moon and the odd shooting star. Directions
@@ -96,116 +97,157 @@ const smoothstep = (a: number, b: number, x: number) => {
  * The plane of the Milky Way: a great circle through a point high over the
  * opening, at a random tilt, with its bright core over the opening.
  */
-function galaxy(rand: Rand) {
-  const core = direction(OPENING_U + (rand() - 0.5) * 0.03, 0.75 + rand() * 0.45)
+function galaxy(rand: Rand, near: Vector3) {
+  // Close to the moon, so the telescope shows the Milky Way behind it.
+  const core = near
+    .clone()
+    .normalize()
+    .add(new Vector3(gaussian(rand), gaussian(rand), gaussian(rand)).normalize().multiplyScalar(0.12))
+    .normalize()
   const across = new Vector3(Math.cos(rand() * Math.PI * 2), 0, Math.sin(rand() * Math.PI * 2))
   const pole = new Vector3().crossVectors(core, across).normalize()
   const along = new Vector3().crossVectors(pole, core)
   /** Galactic latitude and longitude of a direction, in radians, with the core at longitude 0. */
-  return (d: Vector3) => ({ b: Math.asin(d.dot(pole)), l: Math.atan2(d.dot(along), d.dot(core)) })
+  const toGalaxy = (d: Vector3) => ({ b: Math.asin(d.dot(pole)), l: Math.atan2(d.dot(along), d.dot(core)) })
+  return { core, pole, along, toGalaxy }
 }
 
 /**
- * The soft parts of the sky: a deep gradient with faint airglow at the
- * horizon, the Milky Way with its dust lanes, and a few nebulae. Worked out
- * pixel by pixel at a lower resolution (it's all soft), then scaled up.
+ * The soft parts of the sky, worked out for every pixel on the graphics card
+ * so it stays sharp at any magnification: a deep gradient with faint airglow
+ * at the horizon, the Milky Way with clumps and dust lanes, a few nebulae, and
+ * layers of stars too faint to see by eye that come out through the telescope.
  */
-function paintSky(rand: Rand) {
-  const noise = makeNoise(rand)
-  const toGalaxy = galaxy(rand)
-  const nebulae = Array.from({ length: 4 }, () => ({
-    at: direction(OPENING_U + gaussian(rand) * 0.12, 0.35 + rand() * 1.1),
-    size: 0.04 + rand() * 0.06,
-    tone: [
+function skyMaterial(rand: Rand, moon: Vector3) {
+  const { core, pole, along, toGalaxy } = galaxy(rand, moon)
+  const nebulae = Array.from({ length: 4 }, () => {
+    const at = direction(OPENING_U + gaussian(rand) * 0.12, 0.35 + rand() * 1.1)
+    const tone = [
       [1, 0.35, 0.55],
       [0.35, 0.6, 1],
       [0.75, 0.45, 1],
-    ][Math.floor(rand() * 3)],
-  }))
-  const lw = 1024
-  const lh = 512
-  // Only the sky above the horizon (and a little below, for the haze) is ever seen.
-  const rows = Math.ceil(lh * 0.56)
-  const low = document.createElement('canvas')
-  low.width = lw
-  low.height = lh
-  const lctx = low.getContext('2d')!
-  const image = lctx.createImageData(lw, lh)
-  const d = new Vector3()
-  for (let y = 0; y < lh; y++) {
-    const elevation = Math.PI / 2 - ((y + 0.5) / lh) * Math.PI
-    const h = Math.max(0, elevation)
-    // Night sky: near black overhead, deep blue lower down, a faint green airglow at the horizon.
-    let r = 0.012 + 0.05 * Math.exp(-h * 4)
-    let g = 0.016 + 0.06 * Math.exp(-h * 4) + 0.025 * Math.exp(-h * 14)
-    let b = 0.04 + 0.11 * Math.exp(-h * 3.2)
-    for (let x = 0; x < lw && y < rows; x++) {
-      direction((x + 0.5) / lw, elevation, d)
-      const { b: lat, l } = toGalaxy(d)
-      const coreGlow = 0.45 + 0.55 * Math.exp(-((l / 0.8) ** 2))
-      const clumps = noise(d.x * 3 + 7, d.y * 3, d.z * 3)
-      const width = 0.11 + 0.05 * noise(d.x * 1.5, d.y * 1.5 + 3, d.z * 1.5)
-      let band = Math.exp(-((lat / width) ** 2)) * (0.35 + 0.9 * clumps ** 1.5) + 0.22 * Math.exp(-((lat / 0.4) ** 2))
-      band *= coreGlow
-      // Dust lanes: dark, wispy and close to the plane.
-      const dust = smoothstep(0.48, 0.72, noise(d.x * 7 + 11, d.y * 7, d.z * 7 - 5, 5)) * Math.exp(-(((lat - 0.02) / 0.06) ** 2))
-      band *= 1 - 0.85 * dust
-      const warm = Math.exp(-((l / 0.6) ** 2))
-      const glow = band * 0.22
-      r += glow * (0.75 + 0.25 * warm)
-      g += glow * (0.78 + 0.12 * warm)
-      b += glow * (0.95 - 0.15 * warm)
-      for (const n of nebulae) {
-        const a = Math.acos(Math.min(1, d.dot(n.at)))
-        if (a > n.size * 3) continue
-        const amount = Math.exp(-((a / n.size) ** 2)) * smoothstep(0.35, 0.8, noise(d.x * 18, d.y * 18, d.z * 18 + 9)) * 0.16
-        r += amount * n.tone[0]
-        g += amount * n.tone[1]
-        b += amount * n.tone[2]
+    ][Math.floor(rand() * 3)]
+    return { at, size: 0.04 + rand() * 0.06, tone: new Vector3(...tone) }
+  })
+  const material = new ShaderMaterial({
+    uniforms: {
+      core: { value: core },
+      pole: { value: pole },
+      along: { value: along },
+      seed: { value: new Vector3(rand() * 100, rand() * 100, rand() * 100) },
+      nebulaAt: { value: nebulae.map((n) => n.at) },
+      nebulaSize: { value: nebulae.map((n) => n.size) },
+      nebulaTone: { value: nebulae.map((n) => n.tone) },
+    },
+    vertexShader: /* glsl */ `
+      varying vec3 vDir;
+      void main() {
+        vDir = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
-      // A touch of grain so the gradients don't band.
-      const grain = (rand() - 0.5) * 0.008
-      const i = (y * lw + x) * 4
-      image.data[i] = Math.min(255, (r + grain) * 255)
-      image.data[i + 1] = Math.min(255, (g + grain) * 255)
-      image.data[i + 2] = Math.min(255, (b + grain) * 255)
-      image.data[i + 3] = 255
-      r = 0.012 + 0.05 * Math.exp(-h * 4)
-      g = 0.016 + 0.06 * Math.exp(-h * 4) + 0.025 * Math.exp(-h * 14)
-      b = 0.04 + 0.11 * Math.exp(-h * 3.2)
-    }
-    if (y >= rows) {
-      for (let x = 0; x < lw; x++) {
-        const i = (y * lw + x) * 4
-        image.data[i] = r * 255
-        image.data[i + 1] = g * 255
-        image.data[i + 2] = b * 255
-        image.data[i + 3] = 255
-      }
-    }
-  }
-  lctx.putImageData(image, 0, 0)
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 core;
+      uniform vec3 pole;
+      uniform vec3 along;
+      uniform vec3 seed;
+      uniform vec3 nebulaAt[4];
+      uniform float nebulaSize[4];
+      uniform vec3 nebulaTone[4];
+      varying vec3 vDir;
 
-  const w = 2048
-  const h = 1024
-  const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext('2d')!
-  ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(low, 0, 0, w, h)
-  // Star dust too faint to pick out one by one, thickest in the Milky Way.
-  for (let i = 0; i < 26000; i++) {
-    const u = rand()
-    const elevation = Math.asin(rand())
-    const { b: lat } = toGalaxy(direction(u, elevation, d))
-    if (rand() > 0.25 + 0.75 * Math.exp(-((lat / 0.18) ** 2))) continue
-    ctx.fillStyle = `rgba(225, 232, 255, ${0.08 + rand() * 0.22})`
-    ctx.fillRect(u * w, (0.5 - elevation / Math.PI) * h, 1, 1)
-  }
-  const texture = new CanvasTexture(canvas)
-  texture.colorSpace = SRGBColorSpace
-  return { texture, toGalaxy }
+      float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float noise(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(
+          mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+          mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y),
+          f.z);
+      }
+      float fbm(vec3 p, int octaves) {
+        float sum = 0.0;
+        float amp = 0.5;
+        float norm = 0.0;
+        for (int o = 0; o < 8; o++) {
+          if (o >= octaves) break;
+          sum += amp * noise(p);
+          norm += amp;
+          p *= 2.03;
+          amp *= 0.5;
+        }
+        return sum / norm;
+      }
+
+      // One layer of stars: a random star in some cells of a grid over the
+      // sky, drawn about a pixel wide whatever the zoom.
+      float starLayer(vec3 d, float scale, float threshold) {
+        vec3 p = d * scale;
+        float pixel = length(fwidth(p));
+        // Only once a cell spans a few pixels, so these stars come out as you
+        // zoom in rather than turning the wide view to grain.
+        float resolved = smoothstep(0.5, 0.2, pixel);
+        if (resolved <= 0.0) return 0.0;
+        vec3 cell = floor(p);
+        float h = hash(cell + seed);
+        if (h < threshold) return 0.0;
+        vec3 centre = cell + 0.5 + (vec3(hash(cell + 1.3), hash(cell + 2.7), hash(cell + 5.1)) - 0.5) * 0.7;
+        float dist = length(p - centre) / max(pixel, 1e-4);
+        return resolved * exp(-dist * dist * 0.9) * pow((h - threshold) / (1.0 - threshold), 2.0);
+      }
+
+      void main() {
+        vec3 d = normalize(vDir);
+        float h = max(0.0, d.y);
+        vec3 colour = vec3(
+          0.012 + 0.05 * exp(-h * 4.0),
+          0.016 + 0.06 * exp(-h * 4.0) + 0.025 * exp(-h * 14.0),
+          0.04 + 0.11 * exp(-h * 3.2));
+
+        float lat = asin(clamp(dot(d, pole), -1.0, 1.0));
+        float lon = atan(dot(d, along), dot(d, core));
+        float coreGlow = 0.45 + 0.55 * exp(-pow(lon / 0.8, 2.0));
+        float clumps = fbm(d * 3.0 + seed + 7.0, 8);
+        float width = 0.11 + 0.05 * fbm(d * 1.5 + seed.yzx, 3);
+        float band = exp(-pow(lat / width, 2.0)) * (0.35 + 0.9 * pow(clumps, 1.5)) + 0.22 * exp(-pow(lat / 0.4, 2.0));
+        band *= coreGlow;
+        // Star clouds: knots and voids down to small scales, for the telescope.
+        band *= 0.55 + 0.9 * fbm(d * 40.0 + seed.yxz, 5);
+        // Dust lanes, dark and wispy close to the plane, with fine filaments.
+        float dust = smoothstep(0.48, 0.72, fbm(d * 7.0 + seed.zxy, 8)) * exp(-pow((lat - 0.02) / 0.06, 2.0));
+        band *= 1.0 - 0.85 * dust;
+        float warm = exp(-pow(lon / 0.6, 2.0));
+        // Magnified, the Milky Way's glow spreads thin and breaks up into the
+        // stars that make it, so the glow fades as the view narrows.
+        float pixelAngle = length(fwidth(d));
+        float glow = mix(0.3, 1.0, smoothstep(0.00025, 0.0012, pixelAngle));
+        colour += band * 0.17 * glow * vec3(0.75 + 0.25 * warm, 0.78 + 0.12 * warm, 0.95 - 0.15 * warm);
+
+        for (int i = 0; i < 4; i++) {
+          float a = acos(clamp(dot(d, nebulaAt[i]), -1.0, 1.0));
+          float shape = smoothstep(0.35, 0.8, fbm(d * 18.0 + float(i) * 5.0, 5));
+          colour += exp(-pow(a / nebulaSize[i], 2.0)) * shape * 0.16 * nebulaTone[i];
+        }
+
+        // Unresolved starlight: more and fainter stars come out as you zoom
+        // in, thickest along the Milky Way and thinned out by dust.
+        float crowd = 0.3 + 0.7 * exp(-pow(lat / 0.2, 2.0)) * (1.0 - 0.7 * dust);
+        float stars = starLayer(d, 260.0, 0.93) * 0.6
+          + starLayer(d, 700.0, 0.88 - 0.14 * crowd) * 0.5
+          + starLayer(d, 1800.0, 0.84 - 0.2 * crowd) * 0.4
+          + starLayer(d, 4500.0, 0.8 - 0.25 * crowd) * 0.3;
+        colour += stars * crowd * vec3(0.92, 0.95, 1.0);
+
+        // Fade into the haze towards the horizon.
+        colour *= mix(0.6, 1.0, smoothstep(-0.05, 0.25, d.y));
+        gl_FragColor = vec4(colour, 1.0);
+      }
+    `,
+    side: BackSide,
+    depthWrite: false,
+  })
+  return { material, toGalaxy }
 }
 
 /** Star colours from cool red to hot blue, weighted towards white. */
@@ -315,7 +357,7 @@ function paintMoon(rand: Rand) {
       const i = y * w + x
       const mare = smoothstep(0.5, 0.6, noise(d.x * 1.8 + 3, d.y * 1.8, d.z * 1.8, 5))
       const rough = noise(d.x * 14, d.y * 14, d.z * 14, 4)
-      albedo[i] = (0.72 + 0.16 * rough) * (1 - 0.55 * mare)
+      albedo[i] = (0.72 + 0.16 * rough) * (1 - 0.6 * mare)
       height[i] = 0.06 * rough * (1 - 0.7 * mare) - 0.04 * mare
     }
   }
@@ -323,8 +365,12 @@ function paintMoon(rand: Rand) {
   for (let k = 0; k < 900; k++) {
     const size = 0.005 + rand() ** 6 * 0.13
     const at = new Vector3(gaussian(rand), gaussian(rand), gaussian(rand)).normalize()
+    // The maria are younger lava plains, so far fewer craters landed on them.
+    if (noise(at.x * 1.8 + 3, at.y * 1.8, at.z * 1.8, 5) > 0.55 && rand() < 0.75) continue
     if (rays.length < 5 && size > 0.03 && size < 0.07) rays.push({ at, size })
     const depth = size * 0.7
+    // Big craters have flat floors and a central peak; small ones are simple bowls.
+    const complex = size > 0.035
     const theta = Math.acos(at.y)
     const reach = size * 1.6
     const y0 = Math.max(0, Math.floor(((theta - reach) / Math.PI) * h))
@@ -339,9 +385,13 @@ function paintMoon(rand: Rand) {
         const i = y * w + x
         const dist = Math.acos(Math.min(1, dirs[i].dot(at))) / size
         if (dist > 1.6) continue
-        const bowl = dist < 1 ? (dist * dist - 1) * depth : 0
+        const bowl = dist < 1 ? Math.max(dist * dist - 1, complex ? -0.6 : -1) * depth : 0
         const rim = depth * 0.3 * Math.exp(-(((dist - 1) / 0.18) ** 2))
-        height[i] += bowl + rim
+        const peak = complex ? depth * 0.14 * Math.exp(-((dist / 0.1) ** 2)) : 0
+        // A blanket of thrown-out rock, rough just beyond the rim.
+        const ejecta =
+          dist > 1 ? depth * 0.06 * Math.exp(-(dist - 1) * 4) * noise(dirs[i].x * 60, dirs[i].y * 60, dirs[i].z * 60, 1) : 0
+        height[i] += bowl + rim + peak + ejecta
         // Fresh crater floors and walls are a little brighter.
         if (dist < 1.1) albedo[i] *= 1.04
       }
@@ -394,8 +444,10 @@ function moonMaterial(map: DataTexture, sun: Vector3) {
       varying vec2 vUv;
       varying vec3 vNormal;
       varying vec3 vPosition;
+      varying vec3 vSurface;
       void main() {
         vUv = uv;
+        vSurface = position;
         vNormal = normalize(mat3(modelMatrix) * normal);
         vec4 world = modelMatrix * vec4(position, 1.0);
         vPosition = world.xyz;
@@ -409,7 +461,22 @@ function moonMaterial(map: DataTexture, sun: Vector3) {
       varying vec2 vUv;
       varying vec3 vNormal;
       varying vec3 vPosition;
+      varying vec3 vSurface;
       float heightAt(vec2 uv) { return texture2D(map, uv).g; }
+      float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float noise(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(
+          mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+          mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y),
+          f.z);
+      }
+      // Fine rubble and small pits, finer than the map can hold, for close views through the telescope.
+      float detail(vec3 p) {
+        return noise(p * 24.0) * 0.5 + noise(p * 61.0) * 0.3 + noise(p * 150.0) * 0.2;
+      }
       void main() {
         vec3 n = normalize(vNormal);
         vec2 dx = dFdx(vUv);
@@ -418,15 +485,25 @@ function moonMaterial(map: DataTexture, sun: Vector3) {
         float seam = step(0.25, max(abs(dx.x), abs(dy.x)));
         float h0 = heightAt(vUv);
         vec2 slope = vec2(heightAt(vUv + dx) - h0, heightAt(vUv + dy) - h0) * relief * (1.0 - seam);
+        float fine = detail(vSurface);
+        slope += vec2(dFdx(fine), dFdy(fine)) * 0.006;
         vec3 sx = dFdx(vPosition);
         vec3 sy = dFdy(vPosition);
         vec3 r1 = cross(sy, n);
         vec3 r2 = cross(n, sx);
         float det = dot(sx, r1);
         vec3 bumped = normalize(abs(det) * n - sign(det) * (slope.x * r1 + slope.y * r2));
-        float albedo = texture2D(map, vUv).r;
-        float light = max(dot(bumped, sun), 0.0) * smoothstep(-0.04, 0.1, dot(n, sun));
-        vec3 colour = albedo * vec3(1.0, 0.97, 0.92) * (0.01 + 0.95 * light);
+        float albedo = texture2D(map, vUv).r * (0.94 + 0.12 * fine);
+        // The moon is not lit like a matt ball: its dusty surface throws light
+        // back towards the sun, so the disc stays bright right to its edge
+        // (the lunar-Lambert model, a blend of Lambert and Lommel-Seeliger).
+        vec3 view = normalize(cameraPosition - vPosition);
+        float incidence = max(dot(bumped, sun), 0.0);
+        float emergence = max(dot(n, view), 0.05);
+        float lunar = min(1.3, 2.0 * incidence / (incidence + emergence));
+        float light = mix(incidence, lunar, 0.7) * smoothstep(-0.03, 0.08, dot(n, sun));
+        // Faint earthshine on the night side.
+        vec3 colour = albedo * vec3(1.0, 0.975, 0.94) * (0.008 + 0.72 * light);
         gl_FragColor = vec4(colour, 1.0);
         #include <colorspace_fragment>
       }
@@ -524,7 +601,9 @@ function ShootingStar({ rand }: { rand: Rand }) {
 /** The night sky outside the observatory, different on every visit. `moon` is where the moon sits. */
 export function NightSky({ moon }: { moon: [number, number, number] }) {
   const rand = useMemo(() => randomSource(Math.floor(Math.random() * 2147483646) + 1), [])
-  const sky = useMemo(() => paintSky(rand), [rand])
+  // The moon's glow in the air only shows by eye, not through the eyepiece.
+  const looking = useGame((s) => s.viewing !== null)
+  const sky = useMemo(() => skyMaterial(rand, new Vector3(...moon)), [rand, moon])
   const stars = useMemo(() => makeStars(rand, sky.toGalaxy), [rand, sky])
   const starShading = useMemo(starMaterial, [])
   const moonMap = useMemo(() => paintMoon(rand), [rand])
@@ -536,7 +615,7 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
   const halo = useHalo()
   useEffect(
     () => () => {
-      sky.texture.dispose()
+      sky.material.dispose()
       moonMap.dispose()
       moonShading.dispose()
       stars.dispose()
@@ -546,9 +625,8 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
   )
   return (
     <group>
-      <mesh>
+      <mesh material={sky.material}>
         <sphereGeometry args={[SKY_RADIUS, 64, 32]} />
-        <meshBasicMaterial map={sky.texture} side={BackSide} depthWrite={false} toneMapped={false} fog={false} />
       </mesh>
       <Stars geometry={stars} material={starShading} />
       {/* Tilted so its poles sit side-on to the room, where the map is least stretched. */}
@@ -556,7 +634,7 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
         <sphereGeometry args={[2, 128, 64]} />
       </mesh>
       {/* A faint glow of moonlight in the air round it. */}
-      <mesh position={moon} renderOrder={1} onUpdate={(m) => m.lookAt(0, 0, 0)}>
+      <mesh position={moon} renderOrder={1} visible={!looking} onUpdate={(m) => m.lookAt(0, 0, 0)}>
         <planeGeometry args={[18, 18]} />
         <meshBasicMaterial
           map={halo}

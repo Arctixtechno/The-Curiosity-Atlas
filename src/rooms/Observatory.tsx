@@ -372,7 +372,7 @@ function Telescope() {
 export const TELESCOPE_VIEW = 'telescope'
 /** Where the eye goes when looking through the telescope: high up the tube, clear of the dome. */
 const EYEPIECE = new Vector3(0, 3.4, -2.1)
-const VIEW_FOV = { start: 5, min: 1.5, max: 14 }
+const VIEW_FOV = { start: 7, min: 1.5, max: 24 }
 
 /**
  * Looking through the telescope: the camera moves up to the tube, narrows
