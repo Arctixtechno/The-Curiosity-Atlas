@@ -13,6 +13,7 @@ import {
   COURTYARD_BENCH,
   DOOR_POTS,
   LABORATORY,
+  LOUNGE,
   MAIN_HALL,
   MAP_TABLE,
   MUSEUM,
@@ -74,7 +75,13 @@ const mainHallDoors: DoorDefinition[] = [
     rotationY: Math.PI / 2,
     target: { roomId: 'laboratory', doorId: 'hall' },
   },
-  { id: 'lounge', label: 'Philosophy Lounge', position: [-hallW, 0, 6], rotationY: Math.PI / 2 },
+  {
+    id: 'lounge',
+    label: 'Philosophy Lounge',
+    position: [-hallW, 0, 6],
+    rotationY: Math.PI / 2,
+    target: { roomId: 'lounge', doorId: 'hall' },
+  },
 ]
 
 export const rooms: Record<string, RoomDefinition> = {
@@ -181,6 +188,28 @@ export const rooms: Record<string, RoomDefinition> = {
       },
     ],
     load: () => import('./Laboratory.tsx'),
+  },
+  lounge: {
+    id: 'lounge',
+    displayName: 'Philosophy Lounge',
+    colliders: [
+      ...wallColliders(LOUNGE.width, LOUNGE.length),
+      // Armchairs, table and fireplace, then the bookcases along each side wall.
+      boxCollider(0, LOUNGE.seatingZ, LOUNGE.chairX * 2 + 1, 1),
+      boxCollider(0, -LOUNGE.length / 2 + 0.2, 2.3, 0.5),
+      boxCollider(-LOUNGE.width / 2 + 0.2, LOUNGE.bookcaseZ, 0.4, LOUNGE.bookcaseLength),
+      boxCollider(LOUNGE.width / 2 - 0.2, LOUNGE.bookcaseZ, 0.4, LOUNGE.bookcaseLength),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, LOUNGE.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'lounge' },
+      },
+    ],
+    load: () => import('./PhilosophyLounge.tsx'),
   },
   workshop: {
     id: 'workshop',

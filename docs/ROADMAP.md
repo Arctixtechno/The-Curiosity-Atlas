@@ -53,17 +53,17 @@ Acceptance criteria:
 
 Deliverable: a playable website where the user can move through the property, open doors and enter individually loaded rooms. This is also the first milestone in spec section 17. Marked in progress until it has been play-tested by hand.
 
-## Phase 2 — Prototype 0.1: Core Curiosity Experience ⬜
+## Phase 2 — Prototype 0.1: Core Curiosity Experience 🚧
 
 Objective: make the application genuinely useful.
 
-- Discovery Fountain: present and explain curated daily discoveries
-- Philosophy Lounge: natural AI conversations through a simple text interface
-- Library of Discoveries: save and revisit discoveries
-- Basic Curator: AI explanations and conversations through a secure backend
-- Persistent local storage or a simple database
-- Basic interface transitions and navigation between the central features
-- Error handling for AI requests, loading and connection indicators
+- ✅ Discovery Fountain: present and explain curated daily discoveries (at the main hall fountain)
+- 🚧 Philosophy Lounge: natural AI conversations through a simple text interface (room, six modes and chat are built, with replies written in advance; AI comes later)
+- 🚧 Library of Discoveries: save and revisit discoveries (searchable panel, press L; the library room comes later)
+- ⬜ Basic Curator (deferred: no AI service for now): AI explanations and conversations through a secure backend
+- ✅ Persistent local storage or a simple database (browser localStorage)
+- 🚧 Basic interface transitions and navigation between the central features
+- 🚧 Error handling for AI requests, loading and connection indicators
 
 Deliverable: a user can discover something, discuss it with AI and save it for later.
 

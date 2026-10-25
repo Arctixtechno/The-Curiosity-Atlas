@@ -127,7 +127,7 @@ function Intro() {
             <kbd>]</kbd> Mouse sensitivity
           </li>
           <li>
-            <kbd>M</kbd> Map · <kbd>O</kbd> Settings
+            <kbd>M</kbd> Map · <kbd>L</kbd> Library · <kbd>O</kbd> Settings
           </li>
           <li>
             <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)
