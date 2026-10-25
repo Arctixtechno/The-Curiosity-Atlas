@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
 import { useGame } from '../world/store.ts'
+import { openOverlay } from '../world/overlay.ts'
+import { MAP_OVERLAY } from './MapPanel.tsx'
+import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
 import './Hud.css'
+import './Panel.css'
 
 // Conventional HTML overlay drawn on top of the 3D canvas.
 export function Hud() {
@@ -91,6 +95,14 @@ function Intro() {
         <h1>The Curiosity Atlas</h1>
         <p className="tagline">A small world built for endless curiosity.</p>
         <p className="start">Click anywhere to explore</p>
+        <div className="intro-actions">
+          <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(SETTINGS_OVERLAY))}>
+            Settings
+          </button>
+          <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(MAP_OVERLAY))}>
+            Map
+          </button>
+        </div>
         <ul className="controls">
           <li>
             <kbd>W</kbd>
@@ -113,6 +125,9 @@ function Intro() {
           <li>
             <kbd>[</kbd>
             <kbd>]</kbd> Mouse sensitivity
+          </li>
+          <li>
+            <kbd>M</kbd> Map · <kbd>O</kbd> Settings
           </li>
           <li>
             <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)

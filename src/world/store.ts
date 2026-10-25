@@ -77,3 +77,10 @@ export const gameStore = {
 export function useGame<T>(selector: (s: GameState) => T): T {
   return useSyncExternalStore(gameStore.subscribe, () => selector(state))
 }
+
+/**
+ * Where the player is standing and which way they face (radians, 0 = -z),
+ * updated every frame for things like the map. Plain object rather than
+ * store state, so writing it doesn't re-render anything.
+ */
+export const playerPose = { x: 0, z: 0, yaw: 0 }

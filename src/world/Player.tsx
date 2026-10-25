@@ -7,7 +7,8 @@ import { EYE_HEIGHT } from '../rooms/dimensions.ts'
 import type { Collider } from '../types/room.ts'
 import { moveWithCollisions } from './collision.ts'
 import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
-import { gameStore, saveSensitivity, useGame } from './store.ts'
+import { getSettings } from './settings.ts'
+import { gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
 
 const WALK_SPEED = 2.2
 const RUN_SPEED = 4
@@ -21,8 +22,6 @@ const SENSITIVITY_STEP = 0.2
 const VIEWING_LOOK_SCALE = 0.08
 const SENSITIVITY_RANGE = [0.4, 6] as const
 
-const reduceMotion =
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 interface PlayerProps {
   colliders: Collider[]
@@ -51,7 +50,7 @@ function showToast(message: string) {
 
 /**
  * First-person player: WASD to walk, mouse or arrow keys to look, and a head
- * bob synced to footsteps (off when the system asks for reduced motion).
+ * bob synced to footsteps (can be turned off in Settings; off by default when the system asks for reduced motion).
  */
 export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   const keys = useKeyboard()
@@ -111,6 +110,9 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     camera.getWorldDirection(forward)
     forward.y = 0
     forward.normalize()
+    playerPose.x = camera.position.x
+    playerPose.z = camera.position.z
+    playerPose.yaw = Math.atan2(-forward.x, -forward.z)
     right.crossVectors(forward, up)
     // Take off last frame's sway so collisions use the real position.
     const b = bob.current
@@ -136,7 +138,7 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     floorY.current += (targetFloor - floorY.current) * Math.min(1, dt * STEP_FOLLOW)
     const eye = floorY.current + EYE_HEIGHT
 
-    if (reduceMotion) {
+    if (!getSettings().headBob) {
       b.side = 0
       camera.position.y = eye
       return

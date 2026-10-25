@@ -67,11 +67,11 @@ Objective: make the application genuinely useful.
 
 Deliverable: a user can discover something, discuss it with AI and save it for later.
 
-## Phase 3 — Prototype 0.2: Media and Exploration ⬜
+## Phase 3 — Prototype 0.2: Media and Exploration 🚧
 
-- Functional theatre video player
-- AI-curated video recommendations
-- Saved watchlist
+- ✅ Functional theatre video player (public-domain films from Wikimedia Commons on the big screen, or a video file of your own)
+- ⬜ AI-curated video recommendations (needs the AI backend from Phase 2)
+- ✅ Saved watchlist (kept in the browser)
 - Basic City Explorer with London neighbourhood discovery
 - Simple itinerary generation using verified geographical information
 - Improved library organisation
