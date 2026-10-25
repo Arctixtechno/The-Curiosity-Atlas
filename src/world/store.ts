@@ -23,6 +23,8 @@ export interface GameState {
   toast: string | null
   /** A full-screen panel (film menu, settings, map…) that has taken over from exploring, if any. */
   overlay: string | null
+  /** Looking through an instrument (the telescope) instead of walking about. */
+  viewing: string | null
 }
 
 const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
@@ -55,6 +57,7 @@ let state: GameState = {
   mouseSensitivity: loadSensitivity(),
   toast: null,
   overlay: null,
+  viewing: null,
 }
 
 const listeners = new Set<() => void>()

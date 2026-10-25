@@ -1,11 +1,12 @@
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BackSide, CanvasTexture, Color, Object3D, SRGBColorSpace, Vector3, type Group, type InstancedMesh } from 'three'
+import { BackSide, CanvasTexture, type PerspectiveCamera, Color, Object3D, SRGBColorSpace, Vector3, type Group, type InstancedMesh } from 'three'
 import { Glow } from '../components/Glow.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { getPainting } from '../components/paintings.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
+import { gameStore, useGame } from '../world/store.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
 import { NightSky } from './NightSky.tsx'
@@ -301,7 +302,9 @@ function Telescope() {
   useInteractable({
     position: useMemo(() => new Vector3(x, 1.2, z), [x, z]),
     radius: 2.4,
-    prompt: 'Telescope: stargazing arrives in a later version',
+    prompt: 'Press E to look through the telescope',
+    // Deferred so the same key press doesn't also count as stepping back.
+    onInteract: () => setTimeout(() => gameStore.set({ viewing: TELESCOPE_VIEW })),
   })
   return (
     <group position={[x, 0, z]}>
@@ -358,6 +361,56 @@ function Telescope() {
       </group>
     </group>
   )
+}
+
+export const TELESCOPE_VIEW = 'telescope'
+/** Where the eye goes when looking through the telescope: high up the tube, clear of the dome. */
+const EYEPIECE = new Vector3(0, 3.4, -2.1)
+const VIEW_FOV = { start: 5, min: 1.5, max: 14 }
+
+/**
+ * Looking through the telescope: the camera moves up to the tube, narrows
+ * to a few degrees and starts on the moon. Scroll to zoom; E steps back.
+ */
+function TelescopeView() {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera
+  const viewing = useGame((s) => s.viewing === TELESCOPE_VIEW)
+  const fov = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!viewing) return
+    const saved = { position: camera.position.clone(), quaternion: camera.quaternion.clone(), fov: camera.fov }
+    camera.position.copy(EYEPIECE)
+    camera.lookAt(...MOON)
+    fov.current = VIEW_FOV.start
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyE' && !e.repeat) gameStore.set({ viewing: null })
+    }
+    const onWheel = (e: WheelEvent) => {
+      fov.current = Math.min(VIEW_FOV.max, Math.max(VIEW_FOV.min, (fov.current ?? VIEW_FOV.start) * Math.exp(e.deltaY * 0.001)))
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('wheel', onWheel)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('wheel', onWheel)
+      camera.position.copy(saved.position)
+      camera.quaternion.copy(saved.quaternion)
+      camera.fov = saved.fov
+      camera.updateProjectionMatrix()
+      fov.current = null
+    }
+  }, [viewing, camera])
+
+  // Leaving the room always puts the eye back.
+  useEffect(() => () => gameStore.set({ viewing: null }), [])
+
+  useFrame((_, delta) => {
+    if (fov.current === null || Math.abs(camera.fov - fov.current) < 0.01) return
+    camera.fov += (fov.current - camera.fov) * Math.min(1, delta * 10)
+    camera.updateProjectionMatrix()
+  })
+  return null
 }
 
 /** A brass orrery on a round table, with planets slowly turning round the sun. */
@@ -678,6 +731,7 @@ export default function Observatory() {
       <Floor />
       <Shell />
       <Telescope />
+      <TelescopeView />
       <Orrery />
       <CelestialGlobe />
       <Desk />

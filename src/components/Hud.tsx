@@ -12,6 +12,7 @@ export function Hud() {
   const activeRoomId = useGame((s) => s.activeRoomId)
   const toast = useGame((s) => s.toast)
   const overlay = useGame((s) => s.overlay)
+  const viewing = useGame((s) => s.viewing)
   const [showRoomStates, setShowRoomStates] = useState(false)
 
   useEffect(() => {
@@ -28,25 +29,38 @@ export function Hud() {
       <div className="room-name">{rooms[activeRoomId].displayName}</div>
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
-      {isExploring ? (
-        <>
-          <div className="crosshair" aria-hidden="true" />
-          {prompt && (
-            <div className="prompt" role="status">
-              {prompt.startsWith('Press E') ? (
-                <>
-                  Press <kbd>E</kbd>
-                  {prompt.slice('Press E'.length)}
-                </>
-              ) : (
-                prompt
+      {viewing === 'telescope' && <Eyepiece />}
+      {isExploring
+        ? !viewing && (
+            <>
+              <div className="crosshair" aria-hidden="true" />
+              {prompt && (
+                <div className="prompt" role="status">
+                  {prompt.startsWith('Press E') ? (
+                    <>
+                      Press <kbd>E</kbd>
+                      {prompt.slice('Press E'.length)}
+                    </>
+                  ) : (
+                    prompt
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        </>
-      ) : (
-        !overlay && <Intro />
-      )}
+            </>
+          )
+        : !overlay && <Intro />}
+    </>
+  )
+}
+
+/** The round field of view of a telescope eyepiece, with a reminder of the controls. */
+function Eyepiece() {
+  return (
+    <>
+      <div className="eyepiece" aria-hidden="true" />
+      <div className="eyepiece-caption">
+        Looking through the telescope · move the mouse to look around · scroll to zoom · <kbd>E</kbd> to step back
+      </div>
     </>
   )
 }

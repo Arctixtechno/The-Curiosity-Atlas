@@ -144,3 +144,23 @@ kbd {
   font-size: 0.85rem;
   pointer-events: none;
 }
+
+.eyepiece {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0, transparent 36vmin, rgba(0, 0, 0, 0.85) 39vmin, #000 41vmin);
+  pointer-events: none;
+}
+
+.eyepiece-caption {
+  position: fixed;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  pointer-events: none;
+}

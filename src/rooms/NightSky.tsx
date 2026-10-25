@@ -7,6 +7,7 @@ import {
   CanvasTexture,
   Float32BufferAttribute,
   Matrix4,
+  ShaderMaterial,
   SRGBColorSpace,
   Vector3,
   type Mesh,
@@ -133,44 +134,132 @@ function makeStars(rand: Rand) {
   })
 }
 
-/** A full moon with maria and craters. */
+/**
+ * The moon's surface as an equirectangular map: grey highlands, dark maria,
+ * craters with a shadowed wall and a sunlit wall, and a few bright ray
+ * craters. Shapes are widened towards the poles so they look round on the sphere.
+ */
 function paintMoon(rand: Rand) {
-  const size = 512
+  const w = 2048
+  const h = 1024
   const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size / 2
+  canvas.width = w
+  canvas.height = h
   const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = '#e8e4d8'
-  ctx.fillRect(0, 0, size, size / 2)
-  // Maria: large darker grey seas.
-  for (let i = 0; i < 14; i++) {
-    const x = rand() * size
-    const y = size * (0.1 + rand() * 0.3)
-    const r = 20 + rand() * 60
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r)
-    g.addColorStop(0, 'rgba(120, 118, 112, 0.55)')
-    g.addColorStop(1, 'rgba(120, 118, 112, 0)')
-    ctx.fillStyle = g
-    ctx.fillRect(x - r, y - r, r * 2, r * 2)
-  }
-  // Craters: a dark floor with a bright rim.
-  for (let i = 0; i < 160; i++) {
-    const x = rand() * size
-    const y = rand() * (size / 2)
-    const r = 1.5 + rand() ** 3 * 14
-    ctx.fillStyle = 'rgba(90, 88, 84, 0.35)'
+  ctx.fillStyle = '#b9b5ac'
+  ctx.fillRect(0, 0, w, h)
+  /** Horizontal stretch at canvas row `y`, so shapes come out round on the sphere. */
+  const stretch = (y: number) => 1 / Math.max(0.15, Math.sin((y / h) * Math.PI))
+  const ellipse = (x: number, y: number, r: number, fill: string | CanvasGradient) => {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(stretch(y), 1)
+    ctx.fillStyle = fill
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.arc(0, 0, r, 0, Math.PI * 2)
     ctx.fill()
-    ctx.strokeStyle = 'rgba(255, 255, 250, 0.4)'
-    ctx.lineWidth = Math.max(1, r * 0.2)
+    ctx.restore()
+  }
+  // Highland texture: lots of faint light and dark mottling.
+  for (let i = 0; i < 2500; i++) {
+    const y = h * (0.05 + rand() * 0.9)
+    ellipse(rand() * w, y, 3 + rand() * 18, rand() < 0.5 ? 'rgba(255,255,250,0.05)' : 'rgba(60,58,54,0.05)')
+  }
+  // Maria: clusters of overlapping dark blobs, mostly on one hemisphere, as on the real near side.
+  for (let m = 0; m < 9; m++) {
+    const cx = w * (0.3 + rand() * 0.4)
+    const cy = h * (0.25 + rand() * 0.45)
+    const spread = 40 + rand() * 90
+    for (let i = 0; i < 40; i++) {
+      const x = cx + (rand() - 0.5) * spread * 2
+      const y = cy + (rand() - 0.5) * spread * 1.2
+      const r = 12 + rand() * spread * 0.5
+      ellipse(x, y, r, 'rgba(70, 70, 72, 0.16)')
+    }
+  }
+  // Craters, many small and few large. Light comes from the left, so the left
+  // inner wall is in shadow and the right inner wall is lit.
+  for (let i = 0; i < 1100; i++) {
+    const y = h * (0.04 + rand() * 0.92)
+    const x = rand() * w
+    const r = 1.2 + rand() ** 4 * 34
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(stretch(y), 1)
+    const floor = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+    floor.addColorStop(0, 'rgba(120, 118, 112, 0.35)')
+    floor.addColorStop(0.75, 'rgba(110, 108, 102, 0.25)')
+    floor.addColorStop(1, 'rgba(110, 108, 102, 0)')
+    ctx.fillStyle = floor
     ctx.beginPath()
-    ctx.arc(x - r * 0.1, y - r * 0.1, r, Math.PI * 0.9, Math.PI * 1.9)
+    ctx.arc(0, 0, r, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.lineWidth = Math.max(0.8, r * 0.18)
+    ctx.strokeStyle = 'rgba(40, 38, 36, 0.35)'
+    ctx.beginPath()
+    ctx.arc(0, 0, r * 0.85, Math.PI * 0.6, Math.PI * 1.4)
     ctx.stroke()
+    ctx.strokeStyle = 'rgba(250, 248, 240, 0.4)'
+    ctx.beginPath()
+    ctx.arc(0, 0, r * 0.85, -Math.PI * 0.4, Math.PI * 0.4)
+    ctx.stroke()
+    ctx.restore()
+  }
+  // A few young craters with bright rays splashing out across the surface.
+  for (let i = 0; i < 4; i++) {
+    const x = w * (0.2 + rand() * 0.6)
+    const y = h * (0.25 + rand() * 0.5)
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(stretch(y), 1)
+    ctx.strokeStyle = 'rgba(255, 255, 250, 0.12)'
+    for (let k = 0; k < 18; k++) {
+      const a = rand() * Math.PI * 2
+      const len = 60 + rand() * 160
+      ctx.lineWidth = 2 + rand() * 4
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len)
+      ctx.stroke()
+    }
+    ctx.fillStyle = 'rgba(255, 255, 250, 0.7)'
+    ctx.beginPath()
+    ctx.arc(0, 0, 5 + rand() * 5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
   }
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace
+  texture.anisotropy = 8
   return texture
+}
+
+/** Sunlight on the moon: lit from one side, with a soft terminator and a faint earthshine on the dark part. */
+function moonMaterial(map: CanvasTexture, sun: Vector3) {
+  return new ShaderMaterial({
+    uniforms: { map: { value: map }, sun: { value: sun } },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      void main() {
+        vUv = uv;
+        vNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D map;
+      uniform vec3 sun;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      void main() {
+        vec3 albedo = texture2D(map, vUv).rgb;
+        float light = smoothstep(-0.08, 0.35, dot(normalize(vNormal), sun));
+        gl_FragColor = vec4(albedo * (0.025 + 1.15 * light), 1.0);
+        #include <colorspace_fragment>
+      }
+    `,
+  })
 }
 
 /** A short streak, transparent at the tail and bright at the head (the +x end). */
@@ -258,14 +347,20 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
   const sky = useMemo(() => paintSky(rand), [rand])
   const stars = useMemo(() => makeStars(rand), [rand])
   const moonMap = useMemo(() => paintMoon(rand), [rand])
+  const moonShading = useMemo(() => {
+    // Lit from one side of the line of sight from the room, so it shows as a bright gibbous moon.
+    const towardsRoom = new Vector3(0, 3, 0).sub(new Vector3(...moon)).normalize()
+    return moonMaterial(moonMap, towardsRoom.add(new Vector3(-0.9, 0, 0)).normalize())
+  }, [moonMap, moon])
   const halo = useHalo()
   useEffect(
     () => () => {
       sky.dispose()
       moonMap.dispose()
+      moonShading.dispose()
       stars.forEach((s) => s.geometry.dispose())
     },
-    [sky, moonMap, stars],
+    [sky, moonMap, moonShading, stars],
   )
   return (
     <group>
@@ -278,9 +373,9 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
           <pointsMaterial vertexColors size={size} sizeAttenuation={false} transparent depthWrite={false} toneMapped={false} fog={false} />
         </points>
       ))}
-      <mesh position={moon} rotation={[0.3, 2.2, 0]}>
-        <sphereGeometry args={[2, 48, 24]} />
-        <meshBasicMaterial map={moonMap} toneMapped={false} fog={false} />
+      {/* Tilted so its poles sit side-on to the room, where the map is least stretched. */}
+      <mesh position={moon} rotation={[0.86, 2.2, 0]} material={moonShading}>
+        <sphereGeometry args={[2, 96, 48]} />
       </mesh>
       {/* Halo round the moon. */}
       <mesh position={moon} renderOrder={1} onUpdate={(m) => m.lookAt(0, 0, 0)}>
