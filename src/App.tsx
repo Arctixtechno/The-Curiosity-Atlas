@@ -1,10 +1,10 @@
-import { PerformanceMonitor } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { GraphicsErrorBoundary, GraphicsProblem } from './components/GraphicsProblem.tsx'
 import { Hud } from './components/Hud.tsx'
 import { Overlays } from './components/Overlays.tsx'
-import { useSettings } from './world/settings.ts'
+import { FrameScheduler } from './world/FrameScheduler.tsx'
+import { useSavingBattery, useSettings } from './world/settings.ts'
 import { World } from './world/World.tsx'
 
 /**
@@ -16,11 +16,30 @@ const MIN_DPR = 1
 const MAX_DPR = Math.min(1.5, typeof window === 'undefined' ? 1 : window.devicePixelRatio)
 /** The "Low" quality setting: fewer pixels than the screen has, for slower machines. */
 const LOW_DPR = 0.75
+/** How much the resolution moves at a time in Auto, and how many times it may go back up before it settles. */
+const DPR_STEP = 0.25
+const MAX_RISES = 3
 
 export default function App() {
   const [autoDpr, setAutoDpr] = useState(MAX_DPR)
+  const [rises, setRises] = useState(0)
   const quality = useSettings((s) => s.quality)
-  const dpr = quality === 'auto' ? autoDpr : quality === 'high' ? MAX_DPR : LOW_DPR
+  const saving = useSavingBattery()
+  const chosen = quality === 'auto' ? autoDpr : quality === 'high' ? MAX_DPR : LOW_DPR
+  // Battery saver draws at most one pixel per screen point, a quarter of a Retina screen's.
+  const dpr = saving ? Math.min(chosen, MIN_DPR) : chosen
+  // Drops the resolution when frames can't keep up, and raises it again when they can, a few times at most.
+  const onPace = useCallback(
+    (pace: 'slow' | 'fast') => {
+      if (quality !== 'auto') return
+      if (pace === 'slow') setAutoDpr((d) => Math.max(MIN_DPR, d - DPR_STEP))
+      else if (rises < MAX_RISES && autoDpr < MAX_DPR) {
+        setAutoDpr((d) => Math.min(MAX_DPR, d + DPR_STEP))
+        setRises((r) => r + 1)
+      }
+    },
+    [quality, rises, autoDpr],
+  )
   // The browser can take the graphics context away (a driver reset, or too many tabs using WebGL).
   const [contextLost, setContextLost] = useState(false)
   return (
@@ -28,7 +47,9 @@ export default function App() {
       <Canvas
         shadows="percentage"
         dpr={dpr}
-        gl={{ powerPreference: 'high-performance' }}
+        // Lets laptops with two graphics chips use the economical one; the world is light enough for it.
+        gl={{ powerPreference: 'default' }}
+        frameloop="never"
         camera={{ fov: 70, near: 0.05, far: 100 }}
         onCreated={(state) => {
           // For profiling from the browser console during development.
@@ -42,13 +63,7 @@ export default function App() {
           canvas.addEventListener('webglcontextrestored', () => setContextLost(false))
         }}
       >
-        {/* Drops the resolution when the frame rate can't keep up, and raises it again when it can. */}
-        {quality === 'auto' && (
-          <PerformanceMonitor
-            flipflops={4}
-            onChange={({ factor }) => setAutoDpr(Math.round((MIN_DPR + (MAX_DPR - MIN_DPR) * factor) * 10) / 10)}
-          />
-        )}
+        <FrameScheduler onPace={onPace} />
         <World />
       </Canvas>
       <Hud />

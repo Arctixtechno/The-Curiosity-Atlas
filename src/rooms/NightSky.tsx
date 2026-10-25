@@ -1,21 +1,27 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AdditiveBlending,
   BackSide,
   BufferGeometry,
   CanvasTexture,
   Color,
+  CubeCamera,
   DataTexture,
   Float32BufferAttribute,
   LinearFilter,
   LinearMipmapLinearFilter,
   Matrix4,
+  Mesh as ThreeMesh,
   RepeatWrapping,
+  Scene,
   ShaderMaterial,
+  SphereGeometry,
   SRGBColorSpace,
   Vector3,
+  WebGLCubeRenderTarget,
   type Mesh,
+  type WebGLRenderer,
   type MeshBasicMaterial,
 } from 'three'
 import { useGame } from '../world/store.ts'
@@ -598,12 +604,66 @@ function ShootingStar({ rand }: { rand: Rand }) {
   )
 }
 
+/** Size of each face of the baked sky, in pixels: about one texel per screen pixel at the normal field of view. */
+const BAKED_SKY_SIZE = 1024
+
+/**
+ * Paints the sky's shader once into a cube map. Its noise and stars don't
+ * change, so the room samples this instead of working the sky out for every
+ * pixel on every frame, which was most of the observatory's cost.
+ */
+function bakeSky(gl: WebGLRenderer, material: ShaderMaterial) {
+  const target = new WebGLCubeRenderTarget(BAKED_SKY_SIZE)
+  const scene = new Scene()
+  const geometry = new SphereGeometry(SKY_RADIUS, 64, 32)
+  scene.add(new ThreeMesh(geometry, material))
+  new CubeCamera(1, SKY_RADIUS * 2, target).update(gl, scene)
+  geometry.dispose()
+  return target
+}
+
+/** Shows the baked sky: one texture look-up per pixel. */
+function bakedSkyMaterial(target: WebGLCubeRenderTarget) {
+  return new ShaderMaterial({
+    uniforms: { sky: { value: target.texture } },
+    vertexShader: /* glsl */ `
+      varying vec3 vDir;
+      void main() {
+        vDir = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform samplerCube sky;
+      varying vec3 vDir;
+      void main() {
+        gl_FragColor = vec4(textureCube(sky, vDir).rgb, 1.0);
+      }
+    `,
+    side: BackSide,
+    depthWrite: false,
+  })
+}
+
 /** The night sky outside the observatory, different on every visit. `moon` is where the moon sits. */
 export function NightSky({ moon }: { moon: [number, number, number] }) {
   const rand = useMemo(() => randomSource(Math.floor(Math.random() * 2147483646) + 1), [])
   // The moon's glow in the air only shows by eye, not through the eyepiece.
   const looking = useGame((s) => s.viewing !== null)
   const sky = useMemo(() => skyMaterial(rand, new Vector3(...moon)), [rand, moon])
+  // Through the telescope the full shader draws the sky, so fainter stars come out as you zoom; by eye, the baked copy.
+  const gl = useThree((s) => s.gl)
+  // Baked in an effect so the cube map lives exactly as long as the room shows it.
+  const [baked, setBaked] = useState<{ target: WebGLCubeRenderTarget; material: ShaderMaterial } | null>(null)
+  useEffect(() => {
+    const target = bakeSky(gl, sky.material)
+    const material = bakedSkyMaterial(target)
+    setBaked({ target, material })
+    return () => {
+      target.dispose()
+      material.dispose()
+    }
+  }, [gl, sky])
   const stars = useMemo(() => makeStars(rand, sky.toGalaxy), [rand, sky])
   const starShading = useMemo(starMaterial, [])
   const moonMap = useMemo(() => paintMoon(rand), [rand])
@@ -625,7 +685,8 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
   )
   return (
     <group>
-      <mesh material={sky.material}>
+      {/* Drawn after the room, so its costly shading only runs where the dome's opening leaves sky showing. */}
+      <mesh material={looking || !baked ? sky.material : baked.material} renderOrder={1}>
         <sphereGeometry args={[SKY_RADIUS, 64, 32]} />
       </mesh>
       <Stars geometry={stars} material={starShading} />

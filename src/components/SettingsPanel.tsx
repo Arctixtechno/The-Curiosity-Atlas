@@ -1,5 +1,5 @@
 import { setVolume, useCinema } from '../features/cinema/cinema.ts'
-import { FOV_RANGE, updateSettings, useSettings, type Quality } from '../world/settings.ts'
+import { FOV_RANGE, updateSettings, useSavingBattery, useSettings, type BatterySaver, type Quality } from '../world/settings.ts'
 import { gameStore, saveSensitivity, useGame } from '../world/store.ts'
 import { Panel } from './Panel.tsx'
 import './SettingsPanel.css'
@@ -12,6 +12,12 @@ const QUALITY: { value: Quality; label: string; hint: string }[] = [
   { value: 'low', label: 'Low', hint: 'Softer, for slower computers' },
 ]
 
+const SAVER: { value: BatterySaver; label: string; hint: string }[] = [
+  { value: 'auto', label: 'Auto', hint: 'Saves battery whenever your laptop is unplugged (where the browser can tell)' },
+  { value: 'on', label: 'On', hint: 'Fewer pixels and at most 30 frames a second, for longer battery life' },
+  { value: 'off', label: 'Off', hint: 'Full resolution and smoothness, even on battery' },
+]
+
 /** Player preferences: graphics, movement and sound, plus a reminder of the controls. */
 export function SettingsPanel() {
   const quality = useSettings((s) => s.quality)
@@ -19,6 +25,8 @@ export function SettingsPanel() {
   const fov = useSettings((s) => s.fov)
   const sensitivity = useGame((s) => s.mouseSensitivity)
   const volume = useCinema((s) => s.volume)
+  const saver = useSettings((s) => s.batterySaver)
+  const saving = useSavingBattery()
 
   return (
     <Panel title="Settings">
@@ -52,6 +60,26 @@ export function SettingsPanel() {
         />
         <output>{fov}°</output>
       </label>
+
+      <h3>Battery saver</h3>
+      <div className="segmented" role="radiogroup" aria-label="Battery saver">
+        {SAVER.map((q) => (
+          <button
+            key={q.value}
+            className="button button-quiet"
+            role="radio"
+            aria-checked={saver === q.value}
+            aria-pressed={saver === q.value}
+            title={q.hint}
+            onClick={() => updateSettings({ batterySaver: q.value })}
+          >
+            {q.label}
+          </button>
+        ))}
+      </div>
+      <p className="muted">
+        {SAVER.find((q) => q.value === saver)?.hint}. {saving ? 'Saving battery now.' : 'Not saving battery now.'}
+      </p>
 
       <h3>Movement</h3>
       <label className="setting">
@@ -90,7 +118,9 @@ export function SettingsPanel() {
           <kbd>S</kbd>
           <kbd>D</kbd>
         </dt>
-        <dd>Move (hold <kbd>Shift</kbd> to walk faster)</dd>
+        <dd>
+          Move (hold <kbd>Shift</kbd> to walk faster)
+        </dd>
         <dt>Mouse or arrow keys</dt>
         <dd>Look around</dd>
         <dt>
