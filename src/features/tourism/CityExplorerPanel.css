@@ -1,0 +1,160 @@
+.city-areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.city-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .city-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.city-map {
+  height: 360px;
+  border: 1px solid rgba(224, 164, 88, 0.25);
+  border-radius: 8px;
+  /* Shown while tiles load, or if they can't. */
+  background: #d9cdb4;
+}
+
+.city-side {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.city-places {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.city-place {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.city-place:hover {
+  background: rgba(224, 164, 88, 0.12);
+}
+
+.city-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.city-tag {
+  color: #9fd8b8;
+}
+
+.city-stamps {
+  color: var(--accent);
+}
+
+.city-details h4 {
+  margin: 8px 0 2px;
+  font-size: 1.15rem;
+  font-weight: normal;
+}
+
+.city-details a,
+.city-credit a {
+  color: var(--accent);
+}
+
+.city-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.city-note {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 64px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(224, 164, 88, 0.4);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.city-walk {
+  margin: 8px 0;
+  padding-left: 22px;
+  line-height: 1.6;
+}
+
+.city-credit {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(224, 164, 88, 0.2);
+}
+
+.city-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.city-groups .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.city-groups .button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.city-groups .city-dot {
+  width: 9px;
+  height: 9px;
+}
+
+.city-kind {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+/* Leaflet's place-name tooltip, in the panel's colours. */
+.leaflet-tooltip.city-tooltip {
+  border: 1px solid rgba(224, 164, 88, 0.45);
+  border-radius: 6px;
+  background: rgba(24, 18, 12, 0.92);
+  box-shadow: none;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.leaflet-tooltip-top.city-tooltip::before {
+  border-top-color: rgba(224, 164, 88, 0.45);
+}

@@ -4,7 +4,7 @@ Taken from section 11 of the [master specification](./PROJECT_SPEC.md). The earl
 
 Status key: ✅ done · 🚧 in progress · ⬜ not started
 
-## Phase 0 — Project Foundation 🚧
+## Phase 0 — Project Foundation ✅
 
 Objective: establish the development environment.
 
@@ -18,34 +18,40 @@ Objective: establish the development environment.
 
 Deliverable: a website that loads an interactive 3D environment.
 
-## Phase 1 — Prototype 0.0.1: Explorable Property ⬜
+## Phase 1 — Prototype 0.0.1: Explorable Property 🚧
 
 Objective: demonstrate the core spatial experience.
 
-Required environments: main hallway, theatre, observatory, small courtyard, exterior representation of the café. Placeholder geometry is fine.
+Required environments (placeholder geometry is fine):
+
+- ✅ Main hallway
+- ✅ Theatre
+- ✅ Observatory
+- ✅ Small courtyard
+- ✅ Exterior representation of the café
 
 Functional requirements:
 
-- First-person movement
-- Mouse-controlled camera
-- Basic collisions
-- Interactive doors
-- Room transitions
-- Dynamic room loading
-- Basic lighting
-- Simple interaction prompts
-- Working navigation between environments
+- ✅ First-person movement
+- ✅ Mouse-controlled camera
+- ✅ Basic collisions
+- ✅ Interactive doors
+- ✅ Room transitions
+- ✅ Dynamic room loading
+- ✅ Basic lighting
+- ✅ Simple interaction prompts
+- ✅ Working navigation between environments
 
 Acceptance criteria:
 
-- The user can navigate the environment
-- Doors function consistently
-- Rooms load when needed
-- Exiting a room returns the user to the correct location
-- The application remains stable during repeated transitions
-- Unnecessary interior models are not all rendered simultaneously
+- ✅ The user can navigate the environment
+- ✅ Doors function consistently
+- ✅ Rooms load when needed
+- ✅ Exiting a room returns the user to the correct location
+- ✅ The application remains stable during repeated transitions
+- ✅ Unnecessary interior models are not all rendered simultaneously
 
-Deliverable: a playable website where the user can move through the property, open doors and enter individually loaded rooms. This is also the first milestone in spec section 17.
+Deliverable: a playable website where the user can move through the property, open doors and enter individually loaded rooms. This is also the first milestone in spec section 17. Marked in progress until it has been play-tested by hand.
 
 ## Phase 2 — Prototype 0.1: Core Curiosity Experience ⬜
 
@@ -61,24 +67,38 @@ Objective: make the application genuinely useful.
 
 Deliverable: a user can discover something, discuss it with AI and save it for later.
 
-## Phase 3 — Prototype 0.2: Media and Exploration ⬜
+## Phase 3 — Prototype 0.2: Media and Exploration 🚧
 
-- Functional theatre video player
-- AI-curated video recommendations
-- Saved watchlist
-- Basic City Explorer with London neighbourhood discovery
-- Simple itinerary generation using verified geographical information
+- ✅ Functional theatre video player (public-domain films from Wikimedia Commons on the big screen, or a video file of your own)
+- ⬜ AI-curated video recommendations (needs the AI backend from Phase 2)
+- ✅ Saved watchlist (kept in the browser)
+- ✅ Basic City Explorer with London neighbourhood discovery (map table in the main hall, OpenStreetMap, six neighbourhoods, Discovery Passport)
+- 🚧 Simple itinerary generation using verified geographical information (a walk planner with estimated times works now; AI-written itineraries need the Phase 2 backend)
 - Improved library organisation
 
 Deliverable: users can discover information, watch relevant content and plan real-world experiences.
 
-## Phase 4 — Version 0.3: Interactive Environments ⬜
+## Phase 4 — Version 0.3: Interactive Environments 🚧
 
 First functional versions of the observatory, museum, experimental laboratory, workshop and outdoor café, each with a small number of high-quality interactions (for example, two validated lab simulations rather than dozens of incomplete ones).
 
-## Phase 5 — Private Beta ⬜
+- ✅ Experimental laboratory with two validated simulations: gas laws (ideal gas law piston) and buoyancy (Archimedes' principle), each with unit tests against textbook values
+- ✅ Observatory: telescope view of a generated night sky, and an interactive solar system with real planet positions (JPL elements) and NASA figures
+- ✅ Outdoor café: a London café interior with an espresso counter where you make drinks against sourced recipes (AI conversation at the café needs the Phase 2 backend)
+- ✅ Museum of Everything: a top-lit gallery off the main hall with six exhibits, each with a model to turn over and sourced facts
+- ✅ Workshop, off the laboratory: a gear-train bench and a DC circuit bench, both calculated exactly and unit-tested
+
+## Phase 5 — Private Beta 🟡
 
 Improve navigation, visuals, performance, accessibility and reliability; evaluate AI costs; add accounts where necessary; gather feedback from a small group of testers. The central question: do people enjoy it enough to return voluntarily?
+
+- ✅ Sharing: GitHub Pages deploy, so testers can visit with a link.
+- ✅ Navigation: the map takes you straight to any room you've already been in.
+- ✅ Performance: workshop gears drawn as one mesh each, about 130 fewer draw calls.
+- ✅ Accessibility: panels take keyboard focus and keep Tab inside; visible focus rings; reduced motion stops the exhibit spin and interface transitions.
+- ✅ Reliability: a message with a reload button if WebGL can't start or is lost.
+- ⬜ Feedback from a small group of testers.
+- ⬜ AI costs and accounts: only if an AI guide is added (it would need a server, so keys stay out of the browser).
 
 ## Phase 6 — Future Development ⬜
 

@@ -1,0 +1,80 @@
+.map {
+  display: block;
+  width: 100%;
+  max-height: 62vh;
+  margin: 4px 0 12px;
+}
+
+.map-room {
+  fill: rgba(224, 164, 88, 0.08);
+  stroke: rgba(244, 234, 216, 0.55);
+  stroke-width: 0.12;
+}
+
+.map-outdoors {
+  fill: rgba(120, 170, 100, 0.14);
+}
+
+.map-locked {
+  fill: none;
+  stroke: rgba(244, 234, 216, 0.25);
+  stroke-dasharray: 0.4 0.3;
+}
+
+.map-here {
+  fill: rgba(224, 164, 88, 0.28);
+  stroke: var(--accent);
+  stroke-width: 0.2;
+}
+
+.map-fountain {
+  fill: none;
+  stroke: rgba(244, 234, 216, 0.4);
+  stroke-width: 0.1;
+}
+
+.map-door {
+  fill: var(--accent);
+}
+
+.map-label {
+  fill: var(--ink);
+  font-size: 0.9px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.map-note {
+  fill: var(--ink-muted);
+  font-size: 0.65px;
+  font-style: italic;
+  text-anchor: middle;
+}
+
+.map-note-here {
+  fill: var(--accent);
+}
+
+.map-you {
+  fill: var(--accent);
+  stroke: #1a120a;
+  stroke-width: 0.1;
+}
+
+.map-go {
+  cursor: pointer;
+}
+
+.map-go:hover,
+g:hover > .map-go {
+  fill: rgba(224, 164, 88, 0.2);
+  stroke: var(--accent);
+}
+
+.map-travel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}

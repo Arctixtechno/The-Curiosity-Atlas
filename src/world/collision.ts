@@ -3,6 +3,7 @@ import type { Collider } from '../types/room.ts'
 export const PLAYER_RADIUS = 0.3
 
 function overlaps(x: number, z: number, radius: number, c: Collider): boolean {
+  if ('kind' in c) return Math.hypot(x - c.x, z - c.z) + radius > c.radius
   const nearestX = Math.max(c.minX, Math.min(x, c.maxX))
   const nearestZ = Math.max(c.minZ, Math.min(z, c.maxZ))
   const dx = x - nearestX

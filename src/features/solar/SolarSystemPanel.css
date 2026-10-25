@@ -1,0 +1,102 @@
+.solar-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 780px) {
+  .solar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.solar-canvas {
+  width: 420px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 50%, #141a2a, #07090f);
+}
+
+.solar-note {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  max-width: 420px;
+}
+
+.solar-date {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  color: var(--accent);
+}
+
+.solar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.solar-planet i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.solar-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 14px;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.solar-facts dt {
+  color: var(--ink-muted);
+}
+
+.solar-facts dd {
+  margin: 0;
+}
+
+.solar-sizes {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+  padding: 0 10px 0 40px;
+  border-radius: 8px;
+  background: #07090f;
+  overflow: hidden;
+}
+
+/* The edge of the Sun at the same scale: its diameter is almost ten times Jupiter's. */
+.solar-sun-edge {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd060 90%, #ff9a30);
+  pointer-events: none;
+}
+
+.solar-size {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.solar-disc {
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.solar-size span {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}

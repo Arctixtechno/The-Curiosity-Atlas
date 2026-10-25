@@ -1,0 +1,82 @@
+.shop-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .shop-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shop-layout h3:first-child {
+  margin-top: 0;
+}
+
+.shop-canvas {
+  width: 420px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 45%, #2e2a26, #161412);
+}
+
+.shop-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.shop-row select {
+  font: inherit;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border: 1px solid rgba(224, 164, 88, 0.35);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.shop-row select option {
+  color: #1a1612;
+}
+
+.shop-control {
+  display: grid;
+  grid-template-columns: 7rem 1fr 5rem;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.shop-control output {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.shop-readings {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 14px 0;
+  font-size: 0.95rem;
+}
+
+.shop-readings dt {
+  color: var(--ink-muted);
+}
+
+.shop-readings dd {
+  margin: 0;
+}
+
+.shop-done {
+  color: #7fc7a4;
+}
+
+.shop-warn {
+  color: #e8a050;
+}

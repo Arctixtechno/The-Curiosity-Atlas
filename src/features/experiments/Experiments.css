@@ -1,0 +1,89 @@
+.lab-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .lab-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lab-canvas {
+  width: 360px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 40%, #232a3a, #121620);
+}
+
+.lab-layout h3:first-child {
+  margin-top: 0;
+}
+
+.lab-control {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 4.5rem;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.lab-control output {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.lab-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lab-readings {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 14px 0;
+  font-size: 0.95rem;
+}
+
+.lab-readings dt {
+  color: var(--ink-muted);
+}
+
+.lab-readings dd {
+  margin: 0;
+}
+
+.lab-chart {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 12px;
+}
+
+.lab-chart line {
+  stroke: rgba(244, 234, 216, 0.35);
+}
+
+.lab-chart .lab-chart-ref {
+  stroke-dasharray: 4 4;
+}
+
+.lab-chart polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.lab-chart circle {
+  fill: #e05a3c;
+}
+
+.lab-chart text {
+  fill: var(--ink-muted);
+  font-size: 10px;
+}

@@ -1,21 +1,108 @@
+import { useEffect, useState } from 'react'
+import { rooms } from '../rooms/registry.ts'
+import { computeRoomStates } from '../world/navigation.ts'
+import { useGame } from '../world/store.ts'
+import { openOverlay } from '../world/overlay.ts'
+import { MAP_OVERLAY } from './MapPanel.tsx'
+import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
 import './Hud.css'
-
-interface HudProps {
-  isExploring: boolean
-}
+import './Panel.css'
 
 // Conventional HTML overlay drawn on top of the 3D canvas.
-export function Hud({ isExploring }: HudProps) {
-  if (isExploring) {
-    return <div className="crosshair" aria-hidden="true" />
-  }
+export function Hud() {
+  const isExploring = useGame((s) => s.isExploring)
+  const transitioning = useGame((s) => s.transitioning)
+  const prompt = useGame((s) => s.prompt)
+  const activeRoomId = useGame((s) => s.activeRoomId)
+  const toast = useGame((s) => s.toast)
+  const overlay = useGame((s) => s.overlay)
+  const viewing = useGame((s) => s.viewing)
+  const [showRoomStates, setShowRoomStates] = useState(false)
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Backquote') setShowRoomStates((v) => !v)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  return (
+    <>
+      <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
+      <div className="room-name">{rooms[activeRoomId].displayName}</div>
+      {showRoomStates && <RoomStates />}
+      {toast && <div className="toast">{toast}</div>}
+      {viewing === 'telescope' && <Eyepiece />}
+      {isExploring
+        ? !viewing && (
+            <>
+              <div className="crosshair" aria-hidden="true" />
+              {prompt && (
+                <div className="prompt" role="status">
+                  {prompt.startsWith('Press E') ? (
+                    <>
+                      Press <kbd>E</kbd>
+                      {prompt.slice('Press E'.length)}
+                    </>
+                  ) : (
+                    prompt
+                  )}
+                </div>
+              )}
+            </>
+          )
+        : !overlay && <Intro />}
+    </>
+  )
+}
+
+/** The round field of view of a telescope eyepiece, with a reminder of the controls. */
+function Eyepiece() {
+  return (
+    <>
+      <div className="eyepiece" aria-hidden="true" />
+      <div className="eyepiece-caption">
+        Looking through the telescope · move the mouse to look around · scroll to zoom · <kbd>E</kbd> to step back
+      </div>
+    </>
+  )
+}
+
+/** Developer view of the Room Manager (toggle with the ` key). */
+function RoomStates() {
+  const activeRoomId = useGame((s) => s.activeRoomId)
+  const nearbyRoomIds = useGame((s) => s.nearbyRoomIds)
+  const states = computeRoomStates(rooms, activeRoomId, nearbyRoomIds)
+  return (
+    <div className="room-states">
+      <strong>Rooms</strong>
+      <ul>
+        {Object.entries(states).map(([id, state]) => (
+          <li key={id} className={`state-${state}`}>
+            {rooms[id].displayName}: {state}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function Intro() {
   return (
     <div className="intro">
       <div className="intro-panel">
         <h1>The Curiosity Atlas</h1>
         <p className="tagline">A small world built for endless curiosity.</p>
         <p className="start">Click anywhere to explore</p>
+        <div className="intro-actions">
+          <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(SETTINGS_OVERLAY))}>
+            Settings
+          </button>
+          <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(MAP_OVERLAY))}>
+            Map
+          </button>
+        </div>
         <ul className="controls">
           <li>
             <kbd>W</kbd>
@@ -24,13 +111,26 @@ export function Hud({ isExploring }: HudProps) {
             <kbd>D</kbd> Move
           </li>
           <li>
-            <kbd>Mouse</kbd> Look around
+            <kbd>Mouse</kbd> or <kbd>←</kbd>
+            <kbd>↑</kbd>
+            <kbd>↓</kbd>
+            <kbd>→</kbd> Look around
+          </li>
+          <li>
+            <kbd>E</kbd> Open doors and interact
           </li>
           <li>
             <kbd>Shift</kbd> Walk faster
           </li>
           <li>
-            <kbd>Esc</kbd> Release cursor
+            <kbd>[</kbd>
+            <kbd>]</kbd> Mouse sensitivity
+          </li>
+          <li>
+            <kbd>M</kbd> Map · <kbd>O</kbd> Settings
+          </li>
+          <li>
+            <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)
           </li>
         </ul>
       </div>

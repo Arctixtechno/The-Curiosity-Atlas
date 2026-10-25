@@ -1,0 +1,58 @@
+.cafe-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .cafe-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cafe-layout h3:first-child {
+  margin-top: 0;
+}
+
+.cafe-canvas {
+  width: 300px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 70%, #4a3626, #1e1610);
+}
+
+.cafe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cafe-made {
+  color: var(--accent);
+}
+
+.cafe-recipe {
+  margin-top: 10px;
+}
+
+.cafe-readings {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 14px 0;
+  font-size: 0.95rem;
+}
+
+.cafe-readings dt {
+  color: var(--ink-muted);
+}
+
+.cafe-readings dd {
+  margin: 0;
+}
+
+.cafe-recipe a {
+  color: var(--accent);
+}
