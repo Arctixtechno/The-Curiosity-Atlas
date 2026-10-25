@@ -94,6 +94,51 @@ export const CAFE_TABLES: [number, number][] = [
   [2.2, CAFE.frontZ - 1.7],
 ]
 
+/**
+ * Inside the café. The shopfront, with the door to the courtyard, is the +z wall.
+ * The counter runs along the back; a banquette lines the west wall.
+ */
+export const CAFE_ROOM = {
+  width: 8,
+  length: 7,
+  height: CAFE.height,
+  /** Centre of the counter, as [x, z], and its size. */
+  counter: [0.6, -2.0] as [number, number],
+  counterSize: { length: 4.4, depth: 0.7, height: 1.0 },
+  /** Tables along the banquette, and the bistro tables on the east side, as [x, z]. */
+  banquetteTables: [
+    [-2.95, -0.4],
+    [-2.95, 1.5],
+  ] as [number, number][],
+  bistroTables: [
+    [2.5, -0.2],
+    [2.5, 1.6],
+  ] as [number, number][],
+  /** Shop window bays either side of the door, matching the outside. */
+  bays: [-2.05, 2.05],
+  bayWidth: 2.3,
+}
+
+/**
+ * The Museum of Everything: a top-lit gallery off the main hall. Its door is the +z wall.
+ * Exhibits stand in cases down each side, with the largest at the far end.
+ */
+export const MUSEUM = {
+  width: 10,
+  length: 14,
+  height: 4.6,
+  /** Where each exhibit stands, as [x, z], and the kind of case it's in. */
+  exhibits: {
+    rosetta: { at: [0, -5.3], case: 'tall' },
+    meteorite: { at: [0, -1.6], case: 'open' },
+    astrolabe: { at: [-3, -2.8], case: 'table' },
+    chronometer: { at: [3, -2.8], case: 'table' },
+    ammonite: { at: [-3, 1.6], case: 'table' },
+    antikythera: { at: [3, 1.6], case: 'table' },
+  } as Record<string, { at: [number, number]; case: 'tall' | 'open' | 'table' }>,
+  bench: [0, 2.4] as [number, number],
+}
+
 /** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
 export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
 export const DOOR_POTS: [number, number][] = [

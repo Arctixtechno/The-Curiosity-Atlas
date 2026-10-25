@@ -123,8 +123,9 @@ function Paintings() {
   const z = MAIN_HALL.length / 2 - 0.01
   return (
     <>
-      <Painting name="seascape" position={[-x, 1.85, -6]} rotationY={Math.PI / 2} />
-      <Painting name="map" position={[-x, 1.85, -3]} rotationY={Math.PI / 2} width={1} />
+      {/* Over the console table. */}
+      <Painting name="seascape" position={[-x, 1.95, HALL_FURNITURE.console[1]]} rotationY={Math.PI / 2} width={0.9} />
+      <Painting name="map" position={[-x, 1.85, -6]} rotationY={Math.PI / 2} width={1} />
       <Painting name="botanical" position={[-x, 1.85, 3]} rotationY={Math.PI / 2} width={0.9} />
       <Painting name="stars" position={[x, 1.85, -3]} rotationY={-Math.PI / 2} width={1} />
       <Painting name="hills" position={[x, 1.85, 3]} rotationY={-Math.PI / 2} />

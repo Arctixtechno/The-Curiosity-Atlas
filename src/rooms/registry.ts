@@ -3,6 +3,7 @@ import { CafeExterior } from './CafeExterior.tsx'
 import {
   boxCollider,
   CAFE,
+  CAFE_ROOM,
   CAFE_TABLES,
   COURTYARD,
   EYE_HEIGHT,
@@ -15,6 +16,7 @@ import {
   LOUNGE,
   MAIN_HALL,
   MAP_TABLE,
+  MUSEUM,
   OBSERVATORY,
   observatoryWallPoint,
   PORTICO,
@@ -55,6 +57,14 @@ const mainHallDoors: DoorDefinition[] = [
     position: [0, 0, hallL],
     rotationY: Math.PI,
     target: { roomId: 'courtyard', doorId: 'hall' },
+  },
+  {
+    id: 'museum',
+    label: 'Museum',
+    prompt: 'Press E to enter the Museum of Everything',
+    position: [-hallW, 0, -3],
+    rotationY: Math.PI / 2,
+    target: { roomId: 'museum', doorId: 'hall' },
   },
   { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
   {
@@ -193,6 +203,33 @@ export const rooms: Record<string, RoomDefinition> = {
     ],
     load: () => import('./PhilosophyLounge.tsx'),
   },
+  museum: {
+    id: 'museum',
+    displayName: 'Museum of Everything',
+    colliders: [
+      ...wallColliders(MUSEUM.width, MUSEUM.length),
+      ...Object.values(MUSEUM.exhibits).map(({ at, case: kind }) =>
+        kind === 'tall'
+          ? boxCollider(...at, 1.4, 0.9)
+          : kind === 'open'
+            ? boxCollider(...at, 1.0, 1.0)
+            : boxCollider(...at, 1.1, 0.9),
+      ),
+      // The open plinth's label stand.
+      boxCollider(MUSEUM.exhibits.meteorite.at[0], MUSEUM.exhibits.meteorite.at[1] + 0.62, 0.3, 0.3),
+      boxCollider(...MUSEUM.bench, 1.9, 0.5),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, MUSEUM.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'museum' },
+      },
+    ],
+    load: () => import('./Museum.tsx'),
+  },
   courtyard: {
     id: 'courtyard',
     displayName: 'Courtyard',
@@ -221,7 +258,15 @@ export const rooms: Record<string, RoomDefinition> = {
         signHeight: 2.68,
         target: { roomId: 'mainHall', doorId: 'entrance' },
       },
-      { id: 'cafe', label: 'Café', position: [0, 0, CAFE.frontZ - 0.05], rotationY: Math.PI, color: '#5f9a7c', signHeight: 2.52 },
+      {
+        id: 'cafe',
+        label: 'Café',
+        position: [0, 0, CAFE.frontZ - 0.05],
+        rotationY: Math.PI,
+        color: '#5f9a7c',
+        signHeight: 2.52,
+        target: { roomId: 'cafe', doorId: 'courtyard' },
+      },
     ],
     load: () => import('./Courtyard.tsx'),
     visibleExteriors: ['cafe'],
@@ -229,8 +274,40 @@ export const rooms: Record<string, RoomDefinition> = {
   cafe: {
     id: 'cafe',
     displayName: 'Café',
-    colliders: [],
-    doors: [],
+    colliders: [
+      ...wallColliders(CAFE_ROOM.width, CAFE_ROOM.length),
+      // The counter and the barista's side behind it.
+      {
+        minX: CAFE_ROOM.counter[0] - CAFE_ROOM.counterSize.length / 2 - 0.1,
+        maxX: CAFE_ROOM.counter[0] + CAFE_ROOM.counterSize.length / 2 + 0.1,
+        minZ: -CAFE_ROOM.length / 2,
+        maxZ: CAFE_ROOM.counter[1] + CAFE_ROOM.counterSize.depth / 2 + 0.15,
+      },
+      // The banquette and its tables, and the chairs facing them.
+      { minX: -CAFE_ROOM.width / 2, maxX: -2.55, minZ: -1.45, maxZ: 2.45 },
+      ...CAFE_ROOM.banquetteTables.map(([x, z]) => boxCollider(x + 0.62, z, 0.5, 0.5)),
+      ...CAFE_ROOM.bistroTables.map(([x, z]) => boxCollider(x, z, 1.7, 0.8)),
+      // The window bar and its stools, and the fig by the door.
+      {
+        minX: CAFE_ROOM.bays[1] - CAFE_ROOM.bayWidth / 2,
+        maxX: CAFE_ROOM.width / 2,
+        minZ: CAFE_ROOM.length / 2 - 0.9,
+        maxZ: CAFE_ROOM.length / 2,
+      },
+      boxCollider(-CAFE_ROOM.width / 2 + 0.45, CAFE_ROOM.length / 2 - 0.5, 0.7, 0.7),
+    ],
+    doors: [
+      {
+        id: 'courtyard',
+        label: 'Courtyard',
+        prompt: 'Press E to go out to the Courtyard',
+        position: [0, 0, CAFE_ROOM.length / 2 - 0.05],
+        rotationY: Math.PI,
+        color: '#2f5a48',
+        target: { roomId: 'courtyard', doorId: 'cafe' },
+      },
+    ],
+    load: () => import('./Cafe.tsx'),
     exterior: CafeExterior,
   },
 }

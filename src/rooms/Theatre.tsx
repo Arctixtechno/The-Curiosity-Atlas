@@ -61,7 +61,13 @@ function useTheatreParts() {
       footrest: rounded(0.58, 0.08, 0.4, 0.035),
       panel: rounded(PANEL.width, PANEL.height, 0.07, 0.03),
       // Leather with a soft sheen rather than a plastic shine.
-      leather: new MeshStandardMaterial({ color: LEATHER, map: leatherMap, bumpMap: leatherMap, bumpScale: 0.6, roughness: 0.45 }),
+      leather: new MeshStandardMaterial({
+        color: LEATHER,
+        map: leatherMap,
+        bumpMap: leatherMap,
+        bumpScale: 0.6,
+        roughness: 0.45,
+      }),
       plinth: new MeshStandardMaterial({ color: '#1a1012', roughness: 0.6 }),
       fabric: new MeshStandardMaterial({ color: '#6a1e2a', map: fabricMap, roughness: 1 }),
     }
@@ -441,9 +447,14 @@ function WallLamp({ side, z, dim }: { side: -1 | 1; z: number; dim: number }) {
 const COVE = { width: 0.8, depth: 0.32 }
 function CeilingCove({ dim }: { dim: number }) {
   const y = THEATRE.height - COVE.depth / 2
-  const sides: { pos: [number, number, number]; size: [number, number, number]; glow: [number, number, number]; glowSize: [number, number]; strip: [number, number, number]; stripSize: [number, number] }[] = [
-    -1, 1,
-  ].flatMap((s) => [
+  const sides: {
+    pos: [number, number, number]
+    size: [number, number, number]
+    glow: [number, number, number]
+    glowSize: [number, number]
+    strip: [number, number, number]
+    stripSize: [number, number]
+  }[] = [-1, 1].flatMap((s) => [
     {
       pos: [s * (HALF_W - COVE.width / 2), y, 0],
       size: [COVE.width, COVE.depth, THEATRE.length],
@@ -507,9 +518,13 @@ function StarCeiling() {
   const geometry = useMemo(() => {
     const points: number[] = []
     let seed = 7
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
     for (let i = 0; i < 420; i++) {
-      points.push((rand() - 0.5) * (THEATRE.width - 2 * COVE.width - 0.4), THEATRE.height - 0.02, (rand() - 0.5) * (THEATRE.length - 2 * COVE.width - 0.4))
+      points.push(
+        (rand() - 0.5) * (THEATRE.width - 2 * COVE.width - 0.4),
+        THEATRE.height - 0.02,
+        (rand() - 0.5) * (THEATRE.length - 2 * COVE.width - 0.4),
+      )
     }
     const g = new BufferGeometry()
     g.setAttribute('position', new Float32BufferAttribute(points, 3))
@@ -566,14 +581,25 @@ export default function Theatre() {
 
       {rows.map((tier, r) =>
         THEATRE_SEAT_XS.map((x, i) => (
-          <Recliner key={`${r}-${x}`} x={x} y={tier.height} z={tier.rowZ!} reclined={(r === 0 && i === 1) || (r === 1 && i === 2)} parts={parts} />
+          <Recliner
+            key={`${r}-${x}`}
+            x={x}
+            y={tier.height}
+            z={tier.rowZ!}
+            reclined={(r === 0 && i === 1) || (r === 1 && i === 2)}
+            parts={parts}
+          />
         )),
       )}
       {rows.map((tier, r) =>
-        THEATRE_TABLE_XS.map((x) => <SideTable key={`${r}-${x}`} x={x} y={tier.height} z={tier.rowZ! + 0.15} popcorn={popcorn} />),
+        THEATRE_TABLE_XS.map((x) => (
+          <SideTable key={`${r}-${x}`} x={x} y={tier.height} z={tier.rowZ! + 0.15} popcorn={popcorn} />
+        )),
       )}
 
-      {[-4.5, 0, 4.5].flatMap((z) => [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} dim={dim} />))}
+      {[-4.5, 0, 4.5].flatMap((z) =>
+        [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} dim={dim} />),
+      )}
       {[-6.6, -2.25, 2.25, 6.6].flatMap((z) =>
         [-1, 1].map((side) => <AcousticPanel key={`${side}-${z}`} side={side as -1 | 1} z={z} parts={parts} />),
       )}
