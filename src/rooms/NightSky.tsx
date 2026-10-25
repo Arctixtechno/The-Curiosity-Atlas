@@ -692,7 +692,7 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
       <Stars geometry={stars} material={starShading} />
       {/* Tilted so its poles sit side-on to the room, where the map is least stretched. */}
       <mesh position={moon} rotation={[0.86, 2.2, 0]} material={moonShading}>
-        <sphereGeometry args={[2, 128, 64]} />
+        <sphereGeometry args={[2, 96, 48]} />
       </mesh>
       {/* A faint glow of moonlight in the air round it. */}
       <mesh position={moon} renderOrder={1} visible={!looking} onUpdate={(m) => m.lookAt(0, 0, 0)}>

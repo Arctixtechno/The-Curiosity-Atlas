@@ -5,11 +5,14 @@ import { BoxGeometry, Float32BufferAttribute, Object3D, type InstancedMesh } fro
 import { BoxBallPot, Bench } from '../components/Furnishings.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
+import { Skyline } from './Skyline.tsx'
 import { COURTYARD, COURTYARD_BENCH, DOOR_POTS } from './dimensions.ts'
 import { Portico, SashWindows, TerraceWall, type WindowProps } from './Townhouse.tsx'
 
 const SUN: [number, number, number] = [45, 40, 8]
 const HOUSE_Z = -COURTYARD.length / 2
+/** The painted city round the garden square: terraces across the square, then the town, then the horizon. */
+const COURTYARD_SKYLINE: [number, number, number] = [75, 115, 170]
 const TERRACE_WIDTH = 44
 
 type TreeSpot = [x: number, z: number, scale: number]
@@ -323,6 +326,7 @@ export default function Courtyard() {
       ))}
       <Bench position={[COURTYARD_BENCH[0], 0, COURTYARD_BENCH[1]]} rotationY={Math.PI / 2} length={1.6} />
       <DistantTerrace />
+      <Skyline radii={COURTYARD_SKYLINE} rotationY={Math.PI / 2} />
 
       {PLANTERS.map(([x, z]) => (
         <mesh key={x} position={[x, 0.3, z]} castShadow receiveShadow>

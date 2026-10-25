@@ -512,7 +512,7 @@ function CelestialGlobe() {
       <group position={[0, 1.05, 0]} rotation={[0, 0, 0.41]}>
         <group ref={globe}>
           <mesh castShadow>
-            <sphereGeometry args={[0.3, 48, 32]} />
+            <sphereGeometry args={[0.3, 32, 20]} />
             <meshStandardMaterial map={map} roughness={0.5} />
           </mesh>
         </group>
@@ -766,8 +766,8 @@ export default function Observatory() {
       ))}
       <Painting
         name="stars"
-        position={[Math.sin(1.6) * (R - 0.05), 1.75, Math.cos(1.6) * (R - 0.05)]}
-        rotationY={1.6 + Math.PI}
+        position={[Math.sin(Math.PI) * (R - 0.05), 1.75, Math.cos(Math.PI) * (R - 0.05)]}
+        rotationY={0}
         width={1.1}
       />
       <Painting

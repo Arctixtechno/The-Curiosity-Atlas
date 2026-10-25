@@ -18,8 +18,10 @@ import {
   MAP_TABLE,
   MUSEUM,
   OBSERVATORY,
+  OBSERVATORY_TERRACE_DOOR,
   observatoryWallPoint,
   PORTICO,
+  TERRACE,
   THEATRE,
   WORKSHOP,
   THEATRE_AISLE,
@@ -32,6 +34,8 @@ import {
 
 // Every room the Room Manager knows about. Interiors are loaded on demand
 // through `load`, so each one ends up in its own code-split chunk.
+
+const terraceDoor = observatoryWallPoint(OBSERVATORY_TERRACE_DOOR, 0.15)
 
 const hallL = MAIN_HALL.length / 2 - 0.05
 const hallW = MAIN_HALL.width / 2 - 0.05
@@ -152,8 +156,37 @@ export const rooms: Record<string, RoomDefinition> = {
         rotationY: Math.PI,
         target: { roomId: 'mainHall', doorId: 'observatory' },
       },
+      {
+        id: 'terrace',
+        label: 'Roof Terrace',
+        prompt: 'Press E to step out onto the roof terrace',
+        position: [terraceDoor[0], 0, terraceDoor[1]],
+        rotationY: OBSERVATORY_TERRACE_DOOR + Math.PI,
+        target: { roomId: 'terrace', doorId: 'observatory' },
+      },
     ],
     load: () => import('./Observatory.tsx'),
+  },
+  terrace: {
+    id: 'terrace',
+    displayName: 'Roof Terrace',
+    colliders: [
+      // The balustrade on three sides and the dome's wall behind, kept a little short of their faces.
+      ...wallColliders(TERRACE.width - 0.8, TERRACE.depth - 0.8),
+      boxCollider(...TERRACE.bench, 1.7, 0.6),
+      boxCollider(...TERRACE.telescope, 0.9, 0.9),
+      ...TERRACE.bays.map(([x, z]) => boxCollider(x, z, 0.8, 0.8)),
+    ],
+    doors: [
+      {
+        id: 'observatory',
+        label: 'Observatory',
+        position: [0, 0, -TERRACE.depth / 2 + 0.05],
+        rotationY: 0,
+        target: { roomId: 'observatory', doorId: 'terrace' },
+      },
+    ],
+    load: () => import('./RoofTerrace.tsx'),
   },
   laboratory: {
     id: 'laboratory',

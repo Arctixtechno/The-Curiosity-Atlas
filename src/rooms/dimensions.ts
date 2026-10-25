@@ -208,3 +208,25 @@ export function wallColliders(width: number, length: number, t = WALL_THICKNESS)
 export function boxCollider(x: number, z: number, sizeX: number, sizeZ: number): BoxCollider {
   return { minX: x - sizeX / 2, maxX: x + sizeX / 2, minZ: z - sizeZ / 2, maxZ: z + sizeZ / 2 }
 }
+
+/**
+ * The roof terrace beside the observatory dome: a stone terrace behind a
+ * marble balustrade, looking out over London. The door is in the middle of
+ * the back wall (z = -depth / 2). Positions are [x, z].
+ */
+export const TERRACE = {
+  width: 12,
+  depth: 7,
+  /** Height of the roof above the street, for the view. */
+  roofHeight: 24,
+  balustradeInset: 0.2,
+  bench: [-2.6, 1.2] as [number, number],
+  telescope: [3.9, 2.4] as [number, number],
+  bays: [
+    [-5.2, -2.9],
+    [5.2, -2.9],
+    [-5.2, 2.9],
+  ] as [number, number][],
+}
+/** Where the observatory's door onto the terrace is, by angle round the room (see observatoryWallPoint). */
+export const OBSERVATORY_TERRACE_DOOR = 1.55
