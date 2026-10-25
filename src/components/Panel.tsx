@@ -1,19 +1,18 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { closeOverlay } from '../world/overlay.ts'
 import './Panel.css'
 
 /**
- * A full-screen panel over the world, for menus like the film list or the
- * settings. Clicks inside don't reach the world (which would grab the mouse),
- * and Escape or the close button returns to exploring. Keyboard focus moves
- * into the panel when it opens and Tab keeps it there until it closes.
+ * Makes `dialog` behave as a modal: it takes keyboard focus when it opens,
+ * Tab stays inside it, and Escape closes the overlay (or calls `onEscape`).
  */
-export function Panel({ title, children, wide }: { title: string; children: ReactNode; wide?: boolean }) {
-  const dialog = useRef<HTMLElement>(null)
+export function useModal(dialog: RefObject<HTMLElement | null>, onEscape: () => void = closeOverlay) {
+  const escape = useRef(onEscape)
+  escape.current = onEscape
   useEffect(() => {
     dialog.current?.focus()
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Escape') closeOverlay()
+      if (e.code === 'Escape') escape.current()
       if (e.code !== 'Tab' || !dialog.current) return
       const focusable = dialog.current.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])',
@@ -32,7 +31,18 @@ export function Panel({ title, children, wide }: { title: string; children: Reac
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [dialog])
+}
+
+/**
+ * A full-screen panel over the world, for menus like the film list or the
+ * settings. Clicks inside don't reach the world (which would grab the mouse),
+ * and Escape or the close button returns to exploring. Keyboard focus moves
+ * into the panel when it opens and Tab keeps it there until it closes.
+ */
+export function Panel({ title, children, wide }: { title: string; children: ReactNode; wide?: boolean }) {
+  const dialog = useRef<HTMLElement>(null)
+  useModal(dialog)
   return (
     <div className="panel-backdrop" onClick={(e) => e.stopPropagation()}>
       <section

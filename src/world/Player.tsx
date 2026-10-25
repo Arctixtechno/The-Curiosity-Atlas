@@ -22,7 +22,6 @@ const SENSITIVITY_STEP = 0.2
 const VIEWING_LOOK_SCALE = 0.08
 const SENSITIVITY_RANGE = [0.4, 6] as const
 
-
 interface PlayerProps {
   colliders: Collider[]
   floorHeight?: (x: number, z: number) => number
@@ -126,7 +125,12 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     if (ahead || side) {
       const speed = running ? RUN_SPEED : WALK_SPEED
       // Cap the step (via dt) so a long frame can't tunnel through walls.
-      move.copy(forward).multiplyScalar(ahead).addScaledVector(right, side).normalize().multiplyScalar(speed * dt)
+      move
+        .copy(forward)
+        .multiplyScalar(ahead)
+        .addScaledVector(right, side)
+        .normalize()
+        .multiplyScalar(speed * dt)
       const [x, z] = moveWithCollisions(camera.position.x, camera.position.z, move.x, move.z, colliders)
       moved = Math.hypot(x - camera.position.x, z - camera.position.z)
       camera.position.x = x
@@ -158,7 +162,9 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
       onLock={() => gameStore.set({ isExploring: true })}
       onUnlock={() => {
         keys.current.clear()
-        gameStore.set({ isExploring: false, prompt: null, viewing: null })
+        // A panel opening over a view (the seat in the lounge) keeps it; otherwise releasing the mouse ends it.
+        const { overlay, viewing } = gameStore.get()
+        gameStore.set({ isExploring: false, prompt: null, viewing: overlay ? viewing : null })
       }}
     />
   )

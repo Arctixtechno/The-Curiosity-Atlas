@@ -2,8 +2,9 @@ import { useSyncExternalStore } from 'react'
 import { askCurator, CuratorError, curatorErrorMessages, type ChatMessage } from '../../services/curator.ts'
 import { placeholderReply } from './placeholderCompanion.ts'
 
-// The current lounge conversation, kept for the visit so leaving the chair and
-// coming back doesn't lose it.
+// The current lounge conversation. It's kept in this browser, so standing up,
+// leaving the house or closing the page doesn't lose it, until the visitor
+// starts afresh.
 
 /**
  * Until an AI Curator is set up, the companion answers with replies written
@@ -19,11 +20,40 @@ export interface Conversation {
   error: string | null
 }
 
-let state: Conversation = { modeId: 'open', messages: [], pending: false, error: null }
+const STORAGE_KEY = 'atlas.loungeConversation'
+
+function load(): Conversation {
+  const fresh = { modeId: 'open', messages: [], pending: false, error: null }
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    if (saved && typeof saved.modeId === 'string' && Array.isArray(saved.messages)) {
+      const messages = saved.messages.filter(
+        (m: ChatMessage) => (m?.role === 'user' || m?.role === 'assistant') && typeof m.content === 'string',
+      )
+      return { ...fresh, modeId: saved.modeId, messages }
+    }
+  } catch {
+    // Unreadable or unavailable storage: start a fresh conversation.
+  }
+  return fresh
+}
+
+function save() {
+  try {
+    if (state.messages.length)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ modeId: state.modeId, messages: state.messages }))
+    else localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Storage can be unavailable (private windows); the conversation just won't outlast the page.
+  }
+}
+
+let state: Conversation = load()
 const listeners = new Set<() => void>()
 
 function set(partial: Partial<Conversation>) {
   state = { ...state, ...partial }
+  if ('messages' in partial || 'modeId' in partial) save()
   listeners.forEach((l) => l())
 }
 
@@ -43,6 +73,12 @@ export function useConversation(): Conversation {
 export function chooseMode(modeId: string) {
   if (state.pending) return
   set({ modeId, messages: [], error: null })
+}
+
+/** Clears the conversation (keeping the mode) to begin again. */
+export function startFresh() {
+  if (state.pending) return
+  set({ messages: [], error: null })
 }
 
 async function requestReply(messages: ChatMessage[]) {

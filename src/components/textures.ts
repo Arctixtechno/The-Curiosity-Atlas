@@ -518,6 +518,189 @@ const painters = {
     grain(c, 0.06)
   },
 
+  /**
+   * A worn Persian-style rug: a madder-red field with a central medallion,
+   * corner pieces and layered borders, the pile faded where feet go.
+   */
+  rug: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    const u = ppm * 0.01
+    ctx.fillStyle = '#7a2a22'
+    ctx.fillRect(0, 0, w, h)
+    // Borders: a dark guard, the main border with a running vine, and a light inner guard.
+    const band = (inset: number, width: number, colour: string) => {
+      ctx.strokeStyle = colour
+      ctx.lineWidth = width * u
+      ctx.strokeRect((inset + width / 2) * u, (inset + width / 2) * u, w - (inset * 2 + width) * u, h - (inset * 2 + width) * u)
+    }
+    band(0, 4, '#1f2438')
+    band(4, 22, '#24304a')
+    band(26, 3, '#d8c49a')
+    band(29, 2, '#1f2438')
+    // A running vine of small flowers along the main border.
+    ctx.fillStyle = '#c99a4a'
+    const vine = (x: number, y: number) => {
+      ctx.beginPath()
+      ctx.arc(x, y, 3.2 * u, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    const mid = 15 * u
+    for (let x = mid; x < w - mid; x += 14 * u) {
+      vine(x, mid)
+      vine(x, h - mid)
+    }
+    for (let y = mid; y < h - mid; y += 14 * u) {
+      vine(mid, y)
+      vine(w - mid, y)
+    }
+    ctx.fillStyle = '#a8433a'
+    for (let x = mid + 7 * u; x < w - mid; x += 14 * u) {
+      vine(x, mid)
+      vine(x, h - mid)
+    }
+    // The field's small all-over pattern of lozenges.
+    const fx = 34 * u
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(fx, fx, w - fx * 2, h - fx * 2)
+    ctx.clip()
+    for (let y = fx; y < h; y += 12 * u) {
+      for (let x = fx + ((y / (12 * u)) % 2) * 6 * u; x < w; x += 12 * u) {
+        ctx.fillStyle = rand() > 0.5 ? 'rgba(30, 36, 56, 0.35)' : 'rgba(210, 170, 100, 0.22)'
+        ctx.beginPath()
+        ctx.moveTo(x, y - 2.5 * u)
+        ctx.lineTo(x + 2.5 * u, y)
+        ctx.lineTo(x, y + 2.5 * u)
+        ctx.lineTo(x - 2.5 * u, y)
+        ctx.fill()
+      }
+    }
+    ctx.restore()
+    // Medallion: nested lobed shapes in navy, ivory and gold.
+    const cx = w / 2
+    const cy = h / 2
+    const medallion = (r: number, colour: string, lobes: number) => {
+      ctx.fillStyle = colour
+      ctx.beginPath()
+      for (let i = 0; i <= 200; i++) {
+        const a = (i / 200) * Math.PI * 2
+        const rr = r * (1 + 0.12 * Math.cos(a * lobes))
+        const x = cx + Math.cos(a) * rr * 1.5
+        const y = cy + Math.sin(a) * rr
+        if (i) ctx.lineTo(x, y)
+        else ctx.moveTo(x, y)
+      }
+      ctx.fill()
+    }
+    medallion(Math.min(w, h) * 0.24, '#1f2a44', 8)
+    medallion(Math.min(w, h) * 0.19, '#d9c49a', 8)
+    medallion(Math.min(w, h) * 0.15, '#8a3026', 12)
+    medallion(Math.min(w, h) * 0.07, '#24304a', 6)
+    medallion(Math.min(w, h) * 0.035, '#d6a64e', 6)
+    // Corner pieces echo the medallion.
+    for (const [x, y] of [
+      [fx, fx],
+      [w - fx, fx],
+      [fx, h - fx],
+      [w - fx, h - fx],
+    ]) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 40 * u)
+      g.addColorStop(0, '#24304a')
+      g.addColorStop(0.75, '#24304a')
+      g.addColorStop(0.76, 'rgba(36, 48, 74, 0)')
+      ctx.fillStyle = g
+      ctx.beginPath()
+      ctx.arc(x, y, 40 * u, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // Wear: the pile faded in the middle where people walk, and a fine knotted texture.
+    const wear = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.6)
+    wear.addColorStop(0, 'rgba(230, 200, 160, 0.16)')
+    wear.addColorStop(1, 'rgba(230, 200, 160, 0)')
+    ctx.fillStyle = wear
+    ctx.fillRect(0, 0, w, h)
+    for (let y = 0; y < h; y += 2) {
+      ctx.fillStyle = `rgba(0, 0, 0, ${(0.02 + rand() * 0.05).toFixed(3)})`
+      ctx.fillRect(0, y, w, 1)
+    }
+    mottle(c, 0.4, 0.06)
+    grain(c, 0.18)
+  },
+
+  /** Damask wallpaper: a faint tone-on-tone motif in staggered rows. Tinted by the material colour. */
+  damask: (c) => {
+    const { ctx, w, h, ppm } = c
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+    const step = 0.26 * ppm
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.07)'
+    for (let row = 0; row * step * 1.4 < h + step; row++) {
+      for (let x = (row % 2) * (step / 2); x < w + step; x += step) {
+        const y = row * step * 1.4
+        // A stylised flower: a teardrop with leaves either side.
+        ctx.beginPath()
+        ctx.ellipse(x, y, step * 0.13, step * 0.3, 0, 0, Math.PI * 2)
+        ctx.fill()
+        for (const side of [-1, 1]) {
+          ctx.beginPath()
+          ctx.ellipse(x + side * step * 0.2, y + step * 0.12, step * 0.07, step * 0.2, side * 0.7, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.beginPath()
+        ctx.arc(x, y - step * 0.42, step * 0.05, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+    mottle(c, 0.6, 0.05)
+    grain(c, 0.05)
+  },
+
+  /**
+   * Panelled wainscoting: stiles and rails framing recessed panels, with
+   * light catching the top and left of each moulding. Tinted by the material colour.
+   */
+  wainscot: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    ctx.fillStyle = '#d8b48a'
+    ctx.fillRect(0, 0, w, h)
+    // Vertical grain over everything.
+    for (let i = 0; i < w / 3; i++) {
+      ctx.strokeStyle = `rgba(70, 40, 15, ${(0.05 + rand() * 0.08).toFixed(3)})`
+      ctx.lineWidth = 0.5 + rand()
+      const x = rand() * w
+      ctx.beginPath()
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x + (rand() - 0.5) * 4, h)
+      ctx.stroke()
+    }
+    const frame = 0.09 * ppm
+    const panelW = 0.62 * ppm
+    const count = Math.max(1, Math.round((w - frame) / (panelW + frame)))
+    const pw = (w - frame * (count + 1)) / count
+    const ph = h - frame * 2
+    for (let i = 0; i < count; i++) {
+      const x = frame + i * (pw + frame)
+      const y = frame
+      // The recess: shadow along the top and left, light along the bottom and right.
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
+      ctx.fillRect(x, y, pw, 4)
+      ctx.fillRect(x, y, 4, ph)
+      ctx.fillStyle = 'rgba(255, 240, 210, 0.25)'
+      ctx.fillRect(x, y + ph - 3, pw, 3)
+      ctx.fillRect(x + pw - 3, y, 3, ph)
+      // The raised field, with a bevel all round.
+      const b = 0.03 * ppm
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.12)'
+      ctx.fillRect(x + 4, y + 4, pw - 7, ph - 7)
+      ctx.fillStyle = rgb('#d8b48a', (rand() - 0.5) * 0.05)
+      ctx.fillRect(x + b, y + b, pw - b * 2, ph - b * 2)
+      ctx.fillStyle = 'rgba(255, 240, 210, 0.18)'
+      ctx.fillRect(x + b, y + b, pw - b * 2, 2)
+    }
+    mottle(c, 0.5, 0.05)
+    grain(c, 0.06)
+  },
+
   /** White marble with grey veins. */
   marble: (c) => {
     const { ctx, w, h, rand } = c

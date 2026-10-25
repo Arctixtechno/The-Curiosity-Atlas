@@ -195,8 +195,11 @@ export const rooms: Record<string, RoomDefinition> = {
     colliders: [
       ...wallColliders(LOUNGE.width, LOUNGE.length),
       // Armchairs, table and fireplace, then the bookcases along each side wall.
-      boxCollider(0, LOUNGE.seatingZ, LOUNGE.chairX * 2 + 1, 1),
-      boxCollider(0, -LOUNGE.length / 2 + 0.2, 2.3, 0.5),
+      // The two armchairs and the table between them.
+      boxCollider(0, LOUNGE.seatingZ, LOUNGE.chairX * 2 + 1, 1.1),
+      // The hearth and fireplace.
+      boxCollider(0, -LOUNGE.length / 2 + 0.35, 2.4, 0.7),
+      boxCollider(...LOUNGE.chessTable, 0.9, 0.9),
       boxCollider(-LOUNGE.width / 2 + 0.2, LOUNGE.bookcaseZ, 0.4, LOUNGE.bookcaseLength),
       boxCollider(LOUNGE.width / 2 - 0.2, LOUNGE.bookcaseZ, 0.4, LOUNGE.bookcaseLength),
     ],

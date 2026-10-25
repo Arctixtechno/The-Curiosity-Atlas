@@ -83,8 +83,35 @@ export const LABORATORY = {
 }
 /** Where the laboratory's coat stand stands, by its door, as [x, z]. */
 export const LAB_COAT_STAND: [number, number] = [-1.7, 5.5]
-/** Philosophy Lounge: armchairs by the fire at the far end, bookcases along both side walls. */
-export const LOUNGE = { width: 8, length: 9, height: 3.4, seatingZ: -2, chairX: 0.95, bookcaseZ: 1, bookcaseLength: 3.2 }
+/**
+ * Philosophy Lounge: two wingback chairs angled in towards the fire at the far
+ * (north) end, built-in bookcases along both side walls, a tall window on the
+ * west wall and a chess table opposite it.
+ */
+export const LOUNGE = {
+  width: 8,
+  length: 9,
+  height: 3.4,
+  seatingZ: -2.2,
+  chairX: 1.05,
+  /** How far each chair is turned from facing the other towards the fire, in radians. */
+  chairTurn: 0.42,
+  bookcaseZ: 1.2,
+  bookcaseLength: 3.2,
+  windowZ: -3,
+  chessTable: [2.75, -2.9] as [number, number],
+  /** Height of the eye when sitting in an armchair. */
+  seatedEye: 1.12,
+}
+
+/** Where an armchair stands and which way it faces (its front is local +z). `side` -1 is the visitor's, +1 the companion's. */
+export function loungeChair(side: -1 | 1) {
+  return {
+    x: side * LOUNGE.chairX,
+    z: LOUNGE.seatingZ,
+    rotationY: -side * (Math.PI / 2 + LOUNGE.chairTurn),
+  }
+}
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }

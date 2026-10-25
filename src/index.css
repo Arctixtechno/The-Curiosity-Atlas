@@ -3,7 +3,10 @@
   --ink-muted: #c9b99c;
   --panel: rgba(24, 18, 12, 0.72);
   --accent: #e0a458;
-  font-family: Georgia, 'Times New Roman', serif;
+  --serif: Georgia, 'Times New Roman', serif;
+  --glass: rgba(26, 19, 13, 0.8);
+  --glass-edge: rgba(244, 222, 190, 0.14);
+  font-family: var(--serif);
   color: var(--ink);
   background: #120d08;
 }
@@ -21,6 +24,13 @@ body,
   overflow: hidden;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
 
 /* A clear ring on whatever the keyboard has focused, but not on mouse clicks. */
 :focus-visible {
