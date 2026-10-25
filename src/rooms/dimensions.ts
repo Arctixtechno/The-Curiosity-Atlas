@@ -66,6 +66,15 @@ export function observatoryWallPoint(angle: number, inset: number): [number, num
   const r = OBSERVATORY.radius - inset
   return [Math.sin(angle) * r, Math.cos(angle) * r]
 }
+/** The laboratory: two experiment benches, a chalkboard and shelves of glassware. Bench centres are [x, z]. */
+export const LABORATORY = {
+  width: 10,
+  length: 12,
+  height: 3.8,
+  gasBench: [-2.6, -2] as [number, number],
+  buoyancyBench: [2.6, -2] as [number, number],
+  bench: { width: 2.2, depth: 0.9, height: 0.92 },
+}
 /** Philosophy Lounge: armchairs by the fire at the far end, bookcases along both side walls. */
 export const LOUNGE = { width: 8, length: 9, height: 3.4, seatingZ: -2, chairX: 0.95, bookcaseZ: 1, bookcaseLength: 3.2 }
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }

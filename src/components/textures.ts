@@ -147,7 +147,7 @@ const painters = {
     ctx.fillRect(0, 0, w, h)
     mottle(c, 1.2, 0.035)
     mottle(c, 0.35, 0.02)
-    const strokes = (w * h) / (ppm * ppm) * 25
+    const strokes = ((w * h) / (ppm * ppm)) * 25
     for (let i = 0; i < strokes; i++) {
       ctx.strokeStyle = rand() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(90,70,45,0.025)'
       ctx.lineWidth = 6 + rand() * 18
@@ -375,6 +375,38 @@ const painters = {
       }
       y += panelH + m
     }
+  },
+
+  /** Victorian black and cream chequered floor tiles, slightly worn. */
+  chequer: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    const tile = 0.3 * ppm
+    ctx.fillStyle = '#4a4540'
+    ctx.fillRect(0, 0, w, h)
+    for (let y = 0; y * tile < h; y++) {
+      for (let x = 0; x * tile < w; x++) {
+        ctx.fillStyle = (x + y) % 2 ? rgb('#1e1c1b', (rand() - 0.5) * 0.04) : rgb('#e4dccb', (rand() - 0.5) * 0.06)
+        ctx.fillRect(x * tile + 1.5, y * tile + 1.5, tile - 3, tile - 3)
+      }
+    }
+    mottle(c, 0.7, 0.05)
+    grain(c, 0.1)
+  },
+
+  /** White glazed wall tiles in a brick bond, with grey grout. */
+  glazed: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    const tw = 0.15 * ppm
+    const th = 0.075 * ppm
+    ctx.fillStyle = '#9a968c'
+    ctx.fillRect(0, 0, w, h)
+    for (let row = 0; row * th < h; row++) {
+      for (let x = row % 2 ? -tw / 2 : 0; x < w; x += tw) {
+        ctx.fillStyle = rgb('#efece3', (rand() - 0.5) * 0.05)
+        ctx.fillRect(x + 1, row * th + 1, tw - 2, th - 2)
+      }
+    }
+    grain(c, 0.05)
   },
 
   /** White marble with grey veins. */

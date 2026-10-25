@@ -78,9 +78,13 @@ Deliverable: a user can discover something, discuss it with AI and save it for l
 
 Deliverable: users can discover information, watch relevant content and plan real-world experiences.
 
-## Phase 4 — Version 0.3: Interactive Environments ⬜
+## Phase 4 — Version 0.3: Interactive Environments 🚧
 
 First functional versions of the observatory, museum, experimental laboratory, workshop and outdoor café, each with a small number of high-quality interactions (for example, two validated lab simulations rather than dozens of incomplete ones).
+
+- ✅ Experimental laboratory with two validated simulations: gas laws (ideal gas law piston) and buoyancy (Archimedes' principle), each with unit tests against textbook values
+- 🚧 Observatory: telescope view of a generated night sky (the interactive solar system is still to come)
+- ⬜ Museum, workshop and outdoor café
 
 ## Phase 5 — Private Beta ⬜
 

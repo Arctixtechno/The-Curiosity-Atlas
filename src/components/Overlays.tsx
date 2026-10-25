@@ -3,16 +3,20 @@ import { CINEMA_OVERLAY, CinemaPanel } from '../features/cinema/CinemaPanel.tsx'
 import { FountainPanel } from '../features/discoveries/FountainPanel.tsx'
 import { LibraryPanel } from '../features/library/LibraryPanel.tsx'
 import { LoungePanel } from '../features/philosophy/LoungePanel.tsx'
+import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { MAP_OVERLAY, MapPanel } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY, SettingsPanel } from './SettingsPanel.tsx'
 
-// The London map pulls in Leaflet, so it loads only when first opened.
+// Panels that only some rooms use load when first opened: the London map pulls in Leaflet.
 const CityExplorerPanel = lazy(() =>
   import('../features/tourism/CityExplorerPanel.tsx').then((m) => ({ default: m.CityExplorerPanel })),
 )
+
+const GasPanel = lazy(() => import('../features/experiments/GasPanel.tsx').then((m) => ({ default: m.GasPanel })))
+const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
 /** Keys that open a panel from anywhere: M for the map, O for settings, L for the library. */
 const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library' }
@@ -40,10 +44,13 @@ export function Overlays() {
   if (overlay === 'lounge') return <LoungePanel />
   if (overlay === MAP_OVERLAY) return <MapPanel />
   if (overlay === SETTINGS_OVERLAY) return <SettingsPanel />
-  if (overlay === CITY_EXPLORER_OVERLAY)
+  const Lazy = { [CITY_EXPLORER_OVERLAY]: CityExplorerPanel, [GAS_OVERLAY]: GasPanel, [BUOYANCY_OVERLAY]: BuoyancyPanel }[
+    overlay ?? ''
+  ]
+  if (Lazy)
     return (
       <Suspense fallback={null}>
-        <CityExplorerPanel />
+        <Lazy />
       </Suspense>
     )
   return null
