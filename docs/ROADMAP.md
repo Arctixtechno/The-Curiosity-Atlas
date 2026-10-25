@@ -58,9 +58,9 @@ Deliverable: a playable website where the user can move through the property, op
 Objective: make the application genuinely useful.
 
 - ✅ Discovery Fountain: present and explain curated daily discoveries (at the main hall fountain)
-- 🚧 Philosophy Lounge: natural AI conversations through a simple text interface (room, six modes and chat are built; needs the AI backend)
+- 🚧 Philosophy Lounge: natural AI conversations through a simple text interface (room, six modes and chat are built, with replies written in advance; AI comes later)
 - 🚧 Library of Discoveries: save and revisit discoveries (searchable panel, press L; the library room comes later)
-- ⬜ Basic Curator: AI explanations and conversations through a secure backend
+- ⬜ Basic Curator (deferred: no AI service for now): AI explanations and conversations through a secure backend
 - ✅ Persistent local storage or a simple database (browser localStorage)
 - 🚧 Basic interface transitions and navigation between the central features
 - 🚧 Error handling for AI requests, loading and connection indicators

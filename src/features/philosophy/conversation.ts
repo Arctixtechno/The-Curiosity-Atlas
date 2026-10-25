@@ -1,8 +1,16 @@
 import { useSyncExternalStore } from 'react'
 import { askCurator, CuratorError, curatorErrorMessages, type ChatMessage } from '../../services/curator.ts'
+import { placeholderReply } from './placeholderCompanion.ts'
 
 // The current lounge conversation, kept for the visit so leaving the chair and
 // coming back doesn't lose it.
+
+/**
+ * Until an AI Curator is set up, the companion answers with replies written
+ * in advance. Set VITE_CURATOR=on (with a /api/chat backend) to use the AI.
+ */
+export const usesPlaceholderCompanion = import.meta.env.VITE_CURATOR !== 'on'
+const PLACEHOLDER_DELAY_MS = 900
 
 export interface Conversation {
   modeId: string
@@ -40,7 +48,11 @@ export function chooseMode(modeId: string) {
 async function requestReply(messages: ChatMessage[]) {
   set({ messages, pending: true, error: null })
   try {
-    const reply = await askCurator({ feature: 'lounge', mode: state.modeId, messages })
+    const reply = usesPlaceholderCompanion
+      ? await new Promise<string>((resolve) =>
+          setTimeout(() => resolve(placeholderReply(state.modeId, messages)), PLACEHOLDER_DELAY_MS),
+        )
+      : await askCurator({ feature: 'lounge', mode: state.modeId, messages })
     set({ messages: [...messages, { role: 'assistant', content: reply }], pending: false })
   } catch (e) {
     set({ pending: false, error: e instanceof CuratorError ? e.message : curatorErrorMessages.failed })

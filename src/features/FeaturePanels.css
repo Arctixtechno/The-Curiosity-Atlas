@@ -281,3 +281,8 @@
   opacity: 0.5;
   cursor: default;
 }
+
+.feature-panel .companion-note {
+  font-size: 0.8rem;
+  font-style: italic;
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { library } from '../../services/library.ts'
-import { chooseMode, retry, sendMessage, useConversation } from './conversation.ts'
+import { chooseMode, retry, sendMessage, useConversation, usesPlaceholderCompanion } from './conversation.ts'
 import { conversationModes } from './modes.ts'
 import '../FeaturePanels.css'
 
@@ -35,6 +35,11 @@ export function LoungePanel() {
           </select>
         </label>
         <p className="muted">{mode.description}</p>
+        {usesPlaceholderCompanion && (
+          <p className="muted companion-note">
+            The companion's replies are written in advance for now. Conversations with an AI will come later.
+          </p>
+        )}
 
         <div className="chat-log" aria-live="polite">
           {messages.length === 0 && (
