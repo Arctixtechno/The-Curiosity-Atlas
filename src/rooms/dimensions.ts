@@ -24,6 +24,8 @@ export const THEATRE_TIERS = [
   { fromZ: 3.0, height: 1.2 },
 ]
 export const THEATRE_AISLE = { halfWidth: 1, stepDepth: 0.8, stepHeight: 0.15 }
+/** The film menu's lectern on the entrance landing, as [x, z]. */
+export const THEATRE_LECTERN: [number, number] = [-2.4, 4.4]
 export const THEATRE_LANDING_HEIGHT = 1.2
 /** Recliner centres (x) and the side tables between each pair, either side of the aisle. */
 export const THEATRE_SEAT_XS = [-3.3, -1.62, 1.62, 3.3]
