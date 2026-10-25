@@ -85,7 +85,8 @@ First functional versions of the observatory, museum, experimental laboratory, w
 - ✅ Experimental laboratory with two validated simulations: gas laws (ideal gas law piston) and buoyancy (Archimedes' principle), each with unit tests against textbook values
 - 🚧 Observatory: telescope view of a generated night sky (the interactive solar system is still to come)
 - ✅ Outdoor café: a London café interior with an espresso counter where you make drinks against sourced recipes (AI conversation at the café needs the Phase 2 backend)
-- ⬜ Museum and workshop
+- ✅ Museum of Everything: a top-lit gallery off the main hall with six exhibits, each with a model to turn over and sourced facts
+- ⬜ Workshop
 
 ## Phase 5 — Private Beta ⬜
 

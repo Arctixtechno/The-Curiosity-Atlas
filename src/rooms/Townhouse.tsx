@@ -203,7 +203,11 @@ export function Portico() {
           <meshStandardMaterial color="#2a2418" emissive="#ffb45a" emissiveIntensity={0.25} roughness={0.1} />
         </mesh>
         {[0.25, 0.5, 0.75].map((t) => (
-          <mesh key={t} position={[Math.cos(t * Math.PI) * 0.3, Math.sin(t * Math.PI) * 0.3, 0.02]} rotation={[0, 0, t * Math.PI]}>
+          <mesh
+            key={t}
+            position={[Math.cos(t * Math.PI) * 0.3, Math.sin(t * Math.PI) * 0.3, 0.02]}
+            rotation={[0, 0, t * Math.PI]}
+          >
             <boxGeometry args={[0.6, 0.02, 0.01]} />
             <meshStandardMaterial color={TRIM} />
           </mesh>

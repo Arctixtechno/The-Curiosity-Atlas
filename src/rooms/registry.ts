@@ -15,6 +15,7 @@ import {
   LABORATORY,
   MAIN_HALL,
   MAP_TABLE,
+  MUSEUM,
   OBSERVATORY,
   observatoryWallPoint,
   PORTICO,
@@ -55,6 +56,14 @@ const mainHallDoors: DoorDefinition[] = [
     position: [0, 0, hallL],
     rotationY: Math.PI,
     target: { roomId: 'courtyard', doorId: 'hall' },
+  },
+  {
+    id: 'museum',
+    label: 'Museum',
+    prompt: 'Press E to enter the Museum of Everything',
+    position: [-hallW, 0, -3],
+    rotationY: Math.PI / 2,
+    target: { roomId: 'museum', doorId: 'hall' },
   },
   { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
   {
@@ -164,6 +173,33 @@ export const rooms: Record<string, RoomDefinition> = {
       },
     ],
     load: () => import('./Laboratory.tsx'),
+  },
+  museum: {
+    id: 'museum',
+    displayName: 'Museum of Everything',
+    colliders: [
+      ...wallColliders(MUSEUM.width, MUSEUM.length),
+      ...Object.values(MUSEUM.exhibits).map(({ at, case: kind }) =>
+        kind === 'tall'
+          ? boxCollider(...at, 1.4, 0.9)
+          : kind === 'open'
+            ? boxCollider(...at, 1.0, 1.0)
+            : boxCollider(...at, 1.1, 0.9),
+      ),
+      // The open plinth's label stand.
+      boxCollider(MUSEUM.exhibits.meteorite.at[0], MUSEUM.exhibits.meteorite.at[1] + 0.62, 0.3, 0.3),
+      boxCollider(...MUSEUM.bench, 1.9, 0.5),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, MUSEUM.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'museum' },
+      },
+    ],
+    load: () => import('./Museum.tsx'),
   },
   courtyard: {
     id: 'courtyard',

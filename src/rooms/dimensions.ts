@@ -117,6 +117,26 @@ export const CAFE_ROOM = {
   bayWidth: 2.3,
 }
 
+/**
+ * The Museum of Everything: a top-lit gallery off the main hall. Its door is the +z wall.
+ * Exhibits stand in cases down each side, with the largest at the far end.
+ */
+export const MUSEUM = {
+  width: 10,
+  length: 14,
+  height: 4.6,
+  /** Where each exhibit stands, as [x, z], and the kind of case it's in. */
+  exhibits: {
+    rosetta: { at: [0, -5.3], case: 'tall' },
+    meteorite: { at: [0, -1.6], case: 'open' },
+    astrolabe: { at: [-3, -2.8], case: 'table' },
+    chronometer: { at: [3, -2.8], case: 'table' },
+    ammonite: { at: [-3, 1.6], case: 'table' },
+    antikythera: { at: [3, 1.6], case: 'table' },
+  } as Record<string, { at: [number, number]; case: 'tall' | 'open' | 'table' }>,
+  bench: [0, 2.4] as [number, number],
+}
+
 /** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
 export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
 export const DOOR_POTS: [number, number][] = [
