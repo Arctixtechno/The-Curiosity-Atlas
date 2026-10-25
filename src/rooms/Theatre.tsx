@@ -1,6 +1,6 @@
-import { RoundedBox } from '@react-three/drei'
 import { useEffect, useMemo } from 'react'
-import { BufferGeometry, CanvasTexture, Float32BufferAttribute, SRGBColorSpace, type Texture } from 'three'
+import { BufferGeometry, CanvasTexture, Float32BufferAttribute, MeshStandardMaterial, SRGBColorSpace, type Texture } from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { Glow } from '../components/Glow.tsx'
 import { useTiledTexture } from '../hooks/useTiledTexture.ts'
@@ -25,62 +25,65 @@ const SCREEN = { width: 8.5, height: 4, y: 3.1 }
 const FRAME = 0.2
 const LEATHER = '#4a0e14'
 const WARM = '#ffb070'
+const PANEL = { width: 1.6, height: 1.9 }
 
-/** Leather with a soft sheen rather than a plastic shine. */
-function Leather({ map }: { map: Texture | null }) {
-  return (
-    <meshPhysicalMaterial
-      color={LEATHER}
-      map={map}
-      bumpMap={map}
-      bumpScale={0.6}
-      roughness={0.5}
-      clearcoat={0.25}
-      clearcoatRoughness={0.6}
-    />
+/**
+ * Geometry and materials shared by every recliner and wall panel, built once
+ * when the theatre loads and released when it unloads. Rounded boxes are
+ * fairly heavy, so sharing them keeps the room light to draw.
+ */
+function useTheatreParts() {
+  const leatherMap = useTiledTexture('leather', 2, 2)
+  const fabricMap = useTiledTexture('fabric', 3, 3)
+  const parts = useMemo(() => {
+    const rounded = (w: number, h: number, d: number, r: number) => new RoundedBoxGeometry(w, h, d, 3, r)
+    return {
+      base: rounded(0.92, 0.22, 0.9, 0.04),
+      cushion: rounded(0.6, 0.2, 0.72, 0.08),
+      back: rounded(0.62, 0.86, 0.2, 0.09),
+      headrest: rounded(0.42, 0.2, 0.1, 0.05),
+      arm: rounded(0.17, 0.42, 0.86, 0.07),
+      footrest: rounded(0.58, 0.08, 0.4, 0.035),
+      panel: rounded(PANEL.width, PANEL.height, 0.07, 0.03),
+      // Leather with a soft sheen rather than a plastic shine.
+      leather: new MeshStandardMaterial({ color: LEATHER, map: leatherMap, bumpMap: leatherMap, bumpScale: 0.6, roughness: 0.45 }),
+      plinth: new MeshStandardMaterial({ color: '#1a1012', roughness: 0.6 }),
+      fabric: new MeshStandardMaterial({ color: '#6a1e2a', map: fabricMap, roughness: 1 }),
+    }
+  }, [leatherMap, fabricMap])
+  useEffect(
+    () => () => {
+      for (const part of Object.values(parts)) part.dispose()
+    },
+    [parts],
   )
+  return parts
 }
 
+type TheatreParts = ReturnType<typeof useTheatreParts>
+
 /** A premium recliner facing the screen (local -z). `reclined` raises the footrest. */
-function Recliner({ x, y, z, reclined }: { x: number; y: number; z: number; reclined?: boolean }) {
-  const leather = useTiledTexture('leather', 2, 2)
+function Recliner({ x, y, z, reclined, parts }: { x: number; y: number; z: number; reclined?: boolean; parts: TheatreParts }) {
   const back = reclined ? 0.42 : 0.24
+  const { leather } = parts
   return (
     <group position={[x, y, z]} scale={RECLINER_SCALE}>
-      <RoundedBox args={[0.92, 0.22, 0.9]} radius={0.04} position={[0, 0.11, 0.05]} castShadow>
-        <meshStandardMaterial color="#1a1012" roughness={0.6} />
-      </RoundedBox>
-      <RoundedBox args={[0.6, 0.2, 0.72]} radius={0.08} smoothness={4} position={[0, 0.34, -0.02]} castShadow>
-        <Leather map={leather} />
-      </RoundedBox>
+      <mesh geometry={parts.base} material={parts.plinth} position={[0, 0.11, 0.05]} />
+      <mesh geometry={parts.cushion} material={leather} position={[0, 0.34, -0.02]} />
       <group position={[0, 0.32, 0.36]} rotation={[back, 0, 0]}>
-        <RoundedBox args={[0.62, 0.86, 0.2]} radius={0.09} smoothness={4} position={[0, 0.43, 0]} castShadow>
-          <Leather map={leather} />
-        </RoundedBox>
-        <RoundedBox args={[0.42, 0.2, 0.1]} radius={0.05} smoothness={4} position={[0, 0.74, -0.12]}>
-          <Leather map={leather} />
-        </RoundedBox>
+        <mesh geometry={parts.back} material={leather} position={[0, 0.43, 0]} />
+        <mesh geometry={parts.headrest} material={leather} position={[0, 0.74, -0.12]} />
       </group>
       {[-0.4, 0.4].map((ax) => (
-        <RoundedBox key={ax} args={[0.17, 0.42, 0.86]} radius={0.07} smoothness={4} position={[ax, 0.43, 0.03]} castShadow>
-          <Leather map={leather} />
-        </RoundedBox>
+        <mesh key={ax} geometry={parts.arm} material={leather} position={[ax, 0.43, 0.03]} />
       ))}
       <group position={[0, 0.3, -0.38]} rotation={[reclined ? -1.25 : 0, 0, 0]}>
-        <RoundedBox
-          args={[0.58, 0.08, 0.4]}
-          radius={0.035}
-          position={[0, reclined ? 0 : -0.05, reclined ? -0.2 : 0.02]}
-          castShadow
-        >
-          <Leather map={leather} />
-        </RoundedBox>
+        <mesh geometry={parts.footrest} material={leather} position={[0, reclined ? 0 : -0.05, reclined ? -0.2 : 0.02]} />
       </group>
     </group>
   )
 }
 
-/** Red-and-white striped popcorn carton texture. */
 function usePopcornTexture() {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas')
@@ -121,7 +124,8 @@ function SideTable({ x, y, z, popcorn }: { x: number; y: number; z: number; popc
       </mesh>
       <mesh position={[0.1, 0.79, -0.05]} castShadow>
         <cylinderGeometry args={[0.04, 0.035, 0.14, 14]} />
-        <meshPhysicalMaterial color="#d8e4ea" transparent opacity={0.5} roughness={0.05} transmission={0.6} />
+        {/* Plain transparency: transmission would re-render the whole room every frame for one small glass. */}
+        <meshStandardMaterial color="#d8e4ea" transparent opacity={0.45} roughness={0.05} />
       </mesh>
     </group>
   )
@@ -388,14 +392,11 @@ function CeilingCove() {
 }
 
 /** Upholstered acoustic panel on a side wall, framed in a thin brass trim. */
-function AcousticPanel({ side, z, fabric }: { side: -1 | 1; z: number; fabric: Texture | null }) {
-  const w = 1.6
-  const h = 1.9
+function AcousticPanel({ side, z, parts }: { side: -1 | 1; z: number; parts: TheatreParts }) {
+  const { width: w, height: h } = PANEL
   return (
     <group position={[side * (HALF_W - 0.04), 2.9, z]} rotation={[0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
-      <RoundedBox args={[w, h, 0.07]} radius={0.03} smoothness={3}>
-        <meshStandardMaterial color="#6a1e2a" map={fabric} roughness={1} />
-      </RoundedBox>
+      <mesh geometry={parts.panel} material={parts.fabric} />
       {[
         [0, h / 2 + 0.01, w + 0.04, 0.02],
         [0, -h / 2 - 0.01, w + 0.04, 0.02],
@@ -435,7 +436,7 @@ function StarCeiling() {
 /** Home cinema: tiered floor rising to the entrance, leather recliners, soft wall lamps and a star ceiling. */
 export default function Theatre() {
   const popcorn = usePopcornTexture()
-  const fabric = useTiledTexture('fabric', 3, 3)
+  const parts = useTheatreParts()
   const rows = THEATRE_TIERS.filter((t) => t.rowZ !== undefined)
   return (
     <group>
@@ -470,7 +471,7 @@ export default function Theatre() {
 
       {rows.map((tier, r) =>
         THEATRE_SEAT_XS.map((x, i) => (
-          <Recliner key={`${r}-${x}`} x={x} y={tier.height} z={tier.rowZ!} reclined={(r === 0 && i === 1) || (r === 1 && i === 2)} />
+          <Recliner key={`${r}-${x}`} x={x} y={tier.height} z={tier.rowZ!} reclined={(r === 0 && i === 1) || (r === 1 && i === 2)} parts={parts} />
         )),
       )}
       {rows.map((tier, r) =>
@@ -479,7 +480,7 @@ export default function Theatre() {
 
       {[-4.5, 0, 4.5].flatMap((z) => [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} />))}
       {[-6.6, -2.25, 2.25, 6.6].flatMap((z) =>
-        [-1, 1].map((side) => <AcousticPanel key={`${side}-${z}`} side={side as -1 | 1} z={z} fabric={fabric} />),
+        [-1, 1].map((side) => <AcousticPanel key={`${side}-${z}`} side={side as -1 | 1} z={z} parts={parts} />),
       )}
     </group>
   )

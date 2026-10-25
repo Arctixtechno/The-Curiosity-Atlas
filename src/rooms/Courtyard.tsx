@@ -1,87 +1,122 @@
 import { Sky } from '@react-three/drei'
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useThree } from '@react-three/fiber'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Color, Object3D, type InstancedMesh } from 'three'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { COURTYARD } from './dimensions.ts'
-import { Portico, SashWindow, TerraceWall } from './Townhouse.tsx'
+import { Portico, SashWindows, TerraceWall, type WindowProps } from './Townhouse.tsx'
 
 const SUN: [number, number, number] = [45, 40, 8]
 const HOUSE_Z = -COURTYARD.length / 2
 const TERRACE_WIDTH = 44
 
-function Tree({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
-  const leaves = useTiledTexture('hedge', 1, 1)
-  const mesh = useRef<InstancedMesh>(null)
-  // A crown made of leafy clumps scattered through a few overlapping spheres.
-  const clumps = useMemo(() => {
-    let seed = Math.round(Math.abs(x * 97 + z * 31)) + 11
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-    const lobes = [
-      [0, 3.2, 0, 1.25],
-      [0.75, 2.8, 0.3, 0.9],
-      [-0.65, 2.9, -0.2, 0.95],
-      [0.1, 3.9, -0.3, 0.9],
-    ]
-    const list: [number, number, number, number][] = []
-    for (const [lx, ly, lz, lr] of lobes) {
-      for (let i = 0; i < 14; i++) {
-        const theta = rand() * Math.PI * 2
-        const phi = Math.acos(rand() * 2 - 1)
-        const r = lr * (0.6 + rand() * 0.35)
-        list.push([
-          lx + r * Math.sin(phi) * Math.cos(theta),
-          ly + r * Math.cos(phi) * 0.85,
-          lz + r * Math.sin(phi) * Math.sin(theta),
-          0.35 + rand() * 0.25,
-        ])
-      }
+type TreeSpot = [x: number, z: number, scale: number]
+
+/** Leafy clumps scattered through a few overlapping spheres, for one tree at the origin. */
+function crownClumps(x: number, z: number) {
+  let seed = Math.round(Math.abs(x * 97 + z * 31)) + 11
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+  const lobes = [
+    [0, 3.2, 0, 1.25],
+    [0.75, 2.8, 0.3, 0.9],
+    [-0.65, 2.9, -0.2, 0.95],
+    [0.1, 3.9, -0.3, 0.9],
+  ]
+  const list: [number, number, number, number][] = []
+  for (const [lx, ly, lz, lr] of lobes) {
+    for (let i = 0; i < 14; i++) {
+      const theta = rand() * Math.PI * 2
+      const phi = Math.acos(rand() * 2 - 1)
+      const r = lr * (0.6 + rand() * 0.35)
+      list.push([
+        lx + r * Math.sin(phi) * Math.cos(theta),
+        ly + r * Math.cos(phi) * 0.85,
+        lz + r * Math.sin(phi) * Math.sin(theta),
+        0.35 + rand() * 0.25,
+      ])
     }
-    return list
-  }, [x, z])
+  }
+  return list
+}
+
+/**
+ * Every tree in the garden, drawn as three instanced meshes (trunks, dark
+ * inner crowns and leafy clumps) instead of three meshes per tree.
+ */
+function Trees({ trees }: { trees: TreeSpot[] }) {
+  const leaves = useTiledTexture('hedge', 1, 1)
+  const trunks = useRef<InstancedMesh>(null)
+  const cores = useRef<InstancedMesh>(null)
+  const clumps = useRef<InstancedMesh>(null)
+  const clumpList = useMemo(
+    () =>
+      trees.flatMap(([x, z, s]) =>
+        crownClumps(x, z).map(([px, py, pz, size]) => [x + px * s, py * s, z + pz * s, size * s, px, py, pz] as const),
+      ),
+    [trees],
+  )
 
   useLayoutEffect(() => {
     const dummy = new Object3D()
-    clumps.forEach(([px, py, pz, s], i) => {
-      dummy.position.set(px, py, pz)
-      dummy.rotation.set(px * 3, py * 2, pz * 5)
+    trees.forEach(([x, z, s], i) => {
+      dummy.rotation.set(0, 0, 0)
+      dummy.position.set(x, 1.4 * s, z)
       dummy.scale.setScalar(s)
       dummy.updateMatrix()
-      mesh.current!.setMatrixAt(i, dummy.matrix)
+      trunks.current!.setMatrixAt(i, dummy.matrix)
+      dummy.position.set(x, 3.1 * s, z)
+      dummy.updateMatrix()
+      cores.current!.setMatrixAt(i, dummy.matrix)
     })
-    mesh.current!.instanceMatrix.needsUpdate = true
-  }, [clumps])
+    clumpList.forEach(([x, y, z, size, px, py, pz], i) => {
+      dummy.position.set(x, y, z)
+      dummy.rotation.set(px * 3, py * 2, pz * 5)
+      dummy.scale.setScalar(size)
+      dummy.updateMatrix()
+      clumps.current!.setMatrixAt(i, dummy.matrix)
+    })
+    for (const mesh of [trunks, cores, clumps]) {
+      mesh.current!.instanceMatrix.needsUpdate = true
+      mesh.current!.computeBoundingSphere()
+    }
+  }, [trees, clumpList])
 
   return (
-    <group position={[x, 0, z]} scale={scale}>
-      <mesh position={[0, 1.4, 0]} castShadow>
+    <>
+      <instancedMesh ref={trunks} args={[undefined, undefined, trees.length]} castShadow>
         <cylinderGeometry args={[0.12, 0.2, 2.8, 10]} />
         <meshStandardMaterial color="#3e2c1e" roughness={1} />
-      </mesh>
-      <mesh position={[0, 3.1, 0]}>
+      </instancedMesh>
+      <instancedMesh ref={cores} args={[undefined, undefined, trees.length]}>
         <sphereGeometry args={[1.1, 12, 10]} />
         <meshStandardMaterial color="#1a2c12" roughness={1} />
-      </mesh>
-      <instancedMesh ref={mesh} args={[undefined, undefined, clumps.length]} castShadow>
+      </instancedMesh>
+      <instancedMesh ref={clumps} args={[undefined, undefined, clumpList.length]} castShadow>
         <icosahedronGeometry args={[1, 1]} />
         <meshStandardMaterial color="#c4dca8" map={leaves} roughness={0.95} />
       </instancedMesh>
-    </group>
+    </>
   )
 }
 
-/** A tree in a stone planter, inside the courtyard. */
-function PlanterTree({ x, z }: { x: number; z: number }) {
-  return (
-    <group position={[x, 0, z]}>
-      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.8, 0.6, 0.8]} />
-        <meshStandardMaterial color="#9a9284" roughness={0.9} />
-      </mesh>
-      <Tree x={0} z={0} scale={0.75} />
-    </group>
-  )
-}
+/** Stone planters for the two trees inside the courtyard. */
+const PLANTERS: [number, number][] = [
+  [-4.5, -2],
+  [4.5, -2],
+]
+
+const TREES: TreeSpot[] = [
+  ...PLANTERS.map(([x, z]): TreeSpot => [x, z, 0.75]),
+  [-12, 4, 1.1],
+  [-15, 14, 1.3],
+  [13, 6, 1.2],
+  [16, 16, 1],
+  [-9, 22, 1.3],
+  [10, 24, 1.1],
+  ...Array.from({ length: 6 }, (_, i): TreeSpot => [-26, -6 + i * 7, 1.2 + (i % 3) * 0.15]),
+  ...Array.from({ length: 6 }, (_, i): TreeSpot => [26, -4 + i * 7, 1.15 + (i % 2) * 0.2]),
+]
 
 /**
  * A clipped hedge: a dense scatter of small leafy clumps over its sides and top,
@@ -114,12 +149,12 @@ function Hedge({ x, z, width, length }: { x: number; z: number; width: number; l
     }
     // Both long faces, scattered at random rather than in rows.
     for (const side of [-1, 1]) {
-      for (let i = 0; i < span * 22; i++) {
+      for (let i = 0; i < span * 14; i++) {
         add((rand() - 0.5) * (span - 0.1), 0.08 + rand() * (h - 0.12), side * (depth / 2 + 0.01), 0.1 + rand() * 0.07, 'across')
       }
     }
     // The clipped top, slightly domed.
-    for (let i = 0; i < span * depth * 40; i++) {
+    for (let i = 0; i < span * depth * 28; i++) {
       const across = (rand() - 0.5) * depth
       add((rand() - 0.5) * (span - 0.1), h - 0.02 - Math.abs(across) * 0.08, across, 0.1 + rand() * 0.07, 'up')
     }
@@ -147,7 +182,7 @@ function Hedge({ x, z, width, length }: { x: number; z: number; width: number; l
         <boxGeometry args={[width - 0.02, h - 0.06, length - 0.02]} />
         <meshStandardMaterial color="#c8dcb0" map={face} bumpMap={face} bumpScale={1.5} roughness={1} />
       </mesh>
-      <instancedMesh ref={mesh} args={[undefined, undefined, clumps.length]} castShadow receiveShadow>
+      <instancedMesh ref={mesh} args={[undefined, undefined, clumps.length]} receiveShadow>
         <icosahedronGeometry args={[1, 1]} />
         <meshStandardMaterial color="#d4e6bc" map={leaves} roughness={0.95} />
       </instancedMesh>
@@ -155,22 +190,22 @@ function Hedge({ x, z, width, length }: { x: number; z: number; width: number; l
   )
 }
 
+const HOUSE_WINDOWS: WindowProps[] = [
+  ...[-12, -8, -4, 4, 8, 12].map((x) => ({ x, y: 1.9, width: 1.3, height: 2, lit: x === -4 || x === 8 })),
+  ...[-12, -8, -4, 0, 4, 8, 12].map((x) => ({ x, y: 5.6, width: 1.3, height: 2.4, balconette: true, lit: x === 4 })),
+  ...[-12, -8, -4, 0, 4, 8, 12].map((x) => ({ x, y: 8.7, width: 1.1, height: 1.7, lit: x === -8 })),
+]
+
+const TERRACE_WINDOWS: WindowProps[] = Array.from({ length: 21 }, (_, i) => (i - 10) * 5).flatMap((x) =>
+  [2, 5.8, 9.4].map((y) => ({ x, y, width: 1.3, height: 2, lit: (x + y) % 4 === 0 })),
+)
+
 /** The front of the house: a white stucco terrace with a columned porch around the entrance. */
 function HouseFront() {
-  const upper = [-12, -8, -4, 0, 4, 8, 12]
-  const ground = [-12, -8, -4, 4, 8, 12]
   return (
     <group position={[0, 0, HOUSE_Z]}>
       <TerraceWall width={TERRACE_WIDTH} height={11} seed={3} />
-      {ground.map((x) => (
-        <SashWindow key={`g${x}`} x={x} y={1.9} width={1.3} height={2} lit={x === -4 || x === 8} />
-      ))}
-      {upper.map((x) => (
-        <SashWindow key={`f${x}`} x={x} y={5.6} width={1.3} height={2.4} balconette lit={x === 4} />
-      ))}
-      {upper.map((x) => (
-        <SashWindow key={`s${x}`} x={x} y={8.7} width={1.1} height={1.7} lit={x === -8} />
-      ))}
+      <SashWindows windows={HOUSE_WINDOWS} />
       <Portico />
     </group>
   )
@@ -181,9 +216,7 @@ function DistantTerrace() {
   return (
     <group position={[0, 0, 34]} rotation={[0, Math.PI, 0]}>
       <TerraceWall width={110} height={13} seed={8} />
-      {Array.from({ length: 21 }, (_, i) => (i - 10) * 5).map((x) =>
-        [2, 5.8, 9.4].map((y) => <SashWindow key={`${x}-${y}`} x={x} y={y} width={1.3} height={2} lit={(x + y) % 4 === 0} />),
-      )}
+      <SashWindows windows={TERRACE_WINDOWS} />
     </group>
   )
 }
@@ -203,6 +236,24 @@ function Ground() {
       </mesh>
     </>
   )
+}
+
+/**
+ * Nothing in the courtyard moves and the sun is fixed, so the shadow map is
+ * drawn once rather than every frame. That pass re-renders every tree and
+ * hedge from the sun's point of view, so skipping it roughly halves the work
+ * per frame here.
+ */
+function StaticShadows() {
+  const gl = useThree((s) => s.gl)
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false
+    gl.shadowMap.needsUpdate = true
+    return () => {
+      gl.shadowMap.autoUpdate = true
+    }
+  }, [gl])
+  return null
 }
 
 /** Placeholder courtyard: a walled garden in front of the house, with the café at the far end. */
@@ -228,6 +279,7 @@ export default function Courtyard() {
         shadow-bias={-0.0005}
       />
 
+      <StaticShadows />
       <Ground />
       {/* Side and far hedges. The near side is the house, so there's no hedge there to clash with it. */}
       <Hedge x={-hw - 0.2} z={-0.075} width={0.4} length={COURTYARD.length + 0.15} />
@@ -237,20 +289,13 @@ export default function Courtyard() {
       <HouseFront />
       <DistantTerrace />
 
-      <PlanterTree x={-4.5} z={-2} />
-      <PlanterTree x={4.5} z={-2} />
-      {[
-        [-12, 4, 1.1],
-        [-15, 14, 1.3],
-        [13, 6, 1.2],
-        [16, 16, 1],
-        [-9, 22, 1.3],
-        [10, 24, 1.1],
-        ...Array.from({ length: 6 }, (_, i) => [-26, -6 + i * 7, 1.2 + (i % 3) * 0.15]),
-        ...Array.from({ length: 6 }, (_, i) => [26, -4 + i * 7, 1.15 + (i % 2) * 0.2]),
-      ].map(([x, z, s]) => (
-        <Tree key={`${x}-${z}`} x={x} z={z} scale={s} />
+      {PLANTERS.map(([x, z]) => (
+        <mesh key={x} position={[x, 0.3, z]} castShadow receiveShadow>
+          <boxGeometry args={[0.8, 0.6, 0.8]} />
+          <meshStandardMaterial color="#9a9284" roughness={0.9} />
+        </mesh>
       ))}
+      <Trees trees={TREES} />
     </group>
   )
 }
