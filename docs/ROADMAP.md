@@ -86,7 +86,7 @@ First functional versions of the observatory, museum, experimental laboratory, w
 - 🚧 Observatory: telescope view of a generated night sky (the interactive solar system is still to come)
 - ✅ Outdoor café: a London café interior with an espresso counter where you make drinks against sourced recipes (AI conversation at the café needs the Phase 2 backend)
 - ✅ Museum of Everything: a top-lit gallery off the main hall with six exhibits, each with a model to turn over and sourced facts
-- ⬜ Workshop
+- ✅ Workshop, off the laboratory: a gear-train bench and a DC circuit bench, both calculated exactly and unit-tested
 
 ## Phase 5 — Private Beta ⬜
 
