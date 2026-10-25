@@ -1,0 +1,23 @@
+.graphics-problem {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(10, 8, 6, 0.85);
+  z-index: 50;
+}
+
+.graphics-problem-box {
+  max-width: 420px;
+  padding: 24px;
+  border-radius: 10px;
+  background: #241b14;
+  color: var(--ink);
+  text-align: center;
+}
+
+.graphics-problem-box h2 {
+  margin-top: 0;
+  font-weight: normal;
+}

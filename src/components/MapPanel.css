@@ -60,3 +60,21 @@
   stroke: #1a120a;
   stroke-width: 0.1;
 }
+
+.map-go {
+  cursor: pointer;
+}
+
+.map-go:hover,
+g:hover > .map-go {
+  fill: rgba(224, 164, 88, 0.2);
+  stroke: var(--accent);
+}
+
+.map-travel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}

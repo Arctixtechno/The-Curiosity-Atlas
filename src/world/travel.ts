@@ -2,6 +2,7 @@ import { rooms } from '../rooms/registry.ts'
 import type { DoorDefinition } from '../types/room.ts'
 import { arrivalAt, findDoor } from './navigation.ts'
 import { gameStore } from './store.ts'
+import { markVisited } from './visited.ts'
 
 /** How long the screen takes to fade to black before the room swaps. */
 export const FADE_MS = 350
@@ -39,9 +40,23 @@ export async function travelThrough(door: DoorDefinition) {
       setTimeout(resolve, READY_TIMEOUT_MS)
     })
     gameStore.set({ activeRoomId: target.roomId, arrival, nearbyRoomIds: new Set() })
+    markVisited(target.roomId)
     await ready
   } finally {
     markReady = null
     gameStore.set({ transitioning: false })
   }
+}
+
+/** Goes straight to a room from anywhere, arriving just inside its first door. Used by the map. */
+export function travelTo(roomId: string) {
+  const door = rooms[roomId]?.doors.find((d) => d.target)
+  if (!door || roomId === gameStore.get().activeRoomId) return
+  return travelThrough({
+    id: 'map',
+    label: rooms[roomId].displayName,
+    position: [0, 0, 0],
+    rotationY: 0,
+    target: { roomId, doorId: door.id },
+  })
 }

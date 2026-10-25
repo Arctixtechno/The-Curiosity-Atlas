@@ -15,7 +15,8 @@ export interface Settings {
 }
 
 const KEY = 'atlas.settings'
-const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+/** The system asks for less movement on screen. */
+export const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export const DEFAULT_SETTINGS: Settings = { quality: 'auto', headBob: !prefersReducedMotion, fov: 70 }
 export const FOV_RANGE = [55, 90] as const

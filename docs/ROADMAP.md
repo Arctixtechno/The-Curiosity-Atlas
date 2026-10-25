@@ -88,9 +88,17 @@ First functional versions of the observatory, museum, experimental laboratory, w
 - ✅ Museum of Everything: a top-lit gallery off the main hall with six exhibits, each with a model to turn over and sourced facts
 - ✅ Workshop, off the laboratory: a gear-train bench and a DC circuit bench, both calculated exactly and unit-tested
 
-## Phase 5 — Private Beta ⬜
+## Phase 5 — Private Beta 🟡
 
 Improve navigation, visuals, performance, accessibility and reliability; evaluate AI costs; add accounts where necessary; gather feedback from a small group of testers. The central question: do people enjoy it enough to return voluntarily?
+
+- ✅ Sharing: GitHub Pages deploy, so testers can visit with a link.
+- ✅ Navigation: the map takes you straight to any room you've already been in.
+- ✅ Performance: workshop gears drawn as one mesh each, about 130 fewer draw calls.
+- ✅ Accessibility: panels take keyboard focus and keep Tab inside; visible focus rings; reduced motion stops the exhibit spin and interface transitions.
+- ✅ Reliability: a message with a reload button if WebGL can't start or is lost.
+- ⬜ Feedback from a small group of testers.
+- ⬜ AI costs and accounts: only if an AI guide is added (it would need a server, so keys stay out of the browser).
 
 ## Phase 6 — Future Development ⬜
 

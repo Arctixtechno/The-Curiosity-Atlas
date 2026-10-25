@@ -1,6 +1,7 @@
 import { Bounds, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Panel } from '../../components/Panel.tsx'
+import { prefersReducedMotion } from '../../world/settings.ts'
 import { EXHIBITS } from './exhibits.ts'
 import { MODELS } from './models.tsx'
 import type { ExhibitId } from './overlayId.ts'
@@ -23,7 +24,7 @@ export function ExhibitPanel({ id }: { id: ExhibitId }) {
             <Bounds fit clip observe margin={1.25}>
               <Model />
             </Bounds>
-            <OrbitControls makeDefault autoRotate autoRotateSpeed={0.8} enablePan={false} />
+            <OrbitControls makeDefault autoRotate={!prefersReducedMotion} autoRotateSpeed={0.8} enablePan={false} />
           </Canvas>
           <p className="muted exhibit-hint">Drag to turn it over, scroll to zoom.</p>
         </div>

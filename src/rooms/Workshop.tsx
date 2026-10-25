@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { CanvasTexture, SRGBColorSpace, Vector3, type Group } from 'three'
+import { CanvasTexture, ExtrudeGeometry, Shape, SRGBColorSpace, Vector3, type Group } from 'three'
 import { Stool, WallClock } from '../components/Furnishings.tsx'
 import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
@@ -141,7 +141,39 @@ function Workbench({ at, children }: { at: [number, number]; children?: React.Re
   )
 }
 
-/** A spur gear as a toothed disc: `teeth` boxes round a cylinder. */
+/** A spur gear's outline, extruded: one mesh rather than a disc and a box per tooth. */
+function useGearGeometry(radius: number, teeth: number, thickness: number) {
+  const geometry = useMemo(() => {
+    const tip = radius + radius * 0.06 + 0.003
+    const root = radius - radius * 0.04
+    const step = (Math.PI * 2) / teeth
+    const shape = new Shape()
+    for (let i = 0; i < teeth; i++) {
+      const a = i * step - step * 0.3
+      // A trapezoid tooth, then the gap to the next one.
+      const points: [number, number][] = [
+        [a, root],
+        [a + step * 0.15, tip],
+        [a + step * 0.45, tip],
+        [a + step * 0.6, root],
+      ]
+      points.forEach(([pa, pr], j) => {
+        const px = Math.cos(pa) * pr
+        const py = Math.sin(pa) * pr
+        if (i === 0 && j === 0) shape.moveTo(px, py)
+        else shape.lineTo(px, py)
+      })
+    }
+    shape.closePath()
+    const g = new ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false, curveSegments: 1 })
+    g.translate(0, 0, -thickness / 2)
+    return g
+  }, [radius, teeth, thickness])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  return geometry
+}
+
+/** A spur gear: the toothed wheel and an iron hub. */
 function Gear({
   radius,
   teeth,
@@ -153,21 +185,12 @@ function Gear({
   thickness?: number
   colour?: string
 }) {
+  const geometry = useGearGeometry(radius, teeth, thickness)
   return (
     <group>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[radius, radius, thickness, Math.max(24, teeth)]} />
+      <mesh geometry={geometry}>
         <meshStandardMaterial color={colour} metalness={0.7} roughness={0.35} />
       </mesh>
-      {Array.from({ length: teeth }, (_, i) => {
-        const a = (i / teeth) * Math.PI * 2
-        return (
-          <mesh key={i} position={[Math.cos(a) * radius, Math.sin(a) * radius, 0]} rotation={[0, 0, a]}>
-            <boxGeometry args={[radius * 0.12 + 0.006, ((Math.PI * 2 * radius) / teeth) * 0.5, thickness]} />
-            <meshStandardMaterial color={colour} metalness={0.7} roughness={0.35} />
-          </mesh>
-        )
-      })}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius * 0.15, radius * 0.15, thickness + 0.02, 16]} />
         <meshStandardMaterial {...IRON} />

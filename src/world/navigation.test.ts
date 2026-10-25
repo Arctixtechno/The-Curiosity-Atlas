@@ -32,6 +32,10 @@ describe('room registry', () => {
     }
   })
 
+  it('gives every room with an interior an open door, so the map can take the player straight there', () => {
+    for (const room of Object.values(rooms).filter((r) => r.load)) expect(room.doors.some((d) => d.target)).toBe(true)
+  })
+
   it('never puts an arriving player inside a collider', () => {
     for (const { room, door } of allDoors) {
       const { position } = arrivalAt(door)
