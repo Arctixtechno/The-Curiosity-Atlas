@@ -447,6 +447,77 @@ const painters = {
     grain(c, 0.05)
   },
 
+  /** Oak parquet laid in a herringbone, the blocks at 45° to the walls. */
+  herringbone: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    const u = 0.07 * ppm
+    const k = 5
+    const L = u * k
+    const span = Math.hypot(w, h)
+    ctx.fillStyle = '#3a2614'
+    ctx.fillRect(0, 0, w, h)
+    ctx.save()
+    ctx.translate(w / 2, h / 2)
+    ctx.rotate(Math.PI / 4)
+    const block = (x: number, y: number, bw: number, bh: number) => {
+      ctx.fillStyle = rgb('#8a6038', (rand() - 0.5) * 0.12)
+      ctx.fillRect(x, y, bw, bh)
+      // A few grain lines along the block.
+      const along = bw > bh
+      ctx.strokeStyle = `rgba(40, 20, 8, ${0.08 + rand() * 0.08})`
+      ctx.lineWidth = 0.8
+      ctx.beginPath()
+      for (let g = 0; g < 3; g++) {
+        const t = 0.2 + rand() * 0.6
+        if (along) {
+          ctx.moveTo(x, y + bh * t)
+          ctx.lineTo(x + bw, y + bh * (t + (rand() - 0.5) * 0.2))
+        } else {
+          ctx.moveTo(x + bw * t, y)
+          ctx.lineTo(x + bw * (t + (rand() - 0.5) * 0.2), y + bh)
+        }
+      }
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(25, 12, 4, 0.6)'
+      ctx.lineWidth = 1
+      ctx.strokeRect(x, y, bw, bh)
+    }
+    // Each chain steps diagonally: a block along x, then one along y. Chains repeat every 2L along x.
+    const steps = Math.ceil(span / u)
+    const chains = Math.ceil(span / (2 * L)) + k
+    for (let ci = -chains; ci <= chains; ci++) {
+      for (let n = -steps; n <= steps; n++) {
+        const x = ci * 2 * L + n * u
+        const y = n * u
+        if (Math.abs(x) > span || Math.abs(y) > span) continue
+        block(x, y, L, u)
+        block(x, y + u, u, L)
+      }
+    }
+    ctx.restore()
+    mottle(c, 1, 0.05)
+    grain(c, 0.08)
+  },
+
+  /** Painted tongue-and-groove boarding, upright. Tinted by the material colour. */
+  boarding: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    const board = 0.1 * ppm
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+    for (let x = 0; x < w; x += board) {
+      ctx.fillStyle = `rgba(0, 0, 0, ${(rand() * 0.04).toFixed(3)})`
+      ctx.fillRect(x, 0, board, h)
+      // The groove: a dark line with a highlight beside it.
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'
+      ctx.fillRect(x, 0, 2, h)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+      ctx.fillRect(x + 2, 0, 1.5, h)
+    }
+    mottle(c, 0.8, 0.04)
+    grain(c, 0.06)
+  },
+
   /** White marble with grey veins. */
   marble: (c) => {
     const { ctx, w, h, rand } = c

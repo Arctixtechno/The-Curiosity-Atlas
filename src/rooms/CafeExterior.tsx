@@ -146,7 +146,7 @@ function drawChalkboard(ctx: CanvasRenderingContext2D) {
   ctx.font = `bold 34px Georgia, serif`
   ctx.fillText('Today', w / 2, 52)
   ctx.font = `24px Georgia, serif`
-  ;['Coffee', 'Tea & cake', 'Curiosities', '', 'Opening soon'].forEach((line, i) => ctx.fillText(line, w / 2, 100 + i * 34))
+  ;['Coffee', 'Tea & cake', 'Curiosities', '', 'Come in'].forEach((line, i) => ctx.fillText(line, w / 2, 100 + i * 34))
 }
 
 function ShopWindow({ x, flip }: { x: number; flip: boolean }) {
@@ -323,7 +323,7 @@ function Chalkboard({ x, z }: { x: number; z: number }) {
 /**
  * The outside of the café, seen from the courtyard: a London stock-brick
  * pavilion with a painted green shopfront, striped awnings and tables
- * outside. The interior arrives in a later phase.
+ * outside. The interior is its own room, Cafe.tsx.
  */
 export function CafeExterior() {
   const centerZ = F + CAFE.depth / 2
