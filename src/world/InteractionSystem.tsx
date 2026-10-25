@@ -32,10 +32,10 @@ export function InteractionSystem({ children }: { children: ReactNode }) {
   const focused = useRef<Interactable | null>(null)
 
   useFrame(({ camera }) => {
-    const { isExploring, transitioning, prompt } = gameStore.get()
+    const { isExploring, transitioning, prompt, viewing } = gameStore.get()
     let best: Interactable | null = null
 
-    if (isExploring && !transitioning) {
+    if (isExploring && !transitioning && !viewing) {
       camera.getWorldDirection(view)
       view.y = 0
       view.normalize()

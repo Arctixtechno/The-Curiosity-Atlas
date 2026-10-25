@@ -1,6 +1,7 @@
 import { FountainInteraction } from '../features/discoveries/FountainInteraction.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Painting } from '../components/Painting.tsx'
+import { MapTable } from '../features/tourism/MapTable.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
 import { HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
@@ -177,6 +178,7 @@ export default function MainHall() {
       <Runner />
       <Fountain />
       <FountainInteraction />
+      <MapTable />
       <CeilingLamp z={-6} />
       <CeilingLamp z={6} />
     </group>

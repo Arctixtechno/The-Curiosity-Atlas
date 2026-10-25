@@ -23,6 +23,8 @@ export interface GameState {
   toast: string | null
   /** A full-screen panel (film menu, settings, map…) that has taken over from exploring, if any. */
   overlay: string | null
+  /** Looking through an instrument (the telescope) instead of walking about. */
+  viewing: string | null
 }
 
 const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
@@ -55,6 +57,7 @@ let state: GameState = {
   mouseSensitivity: loadSensitivity(),
   toast: null,
   overlay: null,
+  viewing: null,
 }
 
 const listeners = new Set<() => void>()
@@ -74,3 +77,10 @@ export const gameStore = {
 export function useGame<T>(selector: (s: GameState) => T): T {
   return useSyncExternalStore(gameStore.subscribe, () => selector(state))
 }
+
+/**
+ * Where the player is standing and which way they face (radians, 0 = -z),
+ * updated every frame for things like the map. Plain object rather than
+ * store state, so writing it doesn't re-render anything.
+ */
+export const playerPose = { x: 0, z: 0, yaw: 0 }

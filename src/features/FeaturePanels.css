@@ -174,14 +174,6 @@
   padding: 0 14px 12px;
 }
 
-.library-hint {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  color: var(--ink-muted);
-  font-size: 0.85rem;
-  pointer-events: none;
-}
 
 .visually-hidden {
   position: absolute;

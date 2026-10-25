@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
 import { useGame } from '../world/store.ts'
+import { openOverlay } from '../world/overlay.ts'
+import { MAP_OVERLAY } from './MapPanel.tsx'
+import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
 import './Hud.css'
+import './Panel.css'
 
 // Conventional HTML overlay drawn on top of the 3D canvas.
 export function Hud() {
@@ -12,6 +16,7 @@ export function Hud() {
   const activeRoomId = useGame((s) => s.activeRoomId)
   const toast = useGame((s) => s.toast)
   const overlay = useGame((s) => s.overlay)
+  const viewing = useGame((s) => s.viewing)
   const [showRoomStates, setShowRoomStates] = useState(false)
 
   useEffect(() => {
@@ -28,25 +33,38 @@ export function Hud() {
       <div className="room-name">{rooms[activeRoomId].displayName}</div>
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
-      {isExploring ? (
-        <>
-          <div className="crosshair" aria-hidden="true" />
-          {prompt && (
-            <div className="prompt" role="status">
-              {prompt.startsWith('Press E') ? (
-                <>
-                  Press <kbd>E</kbd>
-                  {prompt.slice('Press E'.length)}
-                </>
-              ) : (
-                prompt
+      {viewing === 'telescope' && <Eyepiece />}
+      {isExploring
+        ? !viewing && (
+            <>
+              <div className="crosshair" aria-hidden="true" />
+              {prompt && (
+                <div className="prompt" role="status">
+                  {prompt.startsWith('Press E') ? (
+                    <>
+                      Press <kbd>E</kbd>
+                      {prompt.slice('Press E'.length)}
+                    </>
+                  ) : (
+                    prompt
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        </>
-      ) : (
-        !overlay && <Intro />
-      )}
+            </>
+          )
+        : !overlay && <Intro />}
+    </>
+  )
+}
+
+/** The round field of view of a telescope eyepiece, with a reminder of the controls. */
+function Eyepiece() {
+  return (
+    <>
+      <div className="eyepiece" aria-hidden="true" />
+      <div className="eyepiece-caption">
+        Looking through the telescope · move the mouse to look around · scroll to zoom · <kbd>E</kbd> to step back
+      </div>
     </>
   )
 }
@@ -77,6 +95,14 @@ function Intro() {
         <h1>The Curiosity Atlas</h1>
         <p className="tagline">A small world built for endless curiosity.</p>
         <p className="start">Click anywhere to explore</p>
+        <div className="intro-actions">
+          <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(SETTINGS_OVERLAY))}>
+            Settings
+          </button>
+          <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(MAP_OVERLAY))}>
+            Map
+          </button>
+        </div>
         <ul className="controls">
           <li>
             <kbd>W</kbd>
@@ -99,6 +125,9 @@ function Intro() {
           <li>
             <kbd>[</kbd>
             <kbd>]</kbd> Mouse sensitivity
+          </li>
+          <li>
+            <kbd>M</kbd> Map · <kbd>L</kbd> Library · <kbd>O</kbd> Settings
           </li>
           <li>
             <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)

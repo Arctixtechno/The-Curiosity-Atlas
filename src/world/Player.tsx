@@ -7,7 +7,8 @@ import { EYE_HEIGHT } from '../rooms/dimensions.ts'
 import type { Collider } from '../types/room.ts'
 import { moveWithCollisions } from './collision.ts'
 import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
-import { gameStore, saveSensitivity, useGame } from './store.ts'
+import { getSettings } from './settings.ts'
+import { gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
 
 const WALK_SPEED = 2.2
 const RUN_SPEED = 4
@@ -17,10 +18,10 @@ const KEY_PITCH_SPEED = 1.5
 const KEY_LOOK_EASE = 14
 const MAX_PITCH = Math.PI / 2 - 0.05
 const SENSITIVITY_STEP = 0.2
+/** Look speed while viewing through an instrument with a narrow field of view. */
+const VIEWING_LOOK_SCALE = 0.08
 const SENSITIVITY_RANGE = [0.4, 6] as const
 
-const reduceMotion =
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 interface PlayerProps {
   colliders: Collider[]
@@ -49,12 +50,13 @@ function showToast(message: string) {
 
 /**
  * First-person player: WASD to walk, mouse or arrow keys to look, and a head
- * bob synced to footsteps (off when the system asks for reduced motion).
+ * bob synced to footsteps (can be turned off in Settings; off by default when the system asks for reduced motion).
  */
 export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   const keys = useKeyboard()
   const sensitivity = useGame((s) => s.mouseSensitivity)
   const arrival = useGame((s) => s.arrival)
+  const viewing = useGame((s) => s.viewing)
   const look = useRef({ yaw: 0, pitch: 0 })
   const bob = useRef({ phase: 0, amount: 0, side: 0 })
   const floorY = useRef(0)
@@ -84,10 +86,12 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   }, [])
 
   useFrame(({ camera }, delta) => {
-    const { isExploring, transitioning } = gameStore.get()
+    const { isExploring, transitioning, viewing } = gameStore.get()
     if (!isExploring || transitioning) return
     const k = keys.current
     const dt = Math.min(delta, 0.05)
+    // Through an instrument's narrow view, looking around slows right down.
+    const lookScale = viewing ? VIEWING_LOOK_SCALE : 1
 
     // Arrow keys: ease the turn rate in and out so looking feels smooth.
     const ease = Math.min(1, dt * KEY_LOOK_EASE)
@@ -96,14 +100,19 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     l.pitch += ((held(k, 'ArrowUp') - held(k, 'ArrowDown')) * KEY_PITCH_SPEED - l.pitch) * ease
     if (Math.abs(l.yaw) > 1e-3 || Math.abs(l.pitch) > 1e-3) {
       euler.setFromQuaternion(camera.quaternion)
-      euler.y += l.yaw * dt
-      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + l.pitch * dt))
+      euler.y += l.yaw * dt * lookScale
+      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + l.pitch * dt * lookScale))
       camera.quaternion.setFromEuler(euler)
     }
+    // The instrument holds the camera in place.
+    if (viewing) return
 
     camera.getWorldDirection(forward)
     forward.y = 0
     forward.normalize()
+    playerPose.x = camera.position.x
+    playerPose.z = camera.position.z
+    playerPose.yaw = Math.atan2(-forward.x, -forward.z)
     right.crossVectors(forward, up)
     // Take off last frame's sway so collisions use the real position.
     const b = bob.current
@@ -129,7 +138,7 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     floorY.current += (targetFloor - floorY.current) * Math.min(1, dt * STEP_FOLLOW)
     const eye = floorY.current + EYE_HEIGHT
 
-    if (reduceMotion) {
+    if (!getSettings().headBob) {
       b.side = 0
       camera.position.y = eye
       return
@@ -145,11 +154,11 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
 
   return (
     <PointerLockControls
-      pointerSpeed={sensitivity}
+      pointerSpeed={sensitivity * (viewing ? VIEWING_LOOK_SCALE : 1)}
       onLock={() => gameStore.set({ isExploring: true })}
       onUnlock={() => {
         keys.current.clear()
-        gameStore.set({ isExploring: false, prompt: null })
+        gameStore.set({ isExploring: false, prompt: null, viewing: null })
       }}
     />
   )

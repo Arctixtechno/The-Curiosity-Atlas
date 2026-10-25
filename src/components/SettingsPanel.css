@@ -1,0 +1,50 @@
+.segmented {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr 3rem;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.setting output {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.setting-check {
+  display: flex;
+  gap: 10px;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.keys dt {
+  color: var(--ink-muted);
+}
+
+.keys dd {
+  margin: 0;
+}
+
+@media (max-width: 520px) {
+  .setting {
+    grid-template-columns: 1fr 3rem;
+  }
+
+  .setting span {
+    grid-column: 1 / -1;
+  }
+}

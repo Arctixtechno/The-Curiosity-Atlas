@@ -95,3 +95,8 @@
 .button[aria-pressed='true'] {
   background: rgba(224, 164, 88, 0.35);
 }
+
+.panel input[type='range'],
+.panel input[type='checkbox'] {
+  accent-color: var(--accent);
+}
