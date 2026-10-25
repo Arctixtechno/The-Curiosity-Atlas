@@ -3,14 +3,20 @@ import { CafeExterior } from './CafeExterior.tsx'
 import {
   boxCollider,
   CAFE,
+  CAFE_TABLES,
   COURTYARD,
   EYE_HEIGHT,
+  HALL_PLANTS,
   LOUNGE,
   MAIN_HALL,
   OBSERVATORY,
+  observatoryWallPoint,
   PORTICO,
   THEATRE,
-  THEATRE_ROWS,
+  THEATRE_AISLE,
+  THEATRE_LANDING_HEIGHT,
+  THEATRE_TIERS,
+  theatreFloorHeight,
   wallColliders,
 } from './dimensions.ts'
 
@@ -33,7 +39,11 @@ export const rooms: Record<string, RoomDefinition> = {
   mainHall: {
     id: 'mainHall',
     displayName: 'Main Hall',
-    colliders: [...wallColliders(MAIN_HALL.width, MAIN_HALL.length), boxCollider(0, 0, 2.2, 2.2)],
+    colliders: [
+      ...wallColliders(MAIN_HALL.width, MAIN_HALL.length),
+      boxCollider(0, 0, 2.2, 2.2),
+      ...HALL_PLANTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
+    ],
     doors: mainHallDoors,
     load: () => import('./MainHall.tsx'),
   },
@@ -42,25 +52,39 @@ export const rooms: Record<string, RoomDefinition> = {
     displayName: 'Theatre',
     colliders: [
       ...wallColliders(THEATRE.width, THEATRE.length),
-      // Recliner rows, either side of the centre aisle (footrests reach forward).
-      ...THEATRE_ROWS.flatMap((z) => [-1, 1].map((side) => ({
-        minX: side < 0 ? -3.05 : 0.75,
-        maxX: side < 0 ? -0.75 : 3.05,
-        minZ: z - 0.95,
-        maxZ: z + 0.6,
-      }))),
+      // Recliner rows either side of the centre aisle (footrests reach forward).
+      ...THEATRE_TIERS.flatMap(({ rowZ }) =>
+        rowZ === undefined
+          ? []
+          : [-1, 1].map((side) => ({
+              minX: side < 0 ? -3.95 : THEATRE_AISLE.halfWidth,
+              maxX: side < 0 ? -THEATRE_AISLE.halfWidth : 3.95,
+              minZ: rowZ - 1.05,
+              maxZ: rowZ + 0.75,
+            })),
+      ),
+      // Plinth under the screen.
+      { minX: -4.6, maxX: 4.6, minZ: -THEATRE.length / 2, maxZ: -THEATRE.length / 2 + 0.6 },
     ],
     doors: [
-      { id: 'hall', label: 'Main Hall', position: [0, 0, THEATRE.length / 2 - 0.05], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'theatre' } },
+      { id: 'hall', label: 'Main Hall', position: [0, THEATRE_LANDING_HEIGHT, THEATRE.length / 2 - 0.05], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'theatre' } },
     ],
     load: () => import('./Theatre.tsx'),
+    floorHeight: theatreFloorHeight,
   },
   observatory: {
     id: 'observatory',
     displayName: 'Observatory',
-    colliders: [...wallColliders(OBSERVATORY.width, OBSERVATORY.length), boxCollider(0, -1, 1.2, 1.2)],
+    colliders: [
+      { kind: 'ring', x: 0, z: 0, radius: OBSERVATORY.radius - 0.05 },
+      boxCollider(...OBSERVATORY.telescope, 0.9, 0.9),
+      boxCollider(...OBSERVATORY.orrery, 1.3, 1.3),
+      boxCollider(...OBSERVATORY.globe, 0.9, 0.9),
+      boxCollider(...observatoryWallPoint(OBSERVATORY.deskAngle, 0.75), 1.6, 1.6),
+      boxCollider(...observatoryWallPoint(OBSERVATORY.bookcaseAngle, 0.3), 1.5, 1.5),
+    ],
     doors: [
-      { id: 'hall', label: 'Main Hall', position: [0, 0, OBSERVATORY.length / 2 - 0.05], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'observatory' } },
+      { id: 'hall', label: 'Main Hall', position: [0, 0, OBSERVATORY.radius - 0.15], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'observatory' } },
     ],
     load: () => import('./Observatory.tsx'),
   },
@@ -86,6 +110,9 @@ export const rooms: Record<string, RoomDefinition> = {
     colliders: [
       ...wallColliders(COURTYARD.width, COURTYARD.length, 0.4),
       { minX: -CAFE.width / 2, maxX: CAFE.width / 2, minZ: CAFE.frontZ, maxZ: COURTYARD.length / 2 },
+      // Café tables and the chalkboard outside it.
+      ...CAFE_TABLES.map(([x, z]) => boxCollider(x, z, 1.6, 0.9)),
+      boxCollider(1.3, CAFE.frontZ - 0.75, 0.6, 0.5),
       boxCollider(-4.5, -2, 0.8, 0.8),
       boxCollider(4.5, -2, 0.8, 0.8),
       // Portico columns either side of the front door.
@@ -99,11 +126,11 @@ export const rooms: Record<string, RoomDefinition> = {
         prompt: 'Press E to go inside',
         position: [0, 0, -COURTYARD.length / 2 + 0.05],
         rotationY: 0,
-        color: '#141414',
-        signHeight: 3.05,
+        variant: 'front',
+        signHeight: 2.68,
         target: { roomId: 'mainHall', doorId: 'entrance' },
       },
-      { id: 'cafe', label: 'Café', position: [0, 0, CAFE.frontZ - 0.05], rotationY: Math.PI },
+      { id: 'cafe', label: 'Café', position: [0, 0, CAFE.frontZ - 0.05], rotationY: Math.PI, color: '#5f9a7c', signHeight: 2.52 },
     ],
     load: () => import('./Courtyard.tsx'),
     visibleExteriors: ['cafe'],

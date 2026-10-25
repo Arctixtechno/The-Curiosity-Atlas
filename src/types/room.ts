@@ -1,12 +1,22 @@
 import type { ComponentType } from 'react'
 
 /** Axis-aligned box on the floor plane (x/z), in world units (metres). */
-export interface Collider {
+export interface BoxCollider {
   minX: number
   maxX: number
   minZ: number
   maxZ: number
 }
+
+/** Round wall: keeps the player inside a circle on the floor plane. */
+export interface RingCollider {
+  kind: 'ring'
+  x: number
+  z: number
+  radius: number
+}
+
+export type Collider = BoxCollider | RingCollider
 
 /** Lifecycle states from spec section 4.2. */
 export type RoomState = 'exterior' | 'preloading' | 'active' | 'unloaded'
@@ -26,6 +36,8 @@ export interface DoorDefinition {
   color?: string
   /** Height of the sign above the floor. */
   signHeight?: number
+  /** 'front' adds raised panels and brass furniture, for the house's front door. */
+  variant?: 'front'
 }
 
 /** Standard room configuration (spec section 8.3). */
@@ -41,6 +53,8 @@ export interface RoomDefinition {
   exterior?: ComponentType
   /** Rooms whose exterior is visible from inside this one. */
   visibleExteriors?: string[]
+  /** Height of the floor at a point, for rooms with steps. Flat (0) when omitted. */
+  floorHeight?: (x: number, z: number) => number
 }
 
 export interface Placement {

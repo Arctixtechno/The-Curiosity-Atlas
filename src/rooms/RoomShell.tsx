@@ -1,6 +1,6 @@
 import type { TextureName } from '../components/textures.ts'
 import { useSurfaceTexture } from '../hooks/useTiledTexture.ts'
-import type { Collider } from '../types/room.ts'
+import type { BoxCollider } from '../types/room.ts'
 import { wallColliders } from './dimensions.ts'
 
 export interface Surface {
@@ -19,7 +19,7 @@ interface RoomShellProps {
   wallThickness?: number
 }
 
-function Wall({ collider, height, surface, seed }: { collider: Collider; height: number; surface: Surface; seed: number }) {
+function Wall({ collider, height, surface, seed }: { collider: BoxCollider; height: number; surface: Surface; seed: number }) {
   const sizeX = collider.maxX - collider.minX
   const sizeZ = collider.maxZ - collider.minZ
   const map = useSurfaceTexture(surface.texture, Math.max(sizeX, sizeZ), height, seed)

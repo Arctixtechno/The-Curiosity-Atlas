@@ -18,10 +18,12 @@ Requires Node.js 20 or newer.
 
 ```bash
 npm install
-npm run dev
+npm run play
 ```
 
-Then open the address Vite prints (usually http://localhost:5173) and click to start exploring.
+This builds the optimised version and opens it in your browser (usually at http://localhost:4173). Click to start exploring.
+
+`npm run dev` also works and reloads as code changes, but it runs React's development checks, so it is noticeably slower. Use `npm run play` to judge how smooth it feels.
 
 | Input | Action |
 | --- | --- |
@@ -36,6 +38,7 @@ Then open the address Vite prints (usually http://localhost:5173) and click to s
 
 Other scripts:
 
+- `npm run dev` starts the development server with live reloading
 - `npm run build` type-checks and builds a production bundle into `dist/`
 - `npm test` runs the unit tests
 - `npm run preview` serves the production build

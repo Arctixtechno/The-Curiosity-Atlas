@@ -24,7 +24,13 @@ const reduceMotion =
 
 interface PlayerProps {
   colliders: Collider[]
+  floorHeight?: (x: number, z: number) => number
 }
+
+/** How quickly the camera follows a change in floor height (steps), per second. */
+const STEP_FOLLOW = 9
+
+const flat = () => 0
 
 const forward = new Vector3()
 const right = new Vector3()
@@ -45,11 +51,19 @@ function showToast(message: string) {
  * First-person player: WASD to walk, mouse or arrow keys to look, and a head
  * bob synced to footsteps (off when the system asks for reduced motion).
  */
-export function Player({ colliders }: PlayerProps) {
+export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   const keys = useKeyboard()
   const sensitivity = useGame((s) => s.mouseSensitivity)
+  const arrival = useGame((s) => s.arrival)
   const look = useRef({ yaw: 0, pitch: 0 })
   const bob = useRef({ phase: 0, amount: 0, side: 0 })
+  const floorY = useRef(0)
+
+  // Arriving in a room puts the eye straight at that spot's floor height.
+  useEffect(() => {
+    floorY.current = arrival.position[1] - EYE_HEIGHT
+    bob.current.side = 0
+  }, [arrival])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -110,9 +124,14 @@ export function Player({ colliders }: PlayerProps) {
       camera.position.z = z
     }
 
+    // Ease towards the floor height under the player, so steps feel like steps rather than jumps.
+    const targetFloor = floorHeight(camera.position.x, camera.position.z)
+    floorY.current += (targetFloor - floorY.current) * Math.min(1, dt * STEP_FOLLOW)
+    const eye = floorY.current + EYE_HEIGHT
+
     if (reduceMotion) {
       b.side = 0
-      camera.position.y = EYE_HEIGHT
+      camera.position.y = eye
       return
     }
     // Half a cycle per stride; fade the bob in when walking and out when stopping.
@@ -120,7 +139,7 @@ export function Player({ colliders }: PlayerProps) {
     b.amount += ((moved > 0 ? (running ? 1.3 : 1) : 0) - b.amount) * Math.min(1, dt * 6)
     const offset = headBobOffset(b.phase, b.amount)
     b.side = offset.side
-    camera.position.y = EYE_HEIGHT + offset.up
+    camera.position.y = eye + offset.up
     camera.position.addScaledVector(right, b.side)
   })
 

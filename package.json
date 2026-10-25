@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "preview": "vite preview",
+    "play": "npm run build && vite preview --open",
     "test": "vitest run"
   },
   "dependencies": {
