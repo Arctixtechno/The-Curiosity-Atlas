@@ -1,3 +1,4 @@
+import { FountainInteraction } from '../features/discoveries/FountainInteraction.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Bench, CoatStand, ConsoleTable, Flowers } from '../components/Furnishings.tsx'
 import { Painting } from '../components/Painting.tsx'
@@ -186,6 +187,7 @@ export default function MainHall() {
       <CeilingBeams />
       <Runner />
       <Fountain />
+      <FountainInteraction />
       <MapTable />
       <CoatStand position={[HALL_FURNITURE.coatStand[0], 0, HALL_FURNITURE.coatStand[1]]} />
       <Bench position={[HALL_FURNITURE.bench[0], 0, HALL_FURNITURE.bench[1]]} rotationY={Math.PI / 2} />

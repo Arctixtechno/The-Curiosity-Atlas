@@ -83,6 +83,8 @@ export const LABORATORY = {
 }
 /** Where the laboratory's coat stand stands, by its door, as [x, z]. */
 export const LAB_COAT_STAND: [number, number] = [-1.7, 5.5]
+/** Philosophy Lounge: armchairs by the fire at the far end, bookcases along both side walls. */
+export const LOUNGE = { width: 8, length: 9, height: 3.4, seatingZ: -2, chairX: 0.95, bookcaseZ: 1, bookcaseLength: 3.2 }
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }

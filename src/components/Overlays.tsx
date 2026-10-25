@@ -1,5 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { CINEMA_OVERLAY, CinemaPanel } from '../features/cinema/CinemaPanel.tsx'
+import { FountainPanel } from '../features/discoveries/FountainPanel.tsx'
+import { LibraryPanel } from '../features/library/LibraryPanel.tsx'
+import { LoungePanel } from '../features/philosophy/LoungePanel.tsx'
 import { CAFE_OVERLAY } from '../features/cafe/overlayId.ts'
 import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
 import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.ts'
@@ -26,8 +29,8 @@ const SolarSystemPanel = lazy(() =>
 )
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
-/** Keys that open a panel from anywhere: M for the map, O for settings. */
-const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY }
+/** Keys that open a panel from anywhere: M for the map, O for settings, L for the library. */
+const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library' }
 
 /** Shows whichever full-screen panel is open, and handles the keys that open them. */
 export function Overlays() {
@@ -47,6 +50,9 @@ export function Overlays() {
   }, [])
 
   if (overlay === CINEMA_OVERLAY) return <CinemaPanel />
+  if (overlay === 'fountain') return <FountainPanel />
+  if (overlay === 'library') return <LibraryPanel />
+  if (overlay === 'lounge') return <LoungePanel />
   if (overlay === MAP_OVERLAY) return <MapPanel />
   if (overlay === SETTINGS_OVERLAY) return <SettingsPanel />
   const exhibit = exhibitFromOverlay(overlay)
