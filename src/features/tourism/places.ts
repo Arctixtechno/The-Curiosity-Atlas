@@ -5,7 +5,53 @@ import type { LatLng } from './geo.ts'
 // this list was written. Opening hours and prices change, so they're left
 // out: follow the source link before you go.
 
-export type PlaceKind = 'museum' | 'gallery' | 'garden' | 'landmark' | 'street' | 'church' | 'music' | 'sport'
+export type PlaceKind =
+  | 'museum'
+  | 'gallery'
+  | 'church'
+  | 'music'
+  | 'garden'
+  | 'landmark'
+  | 'street'
+  | 'sport'
+  | 'department'
+  | 'fashion'
+  | 'books'
+  | 'market'
+  | 'coffee'
+  | 'pub'
+
+/** Kinds of place gathered into a few groups, for filtering the map. */
+export const PLACE_GROUPS = [
+  { id: 'culture', name: 'Museums & culture', colour: '#e0a458', kinds: ['museum', 'gallery', 'church', 'music'] },
+  { id: 'outdoors', name: 'Landmarks & outdoors', colour: '#7fc7a4', kinds: ['garden', 'landmark', 'street', 'sport'] },
+  { id: 'shopping', name: 'Shopping', colour: '#c995e0', kinds: ['department', 'fashion', 'books', 'market'] },
+  { id: 'food', name: 'Food & drink', colour: '#e88a7a', kinds: ['coffee', 'pub'] },
+] as const satisfies readonly { id: string; name: string; colour: string; kinds: readonly PlaceKind[] }[]
+
+export type PlaceGroupId = (typeof PLACE_GROUPS)[number]['id']
+
+/** What each kind is called on a place's label. */
+export const KIND_NAMES: Record<PlaceKind, string> = {
+  museum: 'Museum',
+  gallery: 'Gallery',
+  church: 'Church',
+  music: 'Concert hall',
+  garden: 'Park or garden',
+  landmark: 'Landmark',
+  street: 'Street',
+  sport: 'Sports ground',
+  department: 'Department store',
+  fashion: 'Fashion & clothing',
+  books: 'Bookshop',
+  market: 'Market',
+  coffee: 'Coffee',
+  pub: 'Pub',
+}
+
+export function groupOf(kind: PlaceKind) {
+  return PLACE_GROUPS.find((g) => (g.kinds as readonly PlaceKind[]).includes(kind))!
+}
 
 export interface Place {
   id: string
@@ -68,6 +114,16 @@ export const NEIGHBOURHOODS: Neighbourhood[] = [
         description: "Thomas Hardwick's Grade I listed church, built 1813 to 1817, at the top of the high street.",
         source: wiki('St_Marylebone_Parish_Church'),
         hiddenGem: true,
+      },
+      {
+        id: 'selfridges',
+        name: 'Selfridges',
+        at: [51.5146, -0.1528],
+        kind: 'department',
+        visitMinutes: 60,
+        description:
+          "Harry Gordon Selfridge's department store on Oxford Street, opened on 15 March 1909, in a Grade II listed building.",
+        source: wiki('Selfridges,_Oxford_Street'),
       },
     ],
   },
@@ -144,6 +200,16 @@ export const NEIGHBOURHOODS: Neighbourhood[] = [
         description: 'The 1708 house at 5 Cheyne Row where Thomas and Jane Carlyle lived from 1834, kept much as they left it.',
         source: wiki("The_Carlyles'_House"),
         hiddenGem: true,
+      },
+      {
+        id: 'peter-jones',
+        name: 'Peter Jones',
+        at: [51.4923, -0.1589],
+        kind: 'department',
+        visitMinutes: 45,
+        description:
+          'A department store on Sloane Square, in a glass-fronted listed building of 1932 to 1936 by William Crabtree.',
+        source: wiki('Peter_Jones_(department_store)'),
       },
     ],
   },
@@ -228,6 +294,16 @@ export const NEIGHBOURHOODS: Neighbourhood[] = [
         description: "George Gilbert Scott's gilded memorial to Prince Albert in Kensington Gardens, opened in 1872.",
         source: wiki('Albert_Memorial'),
       },
+      {
+        id: 'harrods',
+        name: 'Harrods',
+        at: [51.4997, -0.1636],
+        kind: 'department',
+        visitMinutes: 75,
+        description:
+          "The great Knightsbridge department store on Brompton Road. Charles Henry Harrod's shop dates from 1849; the present building opened in 1905.",
+        source: wiki('Harrods'),
+      },
     ],
   },
   {
@@ -264,6 +340,105 @@ export const NEIGHBOURHOODS: Neighbourhood[] = [
           'At 48 Doughty Street, where Dickens lived from 1837 to 1839 and wrote Oliver Twist. The museum opened in 1925.',
         source: wiki('Charles_Dickens_Museum'),
         hiddenGem: true,
+      },
+      {
+        id: 'the-lamb',
+        name: 'The Lamb',
+        at: [51.523, -0.1191],
+        kind: 'pub',
+        visitMinutes: 45,
+        description:
+          "A Grade II listed pub on Lamb's Conduit Street, built in the 1720s, which still has its Victorian snob screens.",
+        source: wiki('The_Lamb,_Bloomsbury'),
+        hiddenGem: true,
+      },
+    ],
+  },
+  {
+    id: 'soho',
+    name: 'Soho & Covent Garden',
+    centre: [51.5137, -0.1315],
+    blurb: 'Narrow streets of fashion, food and books: a street market, the old flower market, and two famous coffee bars.',
+    places: [
+      {
+        id: 'carnaby-street',
+        name: 'Carnaby Street',
+        at: [51.5133, -0.1389],
+        kind: 'fashion',
+        visitMinutes: 40,
+        description:
+          'The heart of Swinging Sixties fashion, laid out in the 1680s and pedestrianised in 1973. Still lined with clothes shops.',
+        source: wiki('Carnaby_Street'),
+      },
+      {
+        id: 'liberty',
+        name: 'Liberty',
+        at: [51.5139, -0.1402],
+        kind: 'department',
+        visitMinutes: 45,
+        description:
+          "Arthur Liberty's store, founded in 1875 and famous for its fabrics, in a mock-Tudor building finished in 1924.",
+        source: wiki('Liberty_(department_store)'),
+      },
+      {
+        id: 'berwick-street',
+        name: 'Berwick Street market',
+        at: [51.5147, -0.1358],
+        kind: 'market',
+        visitMinutes: 30,
+        description: 'A Soho street built from 1687, with a street market recorded since about 1843.',
+        source: wiki('Berwick_Street'),
+        hiddenGem: true,
+      },
+      {
+        id: 'bar-italia',
+        name: 'Bar Italia',
+        at: [51.5134, -0.1313],
+        kind: 'coffee',
+        visitMinutes: 25,
+        description:
+          'A Frith Street espresso bar opened in 1949 by the Polledri family, below the rooms where John Logie Baird first showed television in 1926.',
+        source: wiki('Bar_Italia'),
+      },
+      {
+        id: 'foyles',
+        name: 'Foyles',
+        at: [51.5147, -0.1301],
+        kind: 'books',
+        visitMinutes: 40,
+        description: 'A bookshop founded in 1903, now at 107 Charing Cross Road since 2014.',
+        source: wiki('Foyles'),
+      },
+      {
+        id: 'monmouth-coffee',
+        name: 'Monmouth Coffee',
+        at: [51.5144, -0.1268],
+        kind: 'coffee',
+        visitMinutes: 20,
+        description: 'Coffee roasters founded in 1978, whose first shop is at 27 Monmouth Street in Covent Garden.',
+        source: wiki('Monmouth_Coffee_Company'),
+        hiddenGem: true,
+      },
+      {
+        id: 'neals-yard',
+        name: "Neal's Yard",
+        at: [51.5144, -0.1265],
+        kind: 'street',
+        visitMinutes: 15,
+        description:
+          'A small, brightly painted courtyard of shops and cafés off Monmouth Street, named after the 17th-century developer Thomas Neale.',
+        source: wiki("Neal's_Yard"),
+        hiddenGem: true,
+      },
+      {
+        id: 'covent-garden-market',
+        name: 'Covent Garden Market',
+        at: [51.5119, -0.1228],
+        kind: 'market',
+        visitMinutes: 45,
+        description:
+          "Charles Fowler's market building of 1830, the old fruit and flower market, reopened for shops and stalls in 1980.",
+        source: wiki('Covent_Garden'),
       },
     ],
   },

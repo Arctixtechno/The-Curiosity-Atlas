@@ -1,10 +1,11 @@
 import { Sky } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Color, Object3D, type InstancedMesh } from 'three'
+import { BoxGeometry, Float32BufferAttribute, Object3D, type InstancedMesh } from 'three'
+import { BoxBallPot, Bench } from '../components/Furnishings.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
-import { COURTYARD } from './dimensions.ts'
+import { COURTYARD, COURTYARD_BENCH, DOOR_POTS } from './dimensions.ts'
 import { Portico, SashWindows, TerraceWall, type WindowProps } from './Townhouse.tsx'
 
 const SUN: [number, number, number] = [45, 40, 8]
@@ -118,75 +119,105 @@ const TREES: TreeSpot[] = [
   ...Array.from({ length: 6 }, (_, i): TreeSpot => [26, -4 + i * 7, 1.15 + (i % 2) * 0.2]),
 ]
 
+/** Smooth value noise in 3D, for the hedges' uneven clipping. */
+function lumpNoise(seed: number) {
+  const hash = (x: number, y: number, z: number) => {
+    const n = Math.sin(x * 127.1 + y * 311.7 + z * 74.7 + seed * 17.3) * 43758.5453
+    return n - Math.floor(n)
+  }
+  const fade = (t: number) => t * t * (3 - 2 * t)
+  return (x: number, y: number, z: number) => {
+    const xi = Math.floor(x)
+    const yi = Math.floor(y)
+    const zi = Math.floor(z)
+    const [u, v, w] = [fade(x - xi), fade(y - yi), fade(z - zi)]
+    let sum = 0
+    for (let dx = 0; dx < 2; dx++)
+      for (let dy = 0; dy < 2; dy++)
+        for (let dz = 0; dz < 2; dz++) {
+          const weight = (dx ? u : 1 - u) * (dy ? v : 1 - v) * (dz ? w : 1 - w)
+          sum += weight * hash(xi + dx, yi + dy, zi + dz)
+        }
+    return sum
+  }
+}
+
 /**
- * A clipped hedge: a dense scatter of small leafy clumps over its sides and top,
- * each a slightly different green, so it reads as foliage rather than rows.
+ * A clipped box hedge: one finely divided block with softly rounded edges,
+ * pushed in and out a few centimetres so the clipping looks hand done,
+ * covered in small leaves and darker towards its foot where less light reaches.
  */
-function Hedge({ x, z, width, length }: { x: number; z: number; width: number; length: number }) {
-  const leaves = useTiledTexture('hedge', 3, 3)
-  const mesh = useRef<InstancedMesh>(null)
-  const alongX = width > length
-  const span = Math.max(width, length)
-  const depth = Math.min(width, length)
-  const h = COURTYARD.hedgeHeight
-  const face = useSurfaceTexture('hedge', span, h, Math.round(x + z) + 20)
-  const clumps = useMemo(() => {
-    let seed = Math.round(span * 1000 + x * 7 + z * 13) || 1
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-    const list: { pos: [number, number, number]; scale: [number, number, number]; shade: number }[] = []
-    // Clumps are flattened against the face they sit on: a clipped hedge has relief, not balls.
-    const add = (along: number, y: number, across: number, s: number, flat: 'across' | 'up') => {
-      const a = s * (1.4 + rand() * 0.6)
-      const n = s * 0.45
-      const sAcross = flat === 'across' ? n : s * 1.4
-      const sUp = flat === 'up' ? n : s
-      list.push({
-        pos: alongX ? [along, y, across] : [across, y, along],
-        scale: alongX ? [a, sUp, sAcross] : [sAcross, sUp, a],
-        // Lighter towards the top, where the sun catches it.
-        shade: 0.72 + rand() * 0.22 + (y / h) * 0.18,
-      })
-    }
-    // Both long faces, scattered at random rather than in rows.
-    for (const side of [-1, 1]) {
-      for (let i = 0; i < span * 14; i++) {
-        add((rand() - 0.5) * (span - 0.1), 0.08 + rand() * (h - 0.12), side * (depth / 2 + 0.01), 0.1 + rand() * 0.07, 'across')
+function useHedgeGeometry(width: number, length: number, height: number, seed: number) {
+  const geometry = useMemo(() => {
+    const perMetre = 14
+    const g = new BoxGeometry(
+      width,
+      height,
+      length,
+      Math.max(2, Math.round(width * perMetre)),
+      Math.max(2, Math.round(height * perMetre)),
+      Math.max(2, Math.round(length * perMetre)),
+    )
+    const noise = lumpNoise(seed)
+    const pos = g.attributes.position
+    const normal = g.attributes.normal
+    const uv = g.attributes.uv
+    const colours: number[] = []
+    const round = 0.08
+    const hw = width / 2
+    const hl = length / 2
+    for (let i = 0; i < pos.count; i++) {
+      let x = pos.getX(i)
+      let y = pos.getY(i) + height / 2
+      let z = pos.getZ(i)
+      // Round off the top edges, as shears leave them.
+      const ex = Math.max(0, Math.abs(x) - (hw - round))
+      const ez = Math.max(0, Math.abs(z) - (hl - round))
+      const ey = Math.max(0, y - (height - round))
+      const corner = Math.hypot(Math.max(ex, ez), ey)
+      if (corner > 0 && ey > 0) {
+        const pull = corner - round * 0.7
+        if (pull > 0) {
+          y -= (ey / corner) * pull
+          if (ex > ez) x -= Math.sign(x) * (ex / corner) * pull
+          else z -= Math.sign(z) * (ez / corner) * pull
+        }
       }
+      // Bumps of a few centimetres, larger soft swells plus small tufts.
+      const bump = (noise(x * 2.2, y * 2.2, z * 2.2) - 0.5) * 0.06 + (noise(x * 9, y * 9, z * 9) - 0.5) * 0.025
+      const nx = normal.getX(i)
+      const ny = normal.getY(i)
+      const nz = normal.getZ(i)
+      // Leave the base where it meets the ground.
+      const grounded = Math.min(1, y / 0.15)
+      x += nx * bump * grounded
+      y += ny * bump * grounded
+      z += nz * bump * grounded
+      pos.setXYZ(i, x, y - height / 2, z)
+      // Texture in metres, along whichever face this is.
+      if (Math.abs(ny) > 0.5) uv.setXY(i, x, z)
+      else if (Math.abs(nx) > 0.5) uv.setXY(i, z, y)
+      else uv.setXY(i, x, y)
+      // Darker low down and in the hollows.
+      const shade = (0.72 + 0.28 * Math.min(1, y / height) ** 0.7) * (0.88 + bump * 3)
+      colours.push(shade * 0.95, shade, shade * 0.9)
     }
-    // The clipped top, slightly domed.
-    for (let i = 0; i < span * depth * 28; i++) {
-      const across = (rand() - 0.5) * depth
-      add((rand() - 0.5) * (span - 0.1), h - 0.02 - Math.abs(across) * 0.08, across, 0.1 + rand() * 0.07, 'up')
-    }
-    return list
-  }, [span, depth, alongX, x, z, h])
+    g.setAttribute('color', new Float32BufferAttribute(colours, 3))
+    g.computeVertexNormals()
+    return g
+  }, [width, length, height, seed])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  return geometry
+}
 
-  useLayoutEffect(() => {
-    const dummy = new Object3D()
-    const color = new Color()
-    clumps.forEach((c, i) => {
-      dummy.position.set(...c.pos)
-      dummy.scale.set(...c.scale)
-      dummy.updateMatrix()
-      mesh.current!.setMatrixAt(i, dummy.matrix)
-      mesh.current!.setColorAt(i, color.setRGB(c.shade * 0.85, c.shade, c.shade * 0.8))
-    })
-    mesh.current!.instanceMatrix.needsUpdate = true
-    if (mesh.current!.instanceColor) mesh.current!.instanceColor.needsUpdate = true
-  }, [clumps])
-
+function Hedge({ x, z, width, length }: { x: number; z: number; width: number; length: number }) {
+  const h = COURTYARD.hedgeHeight
+  const geometry = useHedgeGeometry(width, length, h, Math.round(x * 3 + z * 7))
+  const leaves = useTiledTexture('boxleaf', 1, 1)
   return (
-    <group position={[x, 0, z]}>
-      {/* The clipped body of the hedge; the clumps add relief on top of it. */}
-      <mesh position={[0, h / 2 - 0.03, 0]}>
-        <boxGeometry args={[width - 0.02, h - 0.06, length - 0.02]} />
-        <meshStandardMaterial color="#c8dcb0" map={face} bumpMap={face} bumpScale={1.5} roughness={1} />
-      </mesh>
-      <instancedMesh ref={mesh} args={[undefined, undefined, clumps.length]} receiveShadow>
-        <icosahedronGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#d4e6bc" map={leaves} roughness={0.95} />
-      </instancedMesh>
-    </group>
+    <mesh position={[x, h / 2, z]} geometry={geometry} receiveShadow>
+      <meshStandardMaterial vertexColors map={leaves} bumpMap={leaves} bumpScale={2} roughness={0.9} color="#dfe8d4" />
+    </mesh>
   )
 }
 
@@ -287,6 +318,10 @@ export default function Courtyard() {
       <Hedge x={0} z={hl + 0.2} width={COURTYARD.width + 0.8} length={0.4} />
 
       <HouseFront />
+      {DOOR_POTS.map(([x, z]) => (
+        <BoxBallPot key={x} position={[x, 0, z]} />
+      ))}
+      <Bench position={[COURTYARD_BENCH[0], 0, COURTYARD_BENCH[1]]} rotationY={Math.PI / 2} length={1.6} />
       <DistantTerrace />
 
       {PLANTERS.map(([x, z]) => (

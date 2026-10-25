@@ -26,6 +26,12 @@ export const THEATRE_TIERS = [
 export const THEATRE_AISLE = { halfWidth: 1, stepDepth: 0.8, stepHeight: 0.15 }
 /** The film menu's lectern on the entrance landing, as [x, z]. */
 export const THEATRE_LECTERN: [number, number] = [-2.4, 4.4]
+/** Furniture round the main hall, as [x, z]: a coat stand by the front door, a bench, a console table. */
+export const HALL_FURNITURE = {
+  coatStand: [1.8, 9.35] as [number, number],
+  bench: [3.75, 6] as [number, number],
+  console: [-3.8, -8.3] as [number, number],
+}
 /** The City Explorer's map table in the main hall, as [x, z]. */
 export const MAP_TABLE: [number, number] = [-2.4, -5.5]
 export const THEATRE_LANDING_HEIGHT = 1.2
@@ -75,6 +81,8 @@ export const LABORATORY = {
   buoyancyBench: [2.6, -2] as [number, number],
   bench: { width: 2.2, depth: 0.9, height: 0.92 },
 }
+/** Where the laboratory's coat stand stands, by its door, as [x, z]. */
+export const LAB_COAT_STAND: [number, number] = [-1.7, 5.5]
 /** Philosophy Lounge: armchairs by the fire at the far end, bookcases along both side walls. */
 export const LOUNGE = { width: 8, length: 9, height: 3.4, seatingZ: -2, chairX: 0.95, bookcaseZ: 1, bookcaseLength: 3.2 }
 export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
@@ -84,6 +92,13 @@ export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length 
 export const CAFE_TABLES: [number, number][] = [
   [-2.2, CAFE.frontZ - 1.7],
   [2.2, CAFE.frontZ - 1.7],
+]
+
+/** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
+export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
+export const DOOR_POTS: [number, number][] = [
+  [-2.1, -8.5],
+  [2.1, -8.5],
 ]
 
 /** Columned porch around the house's front door, relative to the house wall. */
