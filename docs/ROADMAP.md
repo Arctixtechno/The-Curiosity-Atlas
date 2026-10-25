@@ -72,8 +72,8 @@ Deliverable: a user can discover something, discuss it with AI and save it for l
 - ✅ Functional theatre video player (public-domain films from Wikimedia Commons on the big screen, or a video file of your own)
 - ⬜ AI-curated video recommendations (needs the AI backend from Phase 2)
 - ✅ Saved watchlist (kept in the browser)
-- Basic City Explorer with London neighbourhood discovery
-- Simple itinerary generation using verified geographical information
+- ✅ Basic City Explorer with London neighbourhood discovery (map table in the main hall, OpenStreetMap, six neighbourhoods, Discovery Passport)
+- 🚧 Simple itinerary generation using verified geographical information (a walk planner with estimated times works now; AI-written itineraries need the Phase 2 backend)
 - Improved library organisation
 
 Deliverable: users can discover information, watch relevant content and plan real-world experiences.

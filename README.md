@@ -10,7 +10,7 @@ The full vision is in the [master specification](docs/PROJECT_SPEC.md), and prog
 
 You start in the main hall, with the Discovery Fountain in the middle. The theatre, the observatory and the courtyard open with <kbd>E</kbd>, and each door brings you back to where you left. The courtyard sits in front of a white stucco townhouse with a columned porch, with the café's outside at the far end. The library, laboratory, philosophy lounge and café doors are there but locked until later phases. All rooms are placeholder geometry with textures drawn in code, so there are no image files to download. Floors and walls get a texture painted for their exact size, so patterns don't repeat. Walking has a gentle head bob in step with your footsteps, which you can turn off in Settings (it starts off if your system is set to reduce motion).
 
-In the theatre, press <kbd>E</kbd> at the lectern on the landing (or facing the screen) to choose a film: public-domain NASA and Lumière films stream from Wikimedia Commons onto the big screen, or you can play a video file from your own computer. The lights dim while a film plays, and a watchlist remembers films you save. In the observatory, press <kbd>E</kbd> at the telescope to look through it at the moon and a night sky that is different every visit. <kbd>M</kbd> opens a map of the house and <kbd>O</kbd> opens Settings.
+In the theatre, press <kbd>E</kbd> at the lectern on the landing (or facing the screen) to choose a film: public-domain NASA and Lumière films stream from Wikimedia Commons onto the big screen, or you can play a video file from your own computer. The lights dim while a film plays, and a watchlist remembers films you save. In the observatory, press <kbd>E</kbd> at the telescope to look through it at the moon and a night sky that is different every visit. In the main hall, the map table opens the City Explorer: a London map (OpenStreetMap) with six neighbourhood guides, each place linked to its source, a walk planner with estimated times, and a Discovery Passport where you mark places visited or favourite and keep notes (all saved in your browser). <kbd>M</kbd> opens a map of the house and <kbd>O</kbd> opens Settings.
 
 Each room's interior is its own code-split chunk. It starts downloading when you walk up to its door, is mounted only while you are inside, and is unmounted (freeing its geometry and materials) when you leave. Press <kbd>`</kbd> to see the Room Manager's view of every room's state.
 
@@ -50,7 +50,7 @@ Other scripts:
 
 ## Tech stack
 
-React, TypeScript and Vite, with Three.js, React Three Fiber and Drei for the 3D scene. Backend, database and AI services will be added in later phases (see spec section 8).
+React, TypeScript and Vite, with Three.js, React Three Fiber and Drei for the 3D scene, and Leaflet with OpenStreetMap tiles for the City Explorer map. Backend, database and AI services will be added in later phases (see spec section 8).
 
 ## Project layout
 
