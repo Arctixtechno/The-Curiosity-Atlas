@@ -7,6 +7,7 @@ import {
   COURTYARD,
   EYE_HEIGHT,
   HALL_PLANTS,
+  LABORATORY,
   MAIN_HALL,
   MAP_TABLE,
   OBSERVATORY,
@@ -28,11 +29,36 @@ const hallL = MAIN_HALL.length / 2 - 0.05
 const hallW = MAIN_HALL.width / 2 - 0.05
 
 const mainHallDoors: DoorDefinition[] = [
-  { id: 'theatre', label: 'Theatre', position: [hallW, 0, 0], rotationY: -Math.PI / 2, target: { roomId: 'theatre', doorId: 'hall' } },
-  { id: 'observatory', label: 'Observatory', position: [hallW, 0, -6], rotationY: -Math.PI / 2, target: { roomId: 'observatory', doorId: 'hall' } },
-  { id: 'entrance', label: 'Courtyard', prompt: 'Press E to go out to the Courtyard', position: [0, 0, hallL], rotationY: Math.PI, target: { roomId: 'courtyard', doorId: 'hall' } },
+  {
+    id: 'theatre',
+    label: 'Theatre',
+    position: [hallW, 0, 0],
+    rotationY: -Math.PI / 2,
+    target: { roomId: 'theatre', doorId: 'hall' },
+  },
+  {
+    id: 'observatory',
+    label: 'Observatory',
+    position: [hallW, 0, -6],
+    rotationY: -Math.PI / 2,
+    target: { roomId: 'observatory', doorId: 'hall' },
+  },
+  {
+    id: 'entrance',
+    label: 'Courtyard',
+    prompt: 'Press E to go out to the Courtyard',
+    position: [0, 0, hallL],
+    rotationY: Math.PI,
+    target: { roomId: 'courtyard', doorId: 'hall' },
+  },
   { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
-  { id: 'laboratory', label: 'Laboratory', position: [-hallW, 0, 0], rotationY: Math.PI / 2 },
+  {
+    id: 'laboratory',
+    label: 'Laboratory',
+    position: [-hallW, 0, 0],
+    rotationY: Math.PI / 2,
+    target: { roomId: 'laboratory', doorId: 'hall' },
+  },
   { id: 'lounge', label: 'Philosophy Lounge', position: [-hallW, 0, 6], rotationY: Math.PI / 2 },
 ]
 
@@ -71,7 +97,13 @@ export const rooms: Record<string, RoomDefinition> = {
       { minX: -4.6, maxX: 4.6, minZ: -THEATRE.length / 2, maxZ: -THEATRE.length / 2 + 0.6 },
     ],
     doors: [
-      { id: 'hall', label: 'Main Hall', position: [0, THEATRE_LANDING_HEIGHT, THEATRE.length / 2 - 0.05], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'theatre' } },
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, THEATRE_LANDING_HEIGHT, THEATRE.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'theatre' },
+      },
     ],
     load: () => import('./Theatre.tsx'),
     floorHeight: theatreFloorHeight,
@@ -88,9 +120,41 @@ export const rooms: Record<string, RoomDefinition> = {
       boxCollider(...observatoryWallPoint(OBSERVATORY.bookcaseAngle, 0.3), 1.5, 1.5),
     ],
     doors: [
-      { id: 'hall', label: 'Main Hall', position: [0, 0, OBSERVATORY.radius - 0.15], rotationY: Math.PI, target: { roomId: 'mainHall', doorId: 'observatory' } },
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, OBSERVATORY.radius - 0.15],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'observatory' },
+      },
     ],
     load: () => import('./Observatory.tsx'),
+  },
+  laboratory: {
+    id: 'laboratory',
+    displayName: 'Laboratory',
+    colliders: [
+      ...wallColliders(LABORATORY.width, LABORATORY.length),
+      boxCollider(...LABORATORY.gasBench, LABORATORY.bench.width + 0.2, LABORATORY.bench.depth + 0.2),
+      boxCollider(...LABORATORY.buoyancyBench, LABORATORY.bench.width + 0.2, LABORATORY.bench.depth + 0.2),
+      // Glassware shelves along the far wall.
+      {
+        minX: -LABORATORY.width / 2,
+        maxX: LABORATORY.width / 2,
+        minZ: -LABORATORY.length / 2,
+        maxZ: -LABORATORY.length / 2 + 0.55,
+      },
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, LABORATORY.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'laboratory' },
+      },
+    ],
+    load: () => import('./Laboratory.tsx'),
   },
   courtyard: {
     id: 'courtyard',
