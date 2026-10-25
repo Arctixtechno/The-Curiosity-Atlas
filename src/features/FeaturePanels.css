@@ -26,23 +26,36 @@
 
 .feature-panel button:not(.entry-header) {
   padding: 8px 16px;
-  border: 1px solid rgba(244, 234, 216, 0.3);
-  border-radius: 8px;
-  background: transparent;
+  border: 1px solid rgba(244, 234, 216, 0.2);
+  border-radius: 10px;
+  background: rgba(244, 234, 216, 0.03);
   color: var(--ink);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 0.93rem;
   cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
 }
 
 .feature-panel button:not(.entry-header):hover {
-  border-color: var(--accent);
+  border-color: rgba(224, 164, 88, 0.55);
+  background: rgba(224, 164, 88, 0.1);
+}
+
+.feature-panel button:not(.entry-header):active {
+  transform: translateY(1px);
 }
 
 .feature-panel button.primary {
   border-color: var(--accent);
   background: var(--accent);
   color: #1c150e;
+}
+
+.feature-panel button.primary:hover {
+  background: #eab36c;
 }
 
 .feature-panel button.saved {
@@ -53,9 +66,15 @@
 .feature-panel button.link {
   padding: 8px 0;
   border: none;
+  background: none;
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.feature-panel button.link:not(.entry-header):hover {
+  background: none;
+  color: #f0bd7a;
 }
 
 .feature-panel button.danger {

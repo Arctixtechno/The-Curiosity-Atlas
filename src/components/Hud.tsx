@@ -5,6 +5,7 @@ import { useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
 import { MAP_OVERLAY } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
+import { GearIcon, MapIcon } from './icons.tsx'
 import './Hud.css'
 import './Panel.css'
 
@@ -92,47 +93,76 @@ function Intro() {
   return (
     <div className="intro">
       <div className="intro-panel">
+        <p className="intro-kicker">Welcome to</p>
         <h1>The Curiosity Atlas</h1>
         <p className="tagline">A small world built for endless curiosity.</p>
-        <p className="start">Click anywhere to explore</p>
+        {/* Not a real button: the click passes through to the world, which takes the mouse. */}
+        <p className="start" aria-hidden="true">
+          Click anywhere to explore
+        </p>
         <div className="intro-actions">
           <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(SETTINGS_OVERLAY))}>
-            Settings
+            <GearIcon size={16} /> Settings
           </button>
           <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(MAP_OVERLAY))}>
-            Map
+            <MapIcon size={16} /> Map
           </button>
         </div>
-        <ul className="controls">
-          <li>
-            <kbd>W</kbd>
-            <kbd>A</kbd>
-            <kbd>S</kbd>
-            <kbd>D</kbd> Move
-          </li>
-          <li>
-            <kbd>Mouse</kbd> or <kbd>←</kbd>
-            <kbd>↑</kbd>
-            <kbd>↓</kbd>
-            <kbd>→</kbd> Look around
-          </li>
-          <li>
-            <kbd>E</kbd> Open doors and interact
-          </li>
-          <li>
-            <kbd>Shift</kbd> Walk faster
-          </li>
-          <li>
-            <kbd>[</kbd>
-            <kbd>]</kbd> Mouse sensitivity
-          </li>
-          <li>
-            <kbd>M</kbd> Map · <kbd>L</kbd> Library · <kbd>O</kbd> Settings
-          </li>
-          <li>
-            <kbd>Q</kbd> Release cursor (<kbd>Esc</kbd> also leaves full screen)
-          </li>
-        </ul>
+        <details className="how-to-play" onClick={(e) => e.stopPropagation()}>
+          <summary>How to play</summary>
+          <ul className="controls">
+            <li>
+              <span>
+                <kbd>W</kbd>
+                <kbd>A</kbd>
+                <kbd>S</kbd>
+                <kbd>D</kbd>
+              </span>
+              Move
+            </li>
+            <li>
+              <span>
+                <kbd>Mouse</kbd> or arrows
+              </span>
+              Look around
+            </li>
+            <li>
+              <span>
+                <kbd>E</kbd>
+              </span>
+              Open doors, sit, use things
+            </li>
+            <li>
+              <span>
+                <kbd>Shift</kbd>
+              </span>
+              Walk faster
+            </li>
+            <li>
+              <span>
+                <kbd>[</kbd>
+                <kbd>]</kbd>
+              </span>
+              Mouse sensitivity
+            </li>
+            <li>
+              <span>
+                <kbd>M</kbd>
+                <kbd>L</kbd>
+                <kbd>O</kbd>
+              </span>
+              Map, Library, Settings
+            </li>
+            <li>
+              <span>
+                <kbd>Q</kbd>
+              </span>
+              <span className="control-note">
+                Release the cursor (<kbd>Esc</kbd> also leaves full screen)
+              </span>
+            </li>
+          </ul>
+        </details>
       </div>
     </div>
   )

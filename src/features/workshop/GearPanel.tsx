@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { GearIcon } from '../../components/icons.tsx'
 import { CHALLENGES, GEAR_START, MAX_STAGES, meetsChallenge, TEETH, train, type Stage } from './gears.ts'
 import './Workshop.css'
 
@@ -156,7 +157,7 @@ export function GearPanel() {
   const format = (n: number) => (Number.isInteger(n) ? `${n}` : n < 1 ? n.toFixed(3) : n.toFixed(2))
 
   return (
-    <Panel title="Gears: the train bench" wide>
+    <Panel title="Gears" subtitle="The train bench: how gears trade speed for force" icon={<GearIcon />} wide>
       <div className="shop-layout">
         <canvas ref={canvas} width={W} height={H} className="shop-canvas" aria-label="The gear train, turning" />
         <div>

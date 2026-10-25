@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { FlaskIcon } from '../../components/icons.tsx'
 import { ATMOSPHERE_KPA, celsius, GAS_LIMITS, GAS_START, pressureKPa, rmsSpeed, type GasState } from './gasLaw.ts'
 import './Experiments.css'
 
@@ -187,7 +188,7 @@ export function GasPanel() {
   const p = pressureKPa(gas)
   const set = (change: Partial<GasState>) => setGas((g) => ({ ...g, ...change }))
   return (
-    <Panel title="Gas laws: the piston" wide>
+    <Panel title="Gas laws" subtitle="The piston: pressure, volume and temperature" icon={<FlaskIcon />} wide>
       <div className="lab-layout">
         <canvas ref={canvas} width={W} height={H} className="lab-canvas" aria-label="A gas in a cylinder under a piston" />
         <div>

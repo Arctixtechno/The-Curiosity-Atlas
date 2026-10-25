@@ -5,32 +5,11 @@ import { Painting } from '../components/Painting.tsx'
 import { MapTable } from '../features/tourism/MapTable.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
 import { HALL_FURNITURE, HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
+import { Fountain } from './Fountain.tsx'
 import { RoomShell } from './RoomShell.tsx'
 
-const FOUNTAIN_RADIUS = 1.1
 const SKIRTING_HEIGHT = 0.18
 const BEAM_SPACING = 2.5
-
-function Fountain() {
-  const stone = useTiledTexture('stone', 3, 0.5)
-  return (
-    <group>
-      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[FOUNTAIN_RADIUS, FOUNTAIN_RADIUS + 0.1, 0.5, 32]} />
-        <meshStandardMaterial color="#c8bca8" map={stone} bumpMap={stone} bumpScale={0.8} roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 0.46, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[FOUNTAIN_RADIUS - 0.1, 32]} />
-        <meshStandardMaterial color="#5fa3b8" emissive="#1d4e5c" roughness={0.1} metalness={0.2} />
-      </mesh>
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <cylinderGeometry args={[0.12, 0.18, 0.9, 16]} />
-        <meshStandardMaterial color="#c8bca8" map={stone} roughness={0.8} />
-      </mesh>
-      <pointLight position={[0, 1.6, 0]} color="#9fd8e8" intensity={3} distance={5} />
-    </group>
-  )
-}
 
 function CeilingLamp({ z }: { z: number }) {
   return (

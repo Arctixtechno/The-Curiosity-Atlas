@@ -696,6 +696,13 @@
   font-style: italic;
 }
 
+.composer-count {
+  align-self: center;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
 .send {
   display: grid;
   flex: none;

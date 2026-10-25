@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { closeOverlay } from '../world/overlay.ts'
+import { CloseIcon } from './icons.tsx'
 import './Panel.css'
 
 /**
@@ -40,7 +41,21 @@ export function useModal(dialog: RefObject<HTMLElement | null>, onEscape: () => 
  * and Escape or the close button returns to exploring. Keyboard focus moves
  * into the panel when it opens and Tab keeps it there until it closes.
  */
-export function Panel({ title, children, wide }: { title: string; children: ReactNode; wide?: boolean }) {
+export function Panel({
+  title,
+  subtitle,
+  icon,
+  children,
+  wide,
+}: {
+  title: string
+  /** One line under the title saying what the panel is for. */
+  subtitle?: string
+  /** A small line icon beside the title (see icons.tsx). */
+  icon?: ReactNode
+  children: ReactNode
+  wide?: boolean
+}) {
   const dialog = useRef<HTMLElement>(null)
   useModal(dialog)
   return (
@@ -54,13 +69,29 @@ export function Panel({ title, children, wide }: { title: string; children: Reac
         tabIndex={-1}
       >
         <header className="panel-header">
-          <h2>{title}</h2>
-          <button className="panel-close" onClick={closeOverlay} aria-label="Close and carry on exploring">
-            ×
+          {icon && <span className="panel-icon">{icon}</span>}
+          <div className="panel-heading">
+            <h2>{title}</h2>
+            {subtitle && <p className="panel-subtitle">{subtitle}</p>}
+          </div>
+          <button className="panel-close" onClick={closeOverlay} aria-label="Close and carry on exploring" title="Close (Esc)">
+            <CloseIcon size={20} />
           </button>
         </header>
         <div className="panel-body">{children}</div>
       </section>
+    </div>
+  )
+}
+
+/** Shown while a panel's code is still arriving, so opening one never flashes blank. */
+export function PanelLoading() {
+  return (
+    <div className="panel-backdrop" onClick={(e) => e.stopPropagation()}>
+      <div className="panel-loading" role="status">
+        <span className="spinner" aria-hidden="true" />
+        Opening…
+      </div>
     </div>
   )
 }

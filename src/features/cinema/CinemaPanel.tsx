@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { FilmIcon } from '../../components/icons.tsx'
 import { closeOverlay } from '../../world/overlay.ts'
 import { playFile, playFilm, setVolume, stopFilm, togglePlay, toggleWatchlist, useCinema } from './cinema.ts'
 import { FILMS, filmPage, type Film } from './films.ts'
@@ -24,7 +25,7 @@ export function CinemaPanel() {
   }
 
   return (
-    <Panel title="The Theatre" wide>
+    <Panel title="The Theatre" subtitle="Choose a film for the big screen" icon={<FilmIcon />} wide>
       {nowShowing && (
         <div className="now-showing">
           <div>
@@ -43,7 +44,14 @@ export function CinemaPanel() {
             </button>
             <label className="volume">
               Volume
-              <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+              />
             </label>
           </div>
         </div>

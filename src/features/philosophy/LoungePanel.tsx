@@ -402,6 +402,7 @@ function Composer({
           maxLength={2000}
           aria-label="Your message"
         />
+        {draft.length > 1600 && <span className="composer-count">{2000 - draft.length} left</span>}
         <button className="send" type="submit" disabled={pending || !draft.trim()} aria-label="Send">
           <SendIcon />
         </button>

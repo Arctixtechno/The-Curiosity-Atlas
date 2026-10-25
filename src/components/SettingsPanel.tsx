@@ -2,6 +2,7 @@ import { setVolume, useCinema } from '../features/cinema/cinema.ts'
 import { FOV_RANGE, updateSettings, useSavingBattery, useSettings, type BatterySaver, type Quality } from '../world/settings.ts'
 import { gameStore, saveSensitivity, useGame } from '../world/store.ts'
 import { Panel } from './Panel.tsx'
+import { GearIcon } from './icons.tsx'
 import './SettingsPanel.css'
 
 export const SETTINGS_OVERLAY = 'settings'
@@ -29,7 +30,7 @@ export function SettingsPanel() {
   const saving = useSavingBattery()
 
   return (
-    <Panel title="Settings">
+    <Panel title="Settings" subtitle="Graphics, battery, movement and sound" icon={<GearIcon />}>
       <h3>Graphics</h3>
       <div className="segmented" role="radiogroup" aria-label="Graphics quality">
         {QUALITY.map((q) => (

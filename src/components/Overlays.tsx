@@ -12,6 +12,7 @@ import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { MAP_OVERLAY, MapPanel } from './MapPanel.tsx'
+import { PanelLoading } from './Panel.tsx'
 import { SETTINGS_OVERLAY, SettingsPanel } from './SettingsPanel.tsx'
 
 // Panels that only some rooms use load when first opened: the London map pulls in Leaflet.
@@ -58,7 +59,7 @@ export function Overlays() {
   const exhibit = exhibitFromOverlay(overlay)
   if (exhibit)
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PanelLoading />}>
         <ExhibitPanel key={exhibit} id={exhibit} />
       </Suspense>
     )
@@ -73,7 +74,7 @@ export function Overlays() {
   }[overlay ?? '']
   if (Lazy)
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PanelLoading />}>
         <Lazy />
       </Suspense>
     )

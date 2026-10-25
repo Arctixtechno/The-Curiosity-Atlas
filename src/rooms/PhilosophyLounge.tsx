@@ -6,11 +6,9 @@ import {
   CanvasTexture,
   Color,
   DoubleSide,
-  LatheGeometry,
   Object3D,
   ShaderMaterial,
   SRGBColorSpace,
-  Vector2,
   type InstancedMesh,
   type PointLight,
 } from 'three'
@@ -18,6 +16,7 @@ import { Mouldings } from '../components/Mouldings.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { LoungeInteraction } from '../features/philosophy/LoungeInteraction.tsx'
 import { LoungeSeat } from '../features/philosophy/Seat.tsx'
+import { useLathe } from '../hooks/useLathe.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { LOUNGE, loungeChair } from './dimensions.ts'
@@ -45,20 +44,6 @@ const BOOK_COLOURS = [
   '#33402a',
   '#8a6a3a',
 ]
-
-/** A lathe profile from [radius, height] pairs, for turned and blown shapes. */
-function useLathe(points: [number, number][], segments = 24) {
-  const geometry = useMemo(
-    () =>
-      new LatheGeometry(
-        points.map(([r, y]) => new Vector2(r, y)),
-        segments,
-      ),
-    [points, segments],
-  )
-  useEffect(() => () => geometry.dispose(), [geometry])
-  return geometry
-}
 
 const LEG: [number, number][] = [
   [0.001, 0],

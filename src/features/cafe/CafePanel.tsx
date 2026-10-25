@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { CupIcon } from '../../components/icons.tsx'
 import {
   CUP_LIMIT,
   DRINKS,
@@ -154,7 +155,7 @@ export function CafePanel() {
   const nothing = totalMl(cup) === 0
 
   return (
-    <Panel title="The café counter" wide>
+    <Panel title="The café counter" subtitle="Make a drink and see the science in the cup" icon={<CupIcon />} wide>
       <div className="cafe-layout">
         <canvas ref={canvas} width={W} height={H} className="cafe-canvas" aria-label="Your cup, side on" />
         <div>

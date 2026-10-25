@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { SparkIcon } from '../../components/icons.tsx'
 import { brightness, CELLS, PARTS, solve, type Arrangement, type CircuitResult, type Part } from './circuit.ts'
 import './Workshop.css'
 
@@ -181,7 +182,7 @@ export function CircuitPanel() {
 
   const overloaded = result.parts.some((r) => r.part.bulb && brightness(r.watts) > 1.2)
   return (
-    <Panel title="Circuits: the electrical bench" wide>
+    <Panel title="Circuits" subtitle="The electrical bench: build one and watch the current" icon={<SparkIcon />} wide>
       <div className="shop-layout">
         <canvas ref={canvas} width={W} height={H} className="shop-canvas" aria-label="The circuit, with current flowing" />
         <div>

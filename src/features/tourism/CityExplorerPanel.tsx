@@ -2,6 +2,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { CompassIcon } from '../../components/icons.tsx'
 import { planWalk } from './geo.ts'
 import {
   ALL_PLACES,
@@ -67,7 +68,7 @@ export function CityExplorerPanel() {
   }
 
   return (
-    <Panel title="City Explorer · London" wide>
+    <Panel title="City Explorer · London" subtitle="Places worth knowing, on a living map" icon={<CompassIcon />} wide>
       <div className="city-areas" role="tablist" aria-label="Neighbourhoods">
         {NEIGHBOURHOODS.map((n) => (
           <button

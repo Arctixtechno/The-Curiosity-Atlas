@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { DropIcon } from '../../components/icons.tsx'
 import { acceleration, BLOCK_SIDE, BLOCKS, LIQUIDS, settle, type Substance } from './buoyancy.ts'
 import './Experiments.css'
 
@@ -145,7 +146,7 @@ export function BuoyancyPanel() {
 
   const result = settle(block, liquid)
   return (
-    <Panel title="Buoyancy: the tank" wide>
+    <Panel title="Buoyancy" subtitle="The tank: why some things float and others sink" icon={<DropIcon />} wide>
       <div className="lab-layout">
         <canvas
           ref={canvas}

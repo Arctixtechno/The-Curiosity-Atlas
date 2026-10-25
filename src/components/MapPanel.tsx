@@ -6,6 +6,7 @@ import { playerPose, useGame } from '../world/store.ts'
 import { travelTo } from '../world/travel.ts'
 import { useVisited } from '../world/visited.ts'
 import { Panel } from './Panel.tsx'
+import { MapIcon } from './icons.tsx'
 import './MapPanel.css'
 
 export const MAP_OVERLAY = 'map'
@@ -66,7 +67,7 @@ export function MapPanel() {
   const inHall = activeRoomId === 'mainHall'
 
   return (
-    <Panel title="Map of the house">
+    <Panel title="Map of the house" subtitle="Where you are, and the rooms you've been to" icon={<MapIcon />}>
       <svg className="map" viewBox={`${minX} ${minZ} ${maxX - minX} ${maxZ - minZ}`} role="img" aria-label="Plan of the house">
         <rect
           className={`map-room${inHall ? ' map-here' : ''}${canGo('mainHall') ? ' map-go' : ''}`}
