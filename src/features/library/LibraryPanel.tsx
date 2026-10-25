@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Panel } from '../../components/Panel.tsx'
 import { library, searchLibrary, useLibrary, type LibraryItem } from '../../services/library.ts'
 import { openPanel } from '../panels.ts'
+import '../FeaturePanels.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -15,63 +17,65 @@ export function LibraryPanel() {
 
   if (items.length === 0) {
     return (
-      <>
-        <p className="panel-kicker">Library of Discoveries</p>
-        <h2>Your library is empty</h2>
-        <p>Discoveries you save at the fountain in the Main Hall will be kept here to revisit.</p>
-        <div className="panel-footer">
-          <button className="primary" onClick={() => openPanel('fountain')}>
-            Go to the Discovery Fountain
-          </button>
+      <Panel title="Library of Discoveries">
+        <div className="feature-panel">
+          <h2>Your library is empty</h2>
+          <p>Discoveries you save at the fountain in the Main Hall will be kept here to revisit.</p>
+          <div className="panel-footer">
+            <button className="primary" onClick={() => openPanel('fountain')}>
+              Go to the Discovery Fountain
+            </button>
+          </div>
         </div>
-      </>
+      </Panel>
     )
   }
 
   return (
-    <>
-      <p className="panel-kicker">Library of Discoveries</p>
-      <h2>
-        {items.length} saved {items.length === 1 ? 'discovery' : 'discoveries'}
-      </h2>
-      <div className="library-filters">
-        <input
-          type="search"
-          placeholder="Search your library"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search your library"
-          autoFocus
-        />
-        <select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Filter by subject">
-          <option value="">All subjects</option>
-          {topics.map((t) => (
-            <option key={t}>{t}</option>
-          ))}
-        </select>
-      </div>
+    <Panel title="Library of Discoveries">
+      <div className="feature-panel">
+        <h2>
+          {items.length} saved {items.length === 1 ? 'discovery' : 'discoveries'}
+        </h2>
+        <div className="library-filters">
+          <input
+            type="search"
+            placeholder="Search your library"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search your library"
+            autoFocus
+          />
+          <select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Filter by subject">
+            <option value="">All subjects</option>
+            {topics.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+        </div>
 
-      {results.length === 0 ? (
-        <p className="muted">Nothing matches that search.</p>
-      ) : (
-        <ul className="library-list">
-          {results.map((item) => (
-            <LibraryEntry
-              key={item.id}
-              item={item}
-              open={openId === item.id}
-              onToggle={() => setOpenId(openId === item.id ? null : item.id)}
-            />
-          ))}
-        </ul>
-      )}
+        {results.length === 0 ? (
+          <p className="muted">Nothing matches that search.</p>
+        ) : (
+          <ul className="library-list">
+            {results.map((item) => (
+              <LibraryEntry
+                key={item.id}
+                item={item}
+                open={openId === item.id}
+                onToggle={() => setOpenId(openId === item.id ? null : item.id)}
+              />
+            ))}
+          </ul>
+        )}
 
-      <div className="panel-footer">
-        <button className="link" onClick={() => openPanel('fountain')}>
-          Visit the Discovery Fountain
-        </button>
+        <div className="panel-footer">
+          <button className="link" onClick={() => openPanel('fountain')}>
+            Visit the Discovery Fountain
+          </button>
+        </div>
       </div>
-    </>
+    </Panel>
   )
 }
 

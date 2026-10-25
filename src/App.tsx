@@ -2,7 +2,8 @@ import { PerformanceMonitor } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { useState } from 'react'
 import { Hud } from './components/Hud.tsx'
-import { FeaturePanels } from './features/FeaturePanels.tsx'
+import { Overlays } from './components/Overlays.tsx'
+import { LibraryShortcut } from './features/LibraryShortcut.tsx'
 import { World } from './world/World.tsx'
 
 /**
@@ -31,7 +32,8 @@ export default function App() {
         <World />
       </Canvas>
       <Hud />
-      <FeaturePanels />
+      <Overlays />
+      <LibraryShortcut />
     </>
   )
 }

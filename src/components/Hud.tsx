@@ -11,6 +11,7 @@ export function Hud() {
   const prompt = useGame((s) => s.prompt)
   const activeRoomId = useGame((s) => s.activeRoomId)
   const toast = useGame((s) => s.toast)
+  const overlay = useGame((s) => s.overlay)
   const [showRoomStates, setShowRoomStates] = useState(false)
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function Hud() {
           )}
         </>
       ) : (
-        <Intro />
+        !overlay && <Intro />
       )}
     </>
   )

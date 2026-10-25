@@ -15,6 +15,7 @@ import {
   THEATRE,
   THEATRE_AISLE,
   THEATRE_LANDING_HEIGHT,
+  THEATRE_LECTERN,
   THEATRE_TIERS,
   theatreFloorHeight,
   wallColliders,
@@ -63,6 +64,8 @@ export const rooms: Record<string, RoomDefinition> = {
               maxZ: rowZ + 0.75,
             })),
       ),
+      // The film lectern on the landing.
+      boxCollider(...THEATRE_LECTERN, 0.6, 0.6),
       // Plinth under the screen.
       { minX: -4.6, maxX: 4.6, minZ: -THEATRE.length / 2, maxZ: -THEATRE.length / 2 + 0.6 },
     ],

@@ -1,8 +1,19 @@
 import { useEffect, useMemo } from 'react'
-import { BufferGeometry, CanvasTexture, Float32BufferAttribute, MeshStandardMaterial, SRGBColorSpace, type Texture } from 'three'
+import {
+  BufferGeometry,
+  CanvasTexture,
+  Float32BufferAttribute,
+  MeshStandardMaterial,
+  SRGBColorSpace,
+  Vector3,
+  VideoTexture,
+  type Texture,
+} from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { Glow } from '../components/Glow.tsx'
+import { getVideo, seekBy, stopFilm, togglePlay, useCinema } from '../features/cinema/cinema.ts'
+import { CINEMA_OVERLAY } from '../features/cinema/CinemaPanel.tsx'
 import { useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import {
@@ -10,11 +21,15 @@ import {
   THEATRE,
   THEATRE_AISLE,
   THEATRE_LANDING_HEIGHT,
+  THEATRE_LECTERN,
   THEATRE_SEAT_XS,
   THEATRE_TABLE_XS,
   THEATRE_TIERS,
 } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
+import { useInteractable } from '../world/InteractionSystem.tsx'
+import { openOverlay } from '../world/overlay.ts'
+import { gameStore } from '../world/store.ts'
 
 // Soft rectangular lights need this once before use.
 RectAreaLightUniformsLib.init()
@@ -260,9 +275,29 @@ function usePosterTexture() {
   return texture
 }
 
-function Screen() {
+/** The picture on the screen: the poster, or the film's frames while one is showing. */
+function useScreenPicture() {
   const poster = usePosterTexture()
+  const showing = useCinema((s) => s.nowShowing !== null && s.error === null)
+  const frames = useMemo(() => {
+    if (!showing) return null
+    const texture = new VideoTexture(getVideo())
+    texture.colorSpace = SRGBColorSpace
+    return texture
+  }, [showing])
+  useEffect(() => () => frames?.dispose(), [frames])
+  return frames ?? poster
+}
+
+function Screen() {
+  const picture = useScreenPicture()
   const z = -HALF_L + 0.15
+  useInteractable({
+    position: useMemo(() => new Vector3(0, SCREEN.y, z), [z]),
+    radius: 7,
+    prompt: 'Press E to choose a film',
+    onInteract: () => openOverlay(CINEMA_OVERLAY),
+  })
   return (
     <group position={[0, SCREEN.y, z]}>
       <mesh position={[0, 0, -0.03]}>
@@ -275,7 +310,7 @@ function Screen() {
       </mesh>
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[SCREEN.width, SCREEN.height]} />
-        <meshBasicMaterial map={poster} toneMapped={false} />
+        <meshBasicMaterial map={picture} toneMapped={false} />
       </mesh>
       {/* Light spilling off the screen into the room. */}
       <rectAreaLight
@@ -288,6 +323,61 @@ function Screen() {
       />
     </group>
   )
+}
+
+/**
+ * A lectern on the entrance landing with a glowing tablet: the film menu.
+ * Pressing E here (or at the screen) opens it.
+ */
+function FilmLectern() {
+  const [x, z] = THEATRE_LECTERN
+  const y = THEATRE_LANDING_HEIGHT
+  useInteractable({
+    position: useMemo(() => new Vector3(x, y + 1, z), [x, y, z]),
+    radius: 1.8,
+    prompt: 'Press E to choose a film',
+    onInteract: () => openOverlay(CINEMA_OVERLAY),
+  })
+  return (
+    <group position={[x, y, z]}>
+      <mesh position={[0, 0.5, 0]}>
+        <cylinderGeometry args={[0.06, 0.12, 1, 16]} />
+        <meshStandardMaterial color="#b08d57" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.02, 0]}>
+        <cylinderGeometry args={[0.25, 0.28, 0.04, 24]} />
+        <meshStandardMaterial color="#1a1012" roughness={0.6} />
+      </mesh>
+      <group position={[0, 1.04, 0]} rotation={[-0.5, 0, 0]}>
+        <mesh>
+          <boxGeometry args={[0.5, 0.36, 0.04]} />
+          <meshStandardMaterial color="#1a1012" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0, 0.021]}>
+          <planeGeometry args={[0.44, 0.3]} />
+          <meshStandardMaterial color="#1c1830" emissive="#b89868" emissiveIntensity={0.18} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+/** P pauses, comma and full stop skip, while you're in the theatre. */
+function useCinemaKeys() {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!gameStore.get().isExploring) return
+      if (e.code === 'KeyP') togglePlay()
+      if (e.code === 'Comma') seekBy(-10)
+      if (e.code === 'Period') seekBy(10)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    // Leaving the theatre ends the film.
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      stopFilm()
+    }
+  }, [])
 }
 
 /** Plinth under the screen with a soft uplight along its edge. */
@@ -328,7 +418,7 @@ function Curtains() {
 }
 
 /** Square frosted wall lamp with a soft wash of light above and below it, and no hard light source. */
-function WallLamp({ side, z }: { side: -1 | 1; z: number }) {
+function WallLamp({ side, z, dim }: { side: -1 | 1; z: number; dim: number }) {
   const x = side * (HALF_W - 0.06)
   const facing = side < 0 ? Math.PI / 2 : -Math.PI / 2
   return (
@@ -339,17 +429,17 @@ function WallLamp({ side, z }: { side: -1 | 1; z: number }) {
       </mesh>
       <mesh position={[0, 0, 0.041]}>
         <planeGeometry args={[0.26, 0.26]} />
-        <meshStandardMaterial color="#ffe0b8" emissive="#ffc690" emissiveIntensity={0.9} />
+        <meshStandardMaterial color="#ffe0b8" emissive="#ffc690" emissiveIntensity={0.9 * dim} />
       </mesh>
-      <Glow position={[0, 0.7, 0.02]} size={[1.3, 2]} color={WARM} opacity={0.35} />
-      <Glow position={[0, -0.7, 0.02]} size={[1.1, 1.6]} color={WARM} opacity={0.22} />
+      <Glow position={[0, 0.7, 0.02]} size={[1.3, 2]} color={WARM} opacity={0.35 * dim} />
+      <Glow position={[0, -0.7, 0.02]} size={[1.1, 1.6]} color={WARM} opacity={0.22 * dim} />
     </group>
   )
 }
 
 /** Dropped soffit round the ceiling edge, hiding a warm LED cove that washes the ceiling with light. */
 const COVE = { width: 0.8, depth: 0.32 }
-function CeilingCove() {
+function CeilingCove({ dim }: { dim: number }) {
   const y = THEATRE.height - COVE.depth / 2
   const sides: { pos: [number, number, number]; size: [number, number, number]; glow: [number, number, number]; glowSize: [number, number]; strip: [number, number, number]; stripSize: [number, number] }[] = [
     -1, 1,
@@ -384,7 +474,7 @@ function CeilingCove() {
             <planeGeometry args={c.stripSize} />
             <meshBasicMaterial color="#ffc890" toneMapped={false} />
           </mesh>
-          <Glow position={c.glow} rotation={[Math.PI / 2, 0, 0]} size={c.glowSize} color={WARM} opacity={0.4} />
+          <Glow position={c.glow} rotation={[Math.PI / 2, 0, 0]} size={c.glowSize} color={WARM} opacity={0.4 * dim} />
         </group>
       ))}
     </>
@@ -438,11 +528,15 @@ export default function Theatre() {
   const popcorn = usePopcornTexture()
   const parts = useTheatreParts()
   const rows = THEATRE_TIERS.filter((t) => t.rowZ !== undefined)
+  // House lights go down while a film plays.
+  const playing = useCinema((s) => s.playing)
+  const dim = playing ? 0.12 : 1
+  useCinemaKeys()
   return (
     <group>
       <Atmosphere background="#0a0709" fog={[18, 40]} />
-      <hemisphereLight args={['#ffd9b8', '#2a1a20', 0.8]} />
-      <ambientLight intensity={0.2} color="#ffcfa0" />
+      <hemisphereLight args={['#ffd9b8', '#2a1a20', 0.8 * dim]} />
+      <ambientLight intensity={0.2 * dim} color="#ffcfa0" />
       {/* Cove lighting along both side walls: wide, soft and warm. */}
       {[-1, 1].map((side) => (
         <rectAreaLight
@@ -451,7 +545,7 @@ export default function Theatre() {
           rotation={[-Math.PI / 2, 0, 0]}
           width={0.6}
           height={THEATRE.length - 1}
-          intensity={2.2}
+          intensity={2.2 * dim}
           color="#ffb880"
         />
       ))}
@@ -461,12 +555,13 @@ export default function Theatre() {
         walls={{ color: '#ffffff', texture: 'panel' }}
         ceiling={{ color: '#3a2430', texture: 'fabric' }}
       />
-      <CeilingCove />
+      <CeilingCove dim={dim} />
       <StarCeiling />
       <SteppedFloor />
       <LandingRail />
       <ScreenPlinth />
       <Screen />
+      <FilmLectern />
       <Curtains />
 
       {rows.map((tier, r) =>
@@ -478,7 +573,7 @@ export default function Theatre() {
         THEATRE_TABLE_XS.map((x) => <SideTable key={`${r}-${x}`} x={x} y={tier.height} z={tier.rowZ! + 0.15} popcorn={popcorn} />),
       )}
 
-      {[-4.5, 0, 4.5].flatMap((z) => [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} />))}
+      {[-4.5, 0, 4.5].flatMap((z) => [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} dim={dim} />))}
       {[-6.6, -2.25, 2.25, 6.6].flatMap((z) =>
         [-1, 1].map((side) => <AcousticPanel key={`${side}-${z}`} side={side as -1 | 1} z={z} parts={parts} />),
       )}

@@ -1,4 +1,3 @@
-import { Stars } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BackSide, CanvasTexture, Color, Object3D, SRGBColorSpace, Vector3, type Group, type InstancedMesh } from 'three'
@@ -9,13 +8,14 @@ import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
 import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
+import { NightSky } from './NightSky.tsx'
 
 const { radius: R, wallHeight: WALL_H } = OBSERVATORY
 // Moderate metalness: with no environment map, fully metallic brass renders almost black.
 const BRASS = { color: '#d4b064', metalness: 0.55, roughness: 0.28 }
 const IRON = { color: '#23262c', metalness: 0.6, roughness: 0.45 }
-/** The dome's shutter slit opens towards -z; the telescope points through it. */
-const SLIT_WIDTH = 0.5
+/** The dome's slit opens towards -z; the telescope points through it at the moon. */
+const MOON: [number, number, number] = [0, 52, -44]
 const TELESCOPE_ELEVATION = (50 * Math.PI) / 180
 
 /** Paints a canvas once into a texture, disposed when the room unloads. */
@@ -166,12 +166,97 @@ function Floor() {
   )
 }
 
+/**
+ * The dome's shutter opening: a straight slit of constant width, running from
+ * the -z horizon up over the zenith, like a real observatory's.
+ */
+const SLIT = { halfWidth: 0.55, end: (110 * Math.PI) / 180, thickness: 0.3 }
+/** Radius of the slit's edge, which lies in the planes x = ±halfWidth. */
+const SLIT_EDGE_R = Math.sqrt(R * R - SLIT.halfWidth * SLIT.halfWidth)
+
+/** True for a point on the dome (relative to its centre) that falls inside the slit. */
+function inSlit(x: number, y: number, z: number) {
+  return Math.abs(x) < SLIT.halfWidth && Math.atan2(y, -z) <= SLIT.end
+}
+
+/** Cuts the slit out of the dome: white where the dome is solid, black where it is open. */
+function drawSlitMask(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const image = ctx.createImageData(w, h)
+  // Rows run from the zenith (top) to the horizon, columns round the dome, as SphereGeometry lays out its UVs.
+  for (let py = 0; py < h; py++) {
+    const theta = ((py + 0.5) / h) * (Math.PI / 2)
+    for (let px = 0; px < w; px++) {
+      const phi = ((px + 0.5) / w) * Math.PI * 2
+      const x = -Math.cos(phi) * Math.sin(theta) * R
+      const z = Math.sin(phi) * Math.sin(theta) * R
+      const v = inSlit(x, Math.cos(theta) * R, z) ? 0 : 255
+      const i = (py * w + px) * 4
+      image.data[i] = image.data[i + 1] = image.data[i + 2] = v
+      image.data[i + 3] = 255
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+}
+
+/**
+ * Brass ribs over the dome. Each runs from the horizon towards the zenith and
+ * stops where it meets the slit, as a real dome's ribs frame the opening.
+ */
+const RIBS = Array.from({ length: 16 }, (_, i) => (i * Math.PI) / 8)
+  .filter((a) => Math.abs(Math.cos(a)) > 1e-6 || Math.sin(a) < 0)
+  .map((a) => {
+    const dx = Math.cos(a)
+    // Ribs either side stop at the slit's edge; the one behind stops where the slit ends.
+    const arc = Math.abs(dx) > 1e-6 ? Math.acos(Math.min(1, SLIT.halfWidth / (R * Math.abs(dx)))) : Math.PI - SLIT.end
+    return { angle: a, arc }
+  })
+
+/** The slit's framing: thick jambs showing the dome's depth, brass edging, a sill and a head at the far end. */
+function SlitFrame() {
+  const edge = { color: '#2a2f3c', roughness: 0.6, metalness: 0.3 }
+  const outer = SLIT_EDGE_R + SLIT.thickness
+  return (
+    <group position={[0, WALL_H, 0]}>
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * SLIT.halfWidth, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          {/* The jamb: the cut face of the dome, as deep as the dome is thick. */}
+          <mesh>
+            <ringGeometry args={[SLIT_EDGE_R - 0.02, outer, 48, 1, 0, SLIT.end]} />
+            <meshStandardMaterial {...edge} side={2} />
+          </mesh>
+          {/* Brass edging along the inside, and a shutter rail just behind it. */}
+          <mesh>
+            <torusGeometry args={[SLIT_EDGE_R - 0.04, 0.06, 8, 64, SLIT.end]} />
+            <meshStandardMaterial {...BRASS} />
+          </mesh>
+          <mesh>
+            <torusGeometry args={[SLIT_EDGE_R - 0.06, 0.025, 6, 64, SLIT.end]} />
+            <meshStandardMaterial {...IRON} />
+          </mesh>
+        </group>
+      ))}
+      {/* Head of the slit, just past the zenith. */}
+      <mesh
+        position={[0, Math.sin(SLIT.end) * (SLIT_EDGE_R + SLIT.thickness / 2), -Math.cos(SLIT.end) * (SLIT_EDGE_R + SLIT.thickness / 2)]}
+        rotation={[SLIT.end, 0, 0]}
+      >
+        <boxGeometry args={[SLIT.halfWidth * 2 + 0.1, 0.06, SLIT.thickness + 0.04]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      {/* Sill at the foot of the slit, on top of the wall. */}
+      <mesh position={[0, 0.03, -(SLIT_EDGE_R + SLIT.thickness / 2 - 0.05)]}>
+        <boxGeometry args={[SLIT.halfWidth * 2 + 0.2, 0.08, SLIT.thickness + 0.1]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+    </group>
+  )
+}
+
 /** Round wall, skirting, the brass track the dome turns on, and the dome itself with its open slit. */
 function Shell() {
   const plaster = useSurfaceTexture('plaster', 2 * Math.PI * R, WALL_H, 8, 80)
   const chart = useCanvasTexture(4096, 1024, drawDome)
-  const phiStart = (3 * Math.PI) / 2 + SLIT_WIDTH / 2
-  const ribs = [0, 1, 2, 3, 5, 6, 7].map((i) => (i * Math.PI) / 8)
+  const slitMask = useCanvasTexture(2048, 512, drawSlitMask)
   return (
     <>
       <mesh position={[0, WALL_H / 2, 0]} receiveShadow>
@@ -187,16 +272,25 @@ function Shell() {
         <meshStandardMaterial {...BRASS} />
       </mesh>
       <mesh position={[0, WALL_H, 0]}>
-        <sphereGeometry args={[R, 96, 32, phiStart, Math.PI * 2 - SLIT_WIDTH, 0, Math.PI / 2]} />
-        <meshStandardMaterial map={chart} emissiveMap={chart} emissive="#ffffff" emissiveIntensity={0.35} side={BackSide} roughness={0.85} />
+        <sphereGeometry args={[R, 128, 48, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial
+          map={chart}
+          emissiveMap={chart}
+          emissive="#ffffff"
+          emissiveIntensity={0.35}
+          alphaMap={slitMask}
+          alphaTest={0.5}
+          side={BackSide}
+          roughness={0.85}
+        />
       </mesh>
-      {/* Brass ribs over the dome, skipping the one that would cross the slit. */}
-      {ribs.map((angle) => (
+      {RIBS.map(({ angle, arc }) => (
         <mesh key={angle} position={[0, WALL_H, 0]} rotation={[0, angle, 0]}>
-          <torusGeometry args={[R - 0.06, 0.035, 8, 64, Math.PI]} />
+          <torusGeometry args={[R - 0.06, 0.035, 8, 48, arc]} />
           <meshStandardMaterial {...BRASS} />
         </mesh>
       ))}
+      <SlitFrame />
     </>
   )
 }
@@ -577,13 +671,9 @@ export default function Observatory() {
       <hemisphereLight args={['#8a9ed8', '#3a2c20', 1.0]} />
       <ambientLight intensity={0.18} color="#c0c8ff" />
       {/* Moonlight falling through the slit. */}
-      <directionalLight position={[0, 38, -32]} intensity={0.6} color="#b8c8ff" />
+      <directionalLight position={MOON} intensity={0.6} color="#b8c8ff" />
       <pointLight position={[0, 2.6, 1.5]} color="#ffcf90" intensity={6} distance={9} decay={1.6} />
-      <Stars radius={60} depth={30} count={4000} factor={3.5} fade speed={0.3} />
-      <mesh position={[0, 38, -32]}>
-        <sphereGeometry args={[2, 32, 16]} />
-        <meshBasicMaterial color="#f4f1e6" toneMapped={false} />
-      </mesh>
+      <NightSky moon={MOON} />
 
       <Floor />
       <Shell />

@@ -21,6 +21,8 @@ export interface GameState {
   mouseSensitivity: number
   /** Short message shown briefly in the corner, e.g. after changing a setting. */
   toast: string | null
+  /** A full-screen panel (film menu, settings, map…) that has taken over from exploring, if any. */
+  overlay: string | null
 }
 
 const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
@@ -52,6 +54,7 @@ let state: GameState = {
   nearbyRoomIds: new Set(),
   mouseSensitivity: loadSensitivity(),
   toast: null,
+  overlay: null,
 }
 
 const listeners = new Set<() => void>()
