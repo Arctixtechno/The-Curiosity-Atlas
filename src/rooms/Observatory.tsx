@@ -15,8 +15,11 @@ import {
 import { Glow } from '../components/Glow.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { getPainting } from '../components/paintings.ts'
+import { findPlanet, position, type PlanetId } from '../features/solar/planets.ts'
+import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
+import { openOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
@@ -420,24 +423,36 @@ function TelescopeView() {
 }
 
 /** A brass orrery on a round table, with planets slowly turning round the sun. */
+const INNER: PlanetId[] = ['mercury', 'venus', 'earth', 'mars']
+
 function Orrery() {
   const [x, z] = OBSERVATORY.orrery
   const arms = useRef<(Group | null)[]>([])
-  const planets = [
-    { r: 0.18, size: 0.025, color: '#b8a898', speed: 1.6 },
-    { r: 0.28, size: 0.035, color: '#e0c080', speed: 1.1 },
-    { r: 0.38, size: 0.038, color: '#5a8ad0', speed: 0.8 },
-    { r: 0.5, size: 0.03, color: '#c0603a', speed: 0.55 },
-  ]
-  useFrame((_, delta) => {
+  // The four inner planets, set where they really are, then run forward at two days a second.
+  const planets = useMemo(
+    () =>
+      INNER.map((id, i) => ({
+        planet: findPlanet(id),
+        r: 0.18 + i * 0.1,
+        size: [0.025, 0.035, 0.038, 0.03][i],
+      })),
+    [],
+  )
+  const start = useMemo(() => ({ real: Date.now(), clock: performance.now() }), [])
+  useFrame(() => {
+    const date = new Date(start.real + ((performance.now() - start.clock) / 1000) * 2 * 86400000)
     arms.current.forEach((arm, i) => {
-      if (arm) arm.rotation.y += delta * planets[i].speed * 0.3
+      if (!arm) return
+      const p = position(planets[i].planet, date)
+      // Ecliptic longitude, counter-clockwise seen from above (north up through the model).
+      arm.rotation.y = Math.atan2(p.y, p.x)
     })
   })
   useInteractable({
     position: useMemo(() => new Vector3(x, 1, z), [x, z]),
     radius: 2,
-    prompt: 'Orrery: a working model of the solar system',
+    prompt: 'Press E to explore the solar system',
+    onInteract: () => openOverlay(SOLAR_OVERLAY),
   })
   return (
     <group position={[x, 0, z]}>
@@ -458,14 +473,14 @@ function Orrery() {
         <meshStandardMaterial color="#ffd27a" emissive="#ffb030" emissiveIntensity={1.5} />
       </mesh>
       {planets.map((p, i) => (
-        <group key={i} position={[0, 1.02 + i * 0.012, 0]} ref={(g) => void (arms.current[i] = g)} rotation={[0, i * 1.7, 0]}>
+        <group key={i} position={[0, 1.02 + i * 0.012, 0]} ref={(g) => void (arms.current[i] = g)}>
           <mesh position={[p.r / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.004, 0.004, p.r, 6]} />
             <meshStandardMaterial {...BRASS} />
           </mesh>
           <mesh position={[p.r, 0.04, 0]}>
             <sphereGeometry args={[p.size, 16, 12]} />
-            <meshStandardMaterial color={p.color} roughness={0.6} />
+            <meshStandardMaterial color={p.planet.colour} roughness={0.6} />
           </mesh>
         </group>
       ))}
