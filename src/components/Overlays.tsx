@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { CINEMA_OVERLAY, CinemaPanel } from '../features/cinema/CinemaPanel.tsx'
 import { CAFE_OVERLAY } from '../features/cafe/overlayId.ts'
 import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
+import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
@@ -17,6 +18,8 @@ const CityExplorerPanel = lazy(() =>
 const GasPanel = lazy(() => import('../features/experiments/GasPanel.tsx').then((m) => ({ default: m.GasPanel })))
 const CafePanel = lazy(() => import('../features/cafe/CafePanel.tsx').then((m) => ({ default: m.CafePanel })))
 const ExhibitPanel = lazy(() => import('../features/museum/ExhibitPanel.tsx').then((m) => ({ default: m.ExhibitPanel })))
+const GearPanel = lazy(() => import('../features/workshop/GearPanel.tsx').then((m) => ({ default: m.GearPanel })))
+const CircuitPanel = lazy(() => import('../features/workshop/CircuitPanel.tsx').then((m) => ({ default: m.CircuitPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
 /** Keys that open a panel from anywhere: M for the map, O for settings. */
@@ -54,6 +57,8 @@ export function Overlays() {
     [GAS_OVERLAY]: GasPanel,
     [BUOYANCY_OVERLAY]: BuoyancyPanel,
     [CAFE_OVERLAY]: CafePanel,
+    [GEARS_OVERLAY]: GearPanel,
+    [CIRCUIT_OVERLAY]: CircuitPanel,
   }[overlay ?? '']
   if (Lazy)
     return (

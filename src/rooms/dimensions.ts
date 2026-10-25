@@ -137,6 +137,20 @@ export const MUSEUM = {
   bench: [0, 2.4] as [number, number],
 }
 
+/** The workshop, off the laboratory's west wall. Its door is the +z wall; the benches stand along the back. */
+export const WORKSHOP = {
+  width: 9,
+  length: 11,
+  height: 3.8,
+  gearBench: [-2.3, -3.4] as [number, number],
+  circuitBench: [2.3, -3.4] as [number, number],
+  bench: { width: 2.4, depth: 0.9, height: 0.9 },
+  /** A tailor's dummy in the corner, and a pillar drill and tool chest on the east wall, as [x, z]. */
+  dummy: [-3.7, 3.9] as [number, number],
+  drill: [3.9, 0.6] as [number, number],
+  chest: [3.95, 2.6] as [number, number],
+}
+
 /** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
 export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
 export const DOOR_POTS: [number, number][] = [
