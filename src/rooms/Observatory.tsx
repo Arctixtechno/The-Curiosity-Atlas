@@ -26,6 +26,7 @@ import { Atmosphere } from './Atmosphere.tsx'
 import { OBSERVATORY, OBSERVATORY_TERRACE_DOOR, observatoryWallPoint } from './dimensions.ts'
 import { DaySky } from './DaySky.tsx'
 import { NightSky } from './NightSky.tsx'
+import { requestFrame, useMotion } from '../world/FrameScheduler.tsx'
 
 const { radius: R, wallHeight: WALL_H } = OBSERVATORY
 // Moderate metalness: with no environment map, fully metallic brass renders almost black.
@@ -252,6 +253,7 @@ function Shutter() {
     clock.current += delta
     const t = Math.min(1, Math.max(0, (clock.current - SHUTTER.delay) / SHUTTER.seconds))
     g.rotation.y = -GORE * t * t * (3 - 2 * t)
+    requestFrame()
   })
   return (
     <group ref={group} position={[0, WALL_H, 0]}>
@@ -291,7 +293,7 @@ function Shell() {
         <meshStandardMaterial {...BRASS} />
       </mesh>
       <mesh position={[0, WALL_H, 0]}>
-        <sphereGeometry args={[R, 120, 48, domeStart, domeLength, 0, Math.PI / 2]} />
+        <sphereGeometry args={[R, 72, 24, domeStart, domeLength, 0, Math.PI / 2]} />
         <meshStandardMaterial
           map={chart}
           emissiveMap={chart}
@@ -452,6 +454,8 @@ function Orrery() {
     [],
   )
   const start = useMemo(() => ({ real: Date.now(), clock: performance.now() }), [])
+  // The planets and the globe beside them turn slowly: a modest frame rate keeps them smooth.
+  useMotion(15)
   useFrame(() => {
     const date = new Date(start.real + ((performance.now() - start.clock) / 1000) * 2 * 86400000)
     arms.current.forEach((arm, i) => {
@@ -482,7 +486,7 @@ function Orrery() {
         <meshStandardMaterial {...BRASS} />
       </mesh>
       <mesh position={[0, 1.1, 0]}>
-        <sphereGeometry args={[0.07, 24, 16]} />
+        <sphereGeometry args={[0.07, 16, 12]} />
         <meshStandardMaterial color="#ffd27a" emissive="#ffb030" emissiveIntensity={1.5} />
       </mesh>
       {planets.map((p, i) => (
@@ -525,7 +529,7 @@ function CelestialGlobe() {
       <group position={[0, 1.05, 0]} rotation={[0, 0, 0.41]}>
         <group ref={globe}>
           <mesh castShadow>
-            <sphereGeometry args={[0.3, 32, 20]} />
+            <sphereGeometry args={[0.3, 24, 16]} />
             <meshStandardMaterial map={map} roughness={0.5} />
           </mesh>
         </group>

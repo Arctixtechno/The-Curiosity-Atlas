@@ -15,6 +15,7 @@ import {
 import { useLathe } from '../hooks/useLathe.ts'
 import { useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useLibrary } from '../services/library.ts'
+import { useMotion } from '../world/FrameScheduler.tsx'
 
 // The Discovery Fountain in the middle of the courtyard: a carved stone
 // fountain in three tiers. Water rises from the top, spills from each bowl in
@@ -334,6 +335,7 @@ export function Fountain({ night = false }: { night?: boolean }) {
     [],
   )
   useEffect(() => () => Object.values(materials).forEach((m) => m.dispose()), [materials])
+  useMotion()
   useFrame(({ clock }) => {
     shared.time.value = clock.elapsedTime
   })

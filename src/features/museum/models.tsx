@@ -283,7 +283,7 @@ export function Chronometer() {
       </mesh>
       {/* The domed back. */}
       <mesh position={[0, 0, -0.015]} rotation={[-Math.PI / 2, 0, 0]} scale={[1, 0.25, 1]}>
-        <sphereGeometry args={[R, 48, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[R, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial {...silver} />
       </mesh>
       <mesh position={[0, 0, 0.0152]}>

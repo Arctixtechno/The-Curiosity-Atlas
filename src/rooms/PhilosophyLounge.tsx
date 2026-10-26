@@ -22,6 +22,7 @@ import { Atmosphere } from './Atmosphere.tsx'
 import { LOUNGE, loungeChair } from './dimensions.ts'
 import { Letters, OvalPortrait, PocketWatch } from './LoungeKeepsakes.tsx'
 import { RoomShell } from './RoomShell.tsx'
+import { useMotion } from '../world/FrameScheduler.tsx'
 
 // The Philosophy Lounge: a Georgian study for conversation by the fire. Dark
 // oak herringbone underfoot, green damask above oak panelling, two wingback
@@ -257,6 +258,7 @@ function Fireplace() {
   const fire = useRef<PointLight>(null)
   const flames = useMemo(() => [0, 1, 2, 3].map(flameMaterial), [])
   useEffect(() => () => flames.forEach((f) => f.dispose()), [flames])
+  useMotion()
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
     if (fire.current) fire.current.intensity = 6 + Math.sin(t * 7.3) * 0.7 + Math.sin(t * 13.1) * 0.5 + Math.sin(t * 2.1) * 0.4
@@ -531,7 +533,7 @@ function Bookcase({ side }: { side: -1 | 1 }) {
           <meshStandardMaterial {...BRASS} />
         </mesh>
         <mesh position={[0, 0.16, 0]}>
-          <sphereGeometry args={[0.1, 24, 16]} />
+          <sphereGeometry args={[0.1, 16, 12]} />
           <meshStandardMaterial color="#5a7a8a" roughness={0.5} />
         </mesh>
         <mesh position={[0, 0.16, 0]} rotation={[0, 0, 0.4]}>
@@ -777,6 +779,7 @@ function Window() {
     [view, rain],
   )
   useFrame(({ clock }) => (rain.uniforms.time.value = clock.elapsedTime))
+  useMotion()
   const velvet = useTiledTexture('fabric', 2, 4)
   const width = 1.1
   const height = 2.1

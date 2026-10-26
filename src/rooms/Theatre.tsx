@@ -30,6 +30,7 @@ import { RoomShell } from './RoomShell.tsx'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { gameStore } from '../world/store.ts'
+import { useMotion } from '../world/FrameScheduler.tsx'
 
 // Soft rectangular lights need this once before use.
 RectAreaLightUniformsLib.init()
@@ -747,6 +748,8 @@ export default function Theatre() {
   const rows = THEATRE_TIERS.filter((t) => t.rowZ !== undefined)
   // House lights go down while a film plays.
   const playing = useCinema((s) => s.playing)
+  // A film needs every frame drawn while it plays.
+  useMotion(30, playing)
   const dim = playing ? 0.12 : 1
   useCinemaKeys()
   return (

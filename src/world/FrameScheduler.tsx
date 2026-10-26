@@ -7,13 +7,15 @@ import { gameStore } from './store.ts'
 // runs with frameloop="never" and this loop decides when to draw:
 // - full speed (capped at 60 a second, even on 120 Hz screens) while the
 //   player moves, looks round or walks between rooms
-// - 30 a second while standing still, enough for water, fire and clocks
+// - while standing still, only as fast as the room's moving things need:
+//   30 a second for water, fire or turning gears, a few a second in a room
+//   where nothing moves but the light and the clock hands
 // - 30 a second on the start screen, so its slow drift looks smooth
 // - 10 a second when the window isn't focused
 // - not at all behind a full-screen panel, which covers the world anyway
 
 /** Frames per second for each state. */
-export const RATES = { active: 60, idle: 30, background: 10, saver: 30 }
+export const RATES = { active: 60, idle: 30, background: 10, saver: 30, still: 4 }
 /** How long after the last key or mouse movement the player still counts as active, in ms. */
 const ACTIVE_FOR_MS = 600
 /** The longest step the world advances by in one frame, so a pause doesn't make things jump. */
@@ -32,16 +34,39 @@ function noteInput() {
   lastInput = performance.now()
 }
 
+/** Frame rates asked for by things in the world that move by themselves, while they're in view. */
+const motion = new Map<symbol, number>()
+
+/** The frame rate the room's own movement needs while the player stands still. */
+export function motionRate() {
+  return Math.max(RATES.still, ...motion.values())
+}
+
+/**
+ * Says this thing moves by itself (a fire, falling water, a ticking orrery) and
+ * needs drawing `rate` times a second even when the player is still, for as long
+ * as it's mounted and `active`.
+ */
+export function useMotion(rate: number = RATES.idle, active = true) {
+  useEffect(() => {
+    if (!active) return
+    const key = Symbol()
+    motion.set(key, rate)
+    requestFrame()
+    return () => void motion.delete(key)
+  }, [rate, active])
+}
+
 /** The frame rate the world wants right now, or 0 when nothing needs drawing. */
 export function targetRate(now: number): number {
   const { overlay, isExploring, transitioning, viewing } = gameStore.get()
   if (transitioning) return RATES.active
   if (overlay) return 0
   const cap = savingBattery() ? RATES.saver : RATES.active
-  if (!document.hasFocus()) return RATES.background
+  if (!document.hasFocus()) return Math.min(RATES.background, motionRate())
   if (!isExploring) return Math.min(cap, RATES.idle)
   if (heldKeys.size > 0 || now - lastInput < ACTIVE_FOR_MS || viewing) return cap
-  return Math.min(cap, RATES.idle)
+  return Math.min(cap, motionRate())
 }
 
 /** How long to time frames for before judging whether the computer is keeping up, in ms. */

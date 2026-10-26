@@ -387,7 +387,7 @@ function CakeStand({ position, colour }: { position: [number, number, number]; c
         <meshStandardMaterial color="#f8f2e6" roughness={0.6} />
       </mesh>
       <mesh position={[0, 0.25, 0]}>
-        <sphereGeometry args={[0.16, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[0.16, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial color="#e4f0f4" transparent opacity={0.18} roughness={0.05} depthWrite={false} />
       </mesh>
       <mesh position={[0, 0.25, 0]} scale={[1, 0.001, 1]}>

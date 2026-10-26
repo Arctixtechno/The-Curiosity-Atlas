@@ -196,7 +196,7 @@ function lumpNoise(seed: number) {
  */
 function useHedgeGeometry(width: number, length: number, height: number, seed: number) {
   const geometry = useMemo(() => {
-    const perMetre = 14
+    const perMetre = 9
     const g = new BoxGeometry(
       width,
       height,
