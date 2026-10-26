@@ -454,8 +454,6 @@
   gap: 18px;
   padding: 20px 22px 12px;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(244, 234, 216, 0.15) transparent;
   /* Lines fade out as they scroll under the header. */
   mask-image: linear-gradient(180deg, transparent, #000 18px);
 }

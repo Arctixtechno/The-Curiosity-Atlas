@@ -11,9 +11,12 @@ export function openCityExplorerAt(placeId: string) {
   openOverlay(CITY_EXPLORER_OVERLAY)
 }
 
-/** The place the explorer was asked to open at, once; null after that. */
-export function takeCityExplorerFocus() {
-  const id = pending
+/** The place the explorer was asked to open at, if any. */
+export function peekCityExplorerFocus() {
+  return pending
+}
+
+/** Called once the explorer has opened at the place, so the next opening starts afresh. */
+export function clearCityExplorerFocus() {
   pending = null
-  return id
 }
