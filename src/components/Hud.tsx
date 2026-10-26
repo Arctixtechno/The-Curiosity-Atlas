@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
 import { clockText, useHour } from '../world/clock.ts'
-import { useGame } from '../world/store.ts'
+import { gameStore, useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
 import { MAP_OVERLAY } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
@@ -20,19 +20,25 @@ export function Hud() {
   const overlay = useGame((s) => s.overlay)
   const viewing = useGame((s) => s.viewing)
   const [showRoomStates, setShowRoomStates] = useState(false)
+  const [photo, setPhoto] = useState(false)
   const hour = useHour()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Backquote') setShowRoomStates((v) => !v)
+      // H hides everything on screen, for a clean screenshot.
+      if (e.code === 'KeyH' && !e.repeat && gameStore.get().isExploring && !gameStore.get().overlay) setPhoto((v) => !v)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  if (photo && isExploring) return <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
+
   return (
     <>
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
+      {isExploring && !viewing && <Welcome />}
       <div className="room-name">
         {rooms[activeRoomId].displayName}
         <span className="clock" title="The house's clock: a day passes in 40 minutes">
@@ -63,6 +69,47 @@ export function Hud() {
           )
         : !overlay && <Intro />}
     </>
+  )
+}
+
+const WELCOMED_KEY = 'atlas.welcomed'
+
+/** A few pointers the first time someone starts exploring, which get out of the way after a while. */
+function Welcome() {
+  const [show, setShow] = useState(() => {
+    try {
+      return !localStorage.getItem(WELCOMED_KEY)
+    } catch {
+      return false
+    }
+  })
+  useEffect(() => {
+    if (!show) return
+    try {
+      localStorage.setItem(WELCOMED_KEY, '1')
+    } catch {
+      // Without storage the welcome just shows again next visit.
+    }
+    const timer = setTimeout(() => setShow(false), 16_000)
+    return () => clearTimeout(timer)
+  }, [show])
+  if (!show) return null
+  return (
+    <aside className="welcome" aria-label="Getting started">
+      <p className="welcome-title">Getting started</p>
+      <ul>
+        <li>
+          Walk up to a door or an object and press <kbd>E</kbd> when its prompt appears.
+        </li>
+        <li>
+          <kbd>M</kbd> opens the map of the house, to jump to any room you've been to.
+        </li>
+        <li>Out in the courtyard, the fountain asks a new question every day.</li>
+        <li>
+          <kbd>N</kbd> turns the sound on and off; <kbd>H</kbd> hides everything for a clean screenshot.
+        </li>
+      </ul>
+    </aside>
   )
 }
 

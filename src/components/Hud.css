@@ -350,3 +350,52 @@ kbd {
   pointer-events: none;
   backdrop-filter: blur(3px);
 }
+
+/* First-visit pointers, bottom left, fading in after a moment and out on their own. */
+.welcome {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: min(300px, calc(100% - 48px));
+  padding: 14px 18px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  background: rgba(20, 14, 9, 0.78);
+  backdrop-filter: blur(12px);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  pointer-events: none;
+  animation: welcome 16s ease both;
+}
+
+.welcome-title {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.welcome ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-muted);
+}
+
+@keyframes welcome {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  10%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}

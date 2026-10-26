@@ -6,11 +6,15 @@ import { useSurfaceTexture } from '../hooks/useTiledTexture.ts'
 import type { DoorDefinition } from '../types/room.ts'
 import { useInteractable } from './InteractionSystem.tsx'
 import { preloadRoom, travelThrough } from './travel.ts'
+import { requestFrame } from './FrameScheduler.tsx'
+import { prefersReducedMotion } from './settings.ts'
 import { gameStore } from './store.ts'
 
 const DOOR_WIDTH = 1.3
 const DOOR_HEIGHT = 2.3
 const OPEN_ANGLE = -1.4
+/** How long the door swings before the fade to the next room starts. */
+const SWING_MS = 260
 /** Start loading the room behind a door once the player is this close. */
 const PRELOAD_RADIUS = 5
 /** Deep London front-door navy. */
@@ -33,8 +37,11 @@ export function Door({ door }: { door: DoorDefinition }) {
     prompt: target ? (door.prompt ?? `Press E to enter the ${door.label}`) : `${door.label}: opens in a later version`,
     onInteract: target
       ? () => {
+          if (opening.current) return
           opening.current = true
-          void travelThrough(door)
+          requestFrame()
+          // Let the door be seen swinging open before the screen fades.
+          setTimeout(() => void travelThrough(door), prefersReducedMotion ? 0 : SWING_MS)
         }
       : undefined,
   })
@@ -42,7 +49,8 @@ export function Door({ door }: { door: DoorDefinition }) {
   useFrame(({ camera }, delta) => {
     if (hinge.current && opening.current) {
       const r = hinge.current.rotation
-      r.y += (OPEN_ANGLE - r.y) * Math.min(1, delta * 8)
+      r.y += (OPEN_ANGLE - r.y) * Math.min(1, delta * 7)
+      requestFrame()
     }
     if (!target) return
     const dx = camera.position.x - center.x

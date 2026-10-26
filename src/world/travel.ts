@@ -1,5 +1,6 @@
 import { rooms } from '../rooms/registry.ts'
 import type { DoorDefinition } from '../types/room.ts'
+import { bootDone } from './boot.ts'
 import { arrivalAt, findDoor } from './navigation.ts'
 import { gameStore } from './store.ts'
 import { markVisited } from './visited.ts'
@@ -18,6 +19,7 @@ let markReady: (() => void) | null = null
  * room shows as a slightly longer fade instead of a stutter on arrival.
  */
 export function roomReady() {
+  bootDone()
   markReady?.()
   markReady = null
 }

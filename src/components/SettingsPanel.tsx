@@ -158,6 +158,10 @@ export function SettingsPanel() {
         </dt>
         <dd>Sound on or off</dd>
         <dt>
+          <kbd>H</kbd>
+        </dt>
+        <dd>Hide the interface, for clean screenshots</dd>
+        <dt>
           <kbd>O</kbd>
         </dt>
         <dd>Settings</dd>
