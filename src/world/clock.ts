@@ -30,6 +30,16 @@ export function hourAt(now = Date.now()): number {
   return ((now / 1000) % DAY_SECONDS) / SECONDS_PER_HOUR
 }
 
+/** How many hours of the house's clock have passed since 1970: goes up by one every 100 real seconds. */
+export function hourCountAt(now = Date.now()): number {
+  return Math.floor(now / 1000 / SECONDS_PER_HOUR)
+}
+
+/** The house's hour count, updated every ten real seconds. */
+export function useHourCount() {
+  return hourCountAt(useTick(10_000))
+}
+
 /** Day from 07:00, dusk from 18:30, night from 20:00, dawn from 05:30. */
 export function phaseAt(hour: number): DayPhase {
   if (hour >= 7 && hour < 18.5) return 'day'
