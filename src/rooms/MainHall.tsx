@@ -1,6 +1,7 @@
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Bench, CoatStand, ConsoleTable, Flowers } from '../components/Furnishings.tsx'
 import { Painting } from '../components/Painting.tsx'
+import { FactPlaque } from '../features/facts/FactPlaque.tsx'
 import { MapTable } from '../features/tourism/MapTable.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
 import { HALL_FURNITURE, HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
@@ -152,7 +153,9 @@ function Paintings() {
       <Painting name="botanical" position={[-x, 1.85, 3]} rotationY={Math.PI / 2} width={0.9} />
       <Painting name="stars" position={[x, 1.85, -3]} rotationY={-Math.PI / 2} width={1} />
       <Painting name="hills" position={[x, 1.85, 3]} rotationY={-Math.PI / 2} />
-      <Painting name="abstract" position={[x, 1.85, 6]} rotationY={-Math.PI / 2} width={0.9} />
+      {/* "Did you know?" boards, each showing a new fact every hour of the house's clock. */}
+      <FactPlaque plaque={0} position={[x, 1.75, 6]} rotationY={-Math.PI / 2} width={0.95} />
+      <FactPlaque plaque={1} position={[x, 1.8, -8.2]} rotationY={-Math.PI / 2} width={0.85} />
       <Painting name="hills" position={[-2.5, 1.85, -z]} rotationY={0} width={0.8} />
       <Painting name="map" position={[2.5, 1.85, -z]} rotationY={0} width={0.8} />
     </>
