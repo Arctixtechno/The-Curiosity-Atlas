@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
-import { CanvasTexture, SRGBColorSpace, Vector3 } from 'three'
+import { CanvasTexture, CatmullRomCurve3, SRGBColorSpace, TubeGeometry, Vector3 } from 'three'
+import { getPainting, type PaintingName } from '../components/paintings.ts'
 import { EXHIBITS } from '../features/museum/exhibits.ts'
 import { exhibitOverlay, type ExhibitId } from '../features/museum/overlayId.ts'
 import { MODELS } from '../features/museum/models.tsx'
@@ -7,7 +8,7 @@ import { useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
-import { MUSEUM } from './dimensions.ts'
+import { MUSEUM, MUSEUM_ROPE } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
 
 const { width: W, length: L, height: H } = MUSEUM
@@ -226,6 +227,115 @@ function Ottoman() {
   )
 }
 
+/** Pictures hung from the picture rail on cords, in gilt frames, each with a small brass light above. */
+const PICTURES: { side: -1 | 1; z: number; w: number; h: number; painting: PaintingName }[] = [
+  { side: -1, z: -5.4, w: 1.1, h: 1.4, painting: 'botanical' },
+  { side: -1, z: -0.6, w: 1.5, h: 1.1, painting: 'map' },
+  { side: -1, z: 4.2, w: 1.2, h: 0.9, painting: 'hills' },
+  { side: 1, z: -5.4, w: 1.1, h: 1.4, painting: 'stars' },
+  { side: 1, z: -0.6, w: 1.5, h: 1.1, painting: 'seascape' },
+  { side: 1, z: 4.2, w: 1.2, h: 0.9, painting: 'abstract' },
+]
+
+function Picture({ side, z, w, h, painting }: (typeof PICTURES)[number]) {
+  const map = useMemo(() => getPainting(painting), [painting])
+  const y = 2.05
+  const frame = 0.08
+  return (
+    <group position={[side * (W / 2 - 0.03), 0, z]} rotation={[0, -side * (Math.PI / 2), 0]}>
+      {/* Tilted forward a touch at the top, hanging from its cords. */}
+      <group position={[0, y, 0.04]} rotation={[-0.04, 0, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[w + frame * 2, h + frame * 2, 0.05]} />
+          <meshStandardMaterial {...GILT} />
+        </mesh>
+        <mesh position={[0, 0, 0.026]}>
+          <planeGeometry args={[w, h]} />
+          <meshStandardMaterial map={map} roughness={0.7} />
+        </mesh>
+      </group>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[s * w * 0.3, (y + h / 2 + 3.2) / 2, 0.03]} rotation={[0, 0, s * -0.12]}>
+          <cylinderGeometry args={[0.004, 0.004, 3.2 - (y + h / 2), 4]} />
+          <meshStandardMaterial color="#8a7a5a" metalness={0.5} roughness={0.5} />
+        </mesh>
+      ))}
+      {/* Picture light. */}
+      <group position={[0, y + h / 2 + frame + 0.12, 0.05]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.08]}>
+          <cylinderGeometry args={[0.01, 0.01, 0.16, 6]} />
+          <meshStandardMaterial {...GILT} />
+        </mesh>
+        <mesh position={[0, -0.02, 0.17]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.035, 0.035, w * 0.6, 12, 1, false, 0, Math.PI]} />
+          <meshStandardMaterial {...GILT} side={2} />
+        </mesh>
+        <mesh position={[0, -0.035, 0.17]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.012, 0.012, w * 0.55, 6]} />
+          <meshBasicMaterial color="#fff2d0" toneMapped={false} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+/** Brass posts and a red rope round the open plinth, so the meteorite is admired from a step away. */
+function RopeBarrier({ at }: { at: [number, number] }) {
+  const R = MUSEUM_ROPE
+  const posts: [number, number][] = [
+    [-R, -R],
+    [R, -R],
+    [R, R],
+    [-R, R],
+  ]
+  const ropes = useMemo(
+    () =>
+      // Three sides: the front stays open for the label stand.
+      [
+        [posts[3], posts[0]],
+        [posts[0], posts[1]],
+        [posts[1], posts[2]],
+      ].map(([a, b]) => {
+        const top = 0.86
+        const mid = new Vector3((a[0] + b[0]) / 2, top - 0.14, (a[1] + b[1]) / 2)
+        return new TubeGeometry(
+          new CatmullRomCurve3([new Vector3(a[0], top, a[1]), mid, new Vector3(b[0], top, b[1])]),
+          16,
+          0.018,
+          6,
+        )
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  useEffect(() => () => ropes.forEach((r) => r.dispose()), [ropes])
+  return (
+    <group position={[at[0], 0, at[1]]}>
+      {posts.map(([x, z], i) => (
+        <group key={i} position={[x, 0, z]}>
+          <mesh position={[0, 0.02, 0]}>
+            <cylinderGeometry args={[0.13, 0.15, 0.04, 20]} />
+            <meshStandardMaterial {...GILT} />
+          </mesh>
+          <mesh position={[0, 0.45, 0]} castShadow>
+            <cylinderGeometry args={[0.025, 0.03, 0.86, 10]} />
+            <meshStandardMaterial {...GILT} />
+          </mesh>
+          <mesh position={[0, 0.9, 0]}>
+            <sphereGeometry args={[0.045, 12, 8]} />
+            <meshStandardMaterial {...GILT} />
+          </mesh>
+        </group>
+      ))}
+      {ropes.map((g, i) => (
+        <mesh key={i} geometry={g}>
+          <meshStandardMaterial color="#7a1620" roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 /** A coved ceiling with a long laylight of frosted glass: daylight from above, as in the old London galleries. */
 function Skylight() {
   const bars: { x: number; z: number; w: number; l: number }[] = []
@@ -305,7 +415,6 @@ export default function Museum() {
       <pointLight position={[0, H - 0.6, -4]} color="#fff6e8" intensity={5} distance={9} decay={1.4} />
       <pointLight position={[0, H - 0.6, 2]} color="#fff6e8" intensity={5} distance={9} decay={1.4} />
       <RoomShell
-        cornerShade={false}
         width={W}
         length={L}
         height={H}
@@ -323,6 +432,10 @@ export default function Museum() {
         return <TableCase key={id} id={id} at={at} />
       })}
       <Ottoman />
+      {PICTURES.map((p) => (
+        <Picture key={`${p.side}${p.z}`} {...p} />
+      ))}
+      <RopeBarrier at={MUSEUM.exhibits.meteorite.at} />
     </group>
   )
 }

@@ -19,6 +19,7 @@ import {
   MAIN_HALL,
   MAP_TABLE,
   MUSEUM,
+  MUSEUM_ROPE,
   OBSERVATORY,
   OBSERVATORY_TERRACE_DOOR,
   observatoryWallPoint,
@@ -282,7 +283,7 @@ export const rooms: Record<string, RoomDefinition> = {
         kind === 'tall'
           ? boxCollider(...at, 1.4, 0.9)
           : kind === 'open'
-            ? boxCollider(...at, 1.0, 1.0)
+            ? boxCollider(...at, MUSEUM_ROPE * 2 + 0.2, MUSEUM_ROPE * 2 + 0.2)
             : boxCollider(...at, 1.1, 0.9),
       ),
       // The open plinth's label stand.

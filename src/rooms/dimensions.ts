@@ -180,6 +180,9 @@ export const MUSEUM = {
   bench: [0, 2.4] as [number, number],
 }
 
+/** Half the width of the roped-off square round the museum's open plinth. */
+export const MUSEUM_ROPE = 0.85
+
 /** The workshop, off the laboratory's west wall. Its door is the +z wall; the benches stand along the back. */
 export const WORKSHOP = {
   width: 9,
