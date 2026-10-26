@@ -23,6 +23,8 @@ const SAVER: { value: BatterySaver; label: string; hint: string }[] = [
 export function SettingsPanel() {
   const quality = useSettings((s) => s.quality)
   const headBob = useSettings((s) => s.headBob)
+  const soundVolume = useSettings((s) => s.soundVolume)
+  const muted = useSettings((s) => s.muted)
   const fov = useSettings((s) => s.fov)
   const sensitivity = useGame((s) => s.mouseSensitivity)
   const volume = useCinema((s) => s.volume)
@@ -105,6 +107,25 @@ export function SettingsPanel() {
       </label>
 
       <h3>Sound</h3>
+      <label className="setting setting-check">
+        <input type="checkbox" checked={!muted} onChange={(e) => updateSettings({ muted: !e.target.checked })} />
+        <span>
+          Room sounds and footsteps <span className="muted">(N turns them on and off)</span>
+        </span>
+      </label>
+      <label className="setting">
+        <span>Room sound volume</span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={soundVolume}
+          disabled={muted}
+          onChange={(e) => updateSettings({ soundVolume: Number(e.target.value) })}
+        />
+        <output>{Math.round(soundVolume * 100)}%</output>
+      </label>
       <label className="setting">
         <span>Film volume</span>
         <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
@@ -132,6 +153,10 @@ export function SettingsPanel() {
           <kbd>M</kbd>
         </dt>
         <dd>Map of the house</dd>
+        <dt>
+          <kbd>N</kbd>
+        </dt>
+        <dd>Sound on or off</dd>
         <dt>
           <kbd>O</kbd>
         </dt>

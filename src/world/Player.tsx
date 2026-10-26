@@ -6,8 +6,10 @@ import { useKeyboard } from '../hooks/useKeyboard.ts'
 import { EYE_HEIGHT } from '../rooms/dimensions.ts'
 import type { Collider } from '../types/room.ts'
 import { moveWithCollisions } from './collision.ts'
+import { floorIn } from './Ambience.tsx'
 import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
-import { getSettings } from './settings.ts'
+import { footstep } from './sound.ts'
+import { getSettings, updateSettings } from './settings.ts'
 import { gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
 
 const WALK_SPEED = 2.2
@@ -58,6 +60,8 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   const viewing = useGame((s) => s.viewing)
   const look = useRef({ yaw: 0, pitch: 0 })
   const bob = useRef({ phase: 0, amount: 0, side: 0 })
+  // Distance walked since the last footstep.
+  const stride = useRef(0)
   const floorY = useRef(0)
 
   // Arriving in a room puts the eye straight at that spot's floor height.
@@ -78,6 +82,11 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
         gameStore.set({ mouseSensitivity: next })
         saveSensitivity(next)
         showToast(`Mouse sensitivity ${next.toFixed(1)}`)
+      }
+      if (e.code === 'KeyN' && !e.repeat) {
+        const muted = !getSettings().muted
+        updateSettings({ muted })
+        showToast(muted ? 'Sound off (N to turn it back on)' : 'Sound on')
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -141,6 +150,12 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     const targetFloor = floorHeight(camera.position.x, camera.position.z)
     floorY.current += (targetFloor - floorY.current) * Math.min(1, dt * STEP_FOLLOW)
     const eye = floorY.current + EYE_HEIGHT
+
+    stride.current += moved
+    if (stride.current >= (running ? RUN_STRIDE : WALK_STRIDE)) {
+      stride.current = 0
+      footstep(floorIn(gameStore.get().activeRoomId), running)
+    }
 
     if (!getSettings().headBob) {
       b.side = 0
