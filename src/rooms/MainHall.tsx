@@ -108,7 +108,6 @@ function Paintings() {
       <Painting name="botanical" position={[-x, 1.85, 3]} rotationY={Math.PI / 2} width={0.9} />
       <Painting name="stars" position={[x, 1.85, -3]} rotationY={-Math.PI / 2} width={1} />
       <Painting name="hills" position={[x, 1.85, 3]} rotationY={-Math.PI / 2} />
-      <Painting name="abstract" position={[x, 1.85, 6]} rotationY={-Math.PI / 2} width={0.9} />
       <Painting name="hills" position={[-2.5, 1.85, -z]} rotationY={0} width={0.8} />
       <Painting name="map" position={[2.5, 1.85, -z]} rotationY={0} width={0.8} />
     </>

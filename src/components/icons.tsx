@@ -142,3 +142,35 @@ export const ColumnIcon = (p: IconProps) => (
     <path d="M4 20h16M5 17h14M7 17V8M12 17V8M17 17V8M4 8h16L12 3z" />
   </Icon>
 )
+
+export const TimerIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="13" r="8" />
+    <path d="M12 9v4l2.5 2.5M9.5 2.5h5M12 2.5V5" />
+  </Icon>
+)
+
+export const ListIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 6.5l1.5 1.5L8 5.5M4 12.5l1.5 1.5L8 11.5M4 18.5h4M11 7h9M11 13h9M11 18.5h9" />
+  </Icon>
+)
+
+export const NoteIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5" />
+  </Icon>
+)
+
+export const CardsIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="7" width="14" height="11" rx="2" />
+    <path d="M7 4h12a2 2 0 0 1 2 2v9M7 12.5h6" />
+  </Icon>
+)
+
+export const LampIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 11h14l-3-6H8zM12 11v8M8 21h8M15 14a3 3 0 0 1-3 3" />
+  </Icon>
+)

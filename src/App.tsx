@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { GraphicsErrorBoundary, GraphicsProblem } from './components/GraphicsProblem.tsx'
 import { Hud } from './components/Hud.tsx'
 import { Overlays } from './components/Overlays.tsx'
+import { FocusBadge } from './features/study/FocusBadge.tsx'
 import { FrameScheduler } from './world/FrameScheduler.tsx'
 import { useSavingBattery, useSettings } from './world/settings.ts'
 import { World } from './world/World.tsx'
@@ -67,6 +68,7 @@ export default function App() {
         <World />
       </Canvas>
       <Hud />
+      <FocusBadge />
       <Overlays />
       {contextLost && (
         <GraphicsProblem

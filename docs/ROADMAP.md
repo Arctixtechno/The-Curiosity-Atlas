@@ -87,6 +87,7 @@ First functional versions of the observatory, museum, experimental laboratory, w
 - ✅ Outdoor café: a London café interior with an espresso counter where you make drinks against sourced recipes (AI conversation at the café needs the Phase 2 backend)
 - ✅ Museum of Everything: a top-lit gallery off the main hall with six exhibits, each with a model to turn over and sourced facts
 - ✅ Workshop, off the laboratory: a gear-train bench and a DC circuit bench, both calculated exactly and unit-tested
+- ✅ Study room, off the main hall: a focus timer, a to-do list, notes and spaced-repetition flashcards (Leitner boxes, unit-tested), all kept in the browser
 
 ## Phase 5 — Private Beta 🟡
 

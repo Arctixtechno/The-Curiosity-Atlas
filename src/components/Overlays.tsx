@@ -9,6 +9,7 @@ import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.
 import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
+import { studyTabFromOverlay } from '../features/study/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { MAP_OVERLAY, MapPanel } from './MapPanel.tsx'
@@ -28,6 +29,7 @@ const CircuitPanel = lazy(() => import('../features/workshop/CircuitPanel.tsx').
 const SolarSystemPanel = lazy(() =>
   import('../features/solar/SolarSystemPanel.tsx').then((m) => ({ default: m.SolarSystemPanel })),
 )
+const StudyPanel = lazy(() => import('../features/study/StudyPanel.tsx').then((m) => ({ default: m.StudyPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
 /** Keys that open a panel from anywhere: M for the map, O for settings, L for the library. */
@@ -61,6 +63,13 @@ export function Overlays() {
     return (
       <Suspense fallback={<PanelLoading />}>
         <ExhibitPanel key={exhibit} id={exhibit} />
+      </Suspense>
+    )
+  const studyTab = studyTabFromOverlay(overlay)
+  if (studyTab)
+    return (
+      <Suspense fallback={<PanelLoading />}>
+        <StudyPanel key={studyTab} tab={studyTab} />
       </Suspense>
     )
   const Lazy = {

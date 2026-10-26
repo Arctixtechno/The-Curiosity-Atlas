@@ -29,7 +29,7 @@ export const THEATRE_LECTERN: [number, number] = [-2.4, 4.4]
 /** Furniture round the main hall, as [x, z]: a coat stand by the front door, a bench, a console table. */
 export const HALL_FURNITURE = {
   coatStand: [1.8, 9.35] as [number, number],
-  bench: [3.75, 6] as [number, number],
+  bench: [3.75, 3] as [number, number],
   console: [-3.8, -8.3] as [number, number],
 }
 /** The City Explorer's map table in the main hall, as [x, z]. */
@@ -228,5 +228,32 @@ export const TERRACE = {
     [-5.2, 2.9],
   ] as [number, number][],
 }
+/**
+ * The study room, off the main hall's east wall: a long table for a study
+ * group under two pendant lamps, a whiteboard on the far (north) wall,
+ * bookshelves on the west wall, a window seat on the east wall and a reading
+ * corner by the door, which is in the +z wall. Positions are [x, z].
+ */
+export const STUDY = {
+  width: 9,
+  length: 10,
+  height: 3.3,
+  table: [0, -0.9] as [number, number],
+  tableSize: { length: 3.4, depth: 1.3, height: 0.76 },
+  /** Chair positions along each side of the table, as x. */
+  chairXs: [-1.15, 0, 1.15],
+  whiteboard: { width: 3, height: 1.3, bottom: 0.95 },
+  bookcase: { z: -1.4, length: 3.6 },
+  window: { z: -1.2, width: 2.2, sill: 0.95, height: 1.6 },
+  corkboard: { z: 2.5, width: 1.5, height: 1 },
+  sofa: [-3.95, 3] as [number, number],
+  coffeeTable: [-2.85, 3] as [number, number],
+  teaCabinet: [3.2, 4.68] as [number, number],
+  plants: [
+    [-3.95, -4.45],
+    [3.95, -4.45],
+  ] as [number, number][],
+}
+
 /** Where the observatory's door onto the terrace is, by angle round the room (see observatoryWallPoint). */
 export const OBSERVATORY_TERRACE_DOOR = 1.55
