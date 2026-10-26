@@ -13,7 +13,7 @@ import { Fountain } from './Fountain.tsx'
 import { NightSky } from './NightSky.tsx'
 import { Portico, SashWindows, TerraceWall, type WindowProps } from './Townhouse.tsx'
 
-const SUN: [number, number, number] = [45, 40, 8]
+const SUN: [number, number, number] = [28, 42, 34]
 const MOON: [number, number, number] = [-30, 48, 58]
 const HOUSE_Z = -COURTYARD.length / 2
 /** The painted city round the garden square: terraces across the square, then the town, then the horizon. */
@@ -269,7 +269,7 @@ function Hedge({ x, z, width, length }: { x: number; z: number; width: number; l
 
 const HOUSE_WINDOWS: WindowProps[] = [
   ...[-12, -8, -4, 4, 8, 12].map((x) => ({ x, y: 1.9, width: 1.3, height: 2, lit: x === -4 || x === 8 })),
-  ...[-12, -8, -4, 0, 4, 8, 12].map((x) => ({ x, y: 5.6, width: 1.3, height: 2.4, balconette: true, lit: x === 4 })),
+  ...[-12, -8, -4, 0, 4, 8, 12].map((x) => ({ x, y: 5.6, width: 1.3, height: 2.4, pediment: true, lit: x === 4 })),
   ...[-12, -8, -4, 0, 4, 8, 12].map((x) => ({ x, y: 8.7, width: 1.1, height: 1.7, lit: x === -8 })),
 ]
 
@@ -285,7 +285,7 @@ const TERRACE_WINDOWS_NIGHT = TERRACE_WINDOWS.map((w, i) => ({ ...w, lit: (i * 7
 function HouseFront({ night }: { night: boolean }) {
   return (
     <group position={[0, 0, HOUSE_Z]}>
-      <TerraceWall width={TERRACE_WIDTH} height={11} seed={3} />
+      <TerraceWall width={TERRACE_WIDTH} height={11} seed={3} pilasters={{ spacing: 4, offset: 2 }} balcony={{ gap: 2.1 }} />
       <SashWindows windows={night ? HOUSE_WINDOWS_NIGHT : HOUSE_WINDOWS} />
       <Portico />
     </group>
@@ -293,10 +293,10 @@ function HouseFront({ night }: { night: boolean }) {
 }
 
 /** Houses across the gardens, so the courtyard sits in a street rather than floating in the sky. */
-function DistantTerrace({ night }: { night: boolean }) {
+function DistantTerrace({ night, height = 13 }: { night: boolean; height?: number }) {
   return (
     <group position={[0, 0, 34]} rotation={[0, Math.PI, 0]}>
-      <TerraceWall width={110} height={13} seed={8} />
+      <TerraceWall width={110} height={height} seed={8} pilasters={{ spacing: 5, offset: 2.5 }} />
       <SashWindows windows={night ? TERRACE_WINDOWS_NIGHT : TERRACE_WINDOWS} />
     </group>
   )
@@ -339,7 +339,7 @@ function StaticShadows({ phase }: { phase: DayPhase }) {
 }
 
 /** Light and sky for each time of day: the sun's place, its colour and strength, and the light from the sky. */
-const LIGHT: Record<
+export const LIGHT: Record<
   DayPhase,
   { sun: [number, number, number]; sunColour: string; sunStrength: number; sky: [string, string, number]; air: string }
 > = {
@@ -383,8 +383,6 @@ function LampPost({ x, z, lit }: { x: number; z: number; lit: boolean }) {
 
 /** The courtyard: a walled garden in front of the house, with the Discovery Fountain in the middle and the café at the far end. */
 export default function Courtyard() {
-  const hw = COURTYARD.width / 2
-  const hl = COURTYARD.length / 2
   const phase = useDayPhase()
   const light = LIGHT[phase]
   const night = phase === 'night'
@@ -419,6 +417,26 @@ export default function Courtyard() {
       />
 
       <StaticShadows phase={phase} />
+      <CourtyardScenery phase={phase} />
+      <FountainInteraction x={fx} z={fz} radius={1.3 * COURTYARD_FOUNTAIN.scale + 1.6} />
+      <Skyline radii={COURTYARD_SKYLINE} rotationY={Math.PI / 2} night={night} />
+    </group>
+  )
+}
+
+/**
+ * Everything built in the courtyard, without its sky and light: the garden,
+ * the house front, the fountain and the houses across the square. The roof
+ * terrace draws it too, far below its balustrade, with lower houses opposite
+ * so the city shows over their roofs.
+ */
+export function CourtyardScenery({ phase, distantHeight }: { phase: DayPhase; distantHeight?: number }) {
+  const hw = COURTYARD.width / 2
+  const hl = COURTYARD.length / 2
+  const night = phase === 'night'
+  const [fx, fz] = COURTYARD_FOUNTAIN.at
+  return (
+    <group>
       <Ground />
       {/* Side and far hedges. The near side is the house, so there's no hedge there to clash with it. */}
       <Hedge x={-hw - 0.2} z={-0.075} width={0.4} length={COURTYARD.length + 0.15} />
@@ -432,8 +450,7 @@ export default function Courtyard() {
       {COURTYARD_BENCHES.map(([x, z]) => (
         <Bench key={x} position={[x, 0, z]} rotationY={Math.PI / 2} length={1.6} />
       ))}
-      <DistantTerrace night={night} />
-      <Skyline radii={COURTYARD_SKYLINE} rotationY={Math.PI / 2} night={night} />
+      <DistantTerrace night={night} height={distantHeight} />
 
       <group position={[fx, 0, fz]}>
         <FountainSurround />
@@ -441,7 +458,6 @@ export default function Courtyard() {
           <Fountain night={night} />
         </group>
       </group>
-      <FountainInteraction x={fx} z={fz} radius={1.3 * COURTYARD_FOUNTAIN.scale + 1.6} />
       {[-1, 1].map((side) => (
         <LampPost key={side} x={side * 4.6} z={fz + 4.6} lit={night || phase === 'dusk'} />
       ))}

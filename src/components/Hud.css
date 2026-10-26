@@ -290,3 +290,30 @@ kbd {
   text-align: center;
   pointer-events: none;
 }
+
+/* The spyglass has a smaller, brass-rimmed field. */
+.eyepiece-spyglass {
+  background: radial-gradient(
+    circle at center,
+    transparent 0,
+    transparent 31vmin,
+    rgba(150, 110, 50, 0.9) 31.5vmin,
+    rgba(70, 50, 20, 0.95) 33vmin,
+    #000 34vmin
+  );
+}
+
+.spy-label {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 236, 200, 0.5);
+  border-radius: 999px;
+  background: rgba(20, 16, 10, 0.6);
+  color: #fff4dc;
+  font:
+    13px Georgia,
+    'Times New Roman',
+    serif;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+}

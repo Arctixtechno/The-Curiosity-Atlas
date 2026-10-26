@@ -42,6 +42,7 @@ export function Hud() {
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
       {viewing === 'telescope' && <Eyepiece />}
+      {viewing === 'spyglass' && <Spyglass />}
       {isExploring
         ? !viewing && (
             <>
@@ -72,6 +73,26 @@ function Eyepiece() {
       <div className="eyepiece" aria-hidden="true" />
       <div className="eyepiece-caption">
         Looking through the telescope · move the mouse to look around · scroll to zoom · <kbd>E</kbd> to step back
+      </div>
+    </>
+  )
+}
+
+/** The spyglass on the roof terrace: names what it's pointed at and offers to open it in the City Explorer. */
+function Spyglass() {
+  const target = useGame((s) => s.viewingTarget)
+  return (
+    <>
+      <div className="eyepiece eyepiece-spyglass" aria-hidden="true" />
+      <div className="eyepiece-caption" role="status">
+        {target ? (
+          <>
+            <strong>{target}</strong> · <kbd>E</kbd> to open it in the City Explorer
+          </>
+        ) : (
+          'Move the mouse to aim at a landmark on the horizon'
+        )}{' '}
+        · scroll to zoom · <kbd>Q</kbd> to step back
       </div>
     </>
   )

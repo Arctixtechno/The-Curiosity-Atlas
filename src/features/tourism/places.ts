@@ -125,6 +125,16 @@ export const NEIGHBOURHOODS: Neighbourhood[] = [
           "Harry Gordon Selfridge's department store on Oxford Street, opened on 15 March 1909, in a Grade II listed building.",
         source: wiki('Selfridges,_Oxford_Street'),
       },
+      {
+        id: 'bt-tower',
+        name: 'BT Tower',
+        at: [51.5215, -0.1389],
+        kind: 'landmark',
+        visitMinutes: 10,
+        description:
+          'A 177 m telecommunications tower in Fitzrovia, finished in 1964. It was the tallest building in London until 1980; you see it from the street, as it is closed to visitors.',
+        source: wiki('BT_Tower'),
+      },
     ],
   },
   {
@@ -442,10 +452,102 @@ export const NEIGHBOURHOODS: Neighbourhood[] = [
       },
     ],
   },
+  {
+    id: 'south-bank',
+    name: 'South Bank & the City',
+    centre: [51.5085, -0.1],
+    blurb:
+      'Both banks of the Thames between Westminster and the Tower: the skyline landmarks you can pick out from the roof terrace, a wheel, a cathedral and a power station turned gallery.',
+    places: [
+      {
+        id: 'the-shard',
+        name: 'The Shard',
+        at: [51.5045, -0.0865],
+        kind: 'landmark',
+        visitMinutes: 60,
+        description:
+          "Renzo Piano's glass spire at London Bridge, 310 m tall and finished in 2012: the tallest building in the United Kingdom, with a viewing gallery near the top.",
+        source: wiki('The_Shard'),
+      },
+      {
+        id: 'st-pauls',
+        name: "St Paul's Cathedral",
+        at: [51.5138, -0.0984],
+        kind: 'church',
+        visitMinutes: 75,
+        description:
+          "Sir Christopher Wren's cathedral, built from 1675 after the Great Fire of 1666 destroyed the old one. Its dome rises 111 m and you can climb to the Golden Gallery at the top.",
+        source: wiki("St_Paul's_Cathedral"),
+      },
+      {
+        id: 'gherkin',
+        name: 'The Gherkin',
+        at: [51.5145, -0.0803],
+        kind: 'landmark',
+        visitMinutes: 10,
+        description:
+          '30 St Mary Axe, the curved office tower by Foster and Partners, opened in 2004. It is 180 m tall and its diamond pattern of glass is all flat panes except the lens at the very top.',
+        source: wiki('30_St_Mary_Axe'),
+      },
+      {
+        id: 'london-eye',
+        name: 'London Eye',
+        at: [51.5033, -0.1196],
+        kind: 'landmark',
+        visitMinutes: 45,
+        description:
+          'The giant observation wheel on the South Bank, opened in 2000. It is 135 m tall and its 32 capsules take about half an hour to go round once.',
+        source: wiki('London_Eye'),
+      },
+      {
+        id: 'tate-modern',
+        name: 'Tate Modern',
+        at: [51.5076, -0.0994],
+        kind: 'gallery',
+        visitMinutes: 90,
+        description:
+          "Britain's national gallery of modern art, opened in 2000 inside the old Bankside Power Station. The main collection is free; the Turbine Hall used to hold the generators.",
+        source: wiki('Tate_Modern'),
+      },
+    ],
+  },
+  {
+    id: 'battersea',
+    name: 'Battersea',
+    centre: [51.4805, -0.152],
+    blurb: 'South of the river from Chelsea: a Victorian park on the water and the four white chimneys of the power station.',
+    places: [
+      {
+        id: 'battersea-power-station',
+        name: 'Battersea Power Station',
+        at: [51.4817, -0.1445],
+        kind: 'landmark',
+        visitMinutes: 60,
+        description:
+          'A brick coal power station by the Thames whose outside was designed by Giles Gilbert Scott. It stopped generating in 1983, and reopened in 2022 as shops, restaurants and a lift up a chimney.',
+        source: wiki('Battersea_Power_Station'),
+      },
+      {
+        id: 'battersea-park',
+        name: 'Battersea Park',
+        at: [51.4791, -0.1566],
+        kind: 'garden',
+        visitMinutes: 60,
+        description:
+          'A 200 acre park opened in 1858 on reclaimed marshland, with a boating lake and a Peace Pagoda by the river, given in 1985.',
+        source: wiki('Battersea_Park'),
+        hiddenGem: true,
+      },
+    ],
+  },
 ]
 
 export const ALL_PLACES: Place[] = NEIGHBOURHOODS.flatMap((n) => n.places)
 
 export function findPlace(id: string) {
   return ALL_PLACES.find((p) => p.id === id)
+}
+
+export function neighbourhoodOf(placeId: string) {
+  return NEIGHBOURHOODS.find((n) => n.places.some((p) => p.id === placeId))
 }

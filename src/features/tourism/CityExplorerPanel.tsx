@@ -9,11 +9,13 @@ import {
   groupOf,
   KIND_NAMES,
   NEIGHBOURHOODS,
+  neighbourhoodOf,
   PLACE_GROUPS,
   type Neighbourhood,
   type Place,
   type PlaceGroupId,
 } from './places.ts'
+import { takeCityExplorerFocus } from './focus.ts'
 import { updatePassport, usePassport } from './passport.ts'
 import './CityExplorerPanel.css'
 
@@ -37,8 +39,10 @@ function formatMinutes(minutes: number) {
  * simple walk planner.
  */
 export function CityExplorerPanel() {
-  const [area, setArea] = useState<Neighbourhood>(NEIGHBOURHOODS[0])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Opened from the spyglass at a landmark: start on that place.
+  const [focus] = useState(takeCityExplorerFocus)
+  const [area, setArea] = useState<Neighbourhood>(() => (focus && neighbourhoodOf(focus)) || NEIGHBOURHOODS[0])
+  const [selectedId, setSelectedId] = useState<string | null>(focus)
   const [walkLength, setWalkLength] = useState<number | null>(null)
   const [group, setGroup] = useState<PlaceGroupId | null>(null)
   const passport = usePassport()
