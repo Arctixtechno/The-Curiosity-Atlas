@@ -9,7 +9,7 @@ import { moveWithCollisions } from './collision.ts'
 import { floorIn } from './Ambience.tsx'
 import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
 import { footstep } from './sound.ts'
-import { getSettings, updateSettings } from './settings.ts'
+import { getSettings, prefersReducedMotion, updateSettings } from './settings.ts'
 import { gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
 
 const WALK_SPEED = 2.2
@@ -23,6 +23,10 @@ const SENSITIVITY_STEP = 0.2
 /** Look speed while viewing through an instrument with a narrow field of view. */
 const VIEWING_LOOK_SCALE = 0.08
 const SENSITIVITY_RANGE = [0.4, 6] as const
+/** On the start screen the view sways gently from side to side: how far (radians) and how slowly (radians per second). */
+const DRIFT_YAW = 0.07
+const DRIFT_PITCH = 0.015
+const DRIFT_SPEED = 0.22
 
 interface PlayerProps {
   colliders: Collider[]
@@ -63,6 +67,8 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   // Distance walked since the last footstep.
   const stride = useRef(0)
   const floorY = useRef(0)
+  // The start screen's sway: its clock, and the offset currently applied to the view.
+  const drift = useRef({ t: 0, yaw: 0, pitch: 0 })
 
   // Arriving in a room puts the eye straight at that spot's floor height.
   useEffect(() => {
@@ -94,7 +100,21 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   }, [])
 
   useFrame(({ camera }, delta) => {
-    const { isExploring, transitioning, viewing } = gameStore.get()
+    const { isExploring, transitioning, viewing, overlay } = gameStore.get()
+    if (!isExploring && !transitioning && !overlay && !viewing && !prefersReducedMotion) {
+      // Behind the start screen the room isn't frozen: the view drifts slowly, as if someone were looking round.
+      // Only the change since last frame is applied, so starting to explore picks up wherever the sway has got to.
+      const d = drift.current
+      d.t += Math.min(delta, 0.1) * DRIFT_SPEED
+      const yaw = Math.sin(d.t) * DRIFT_YAW
+      const pitch = Math.sin(d.t * 0.7) * DRIFT_PITCH
+      euler.setFromQuaternion(camera.quaternion)
+      euler.y += yaw - d.yaw
+      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + pitch - d.pitch))
+      camera.quaternion.setFromEuler(euler)
+      d.yaw = yaw
+      d.pitch = pitch
+    }
     if (!isExploring || transitioning) return
     const k = keys.current
     const dt = Math.min(delta, 0.05)

@@ -8,7 +8,8 @@ import { gameStore } from './store.ts'
 // - full speed (capped at 60 a second, even on 120 Hz screens) while the
 //   player moves, looks round or walks between rooms
 // - 30 a second while standing still, enough for water, fire and clocks
-// - 10 a second on the start screen or when the window isn't focused
+// - 30 a second on the start screen, so its slow drift looks smooth
+// - 10 a second when the window isn't focused
 // - not at all behind a full-screen panel, which covers the world anyway
 
 /** Frames per second for each state. */
@@ -37,7 +38,8 @@ export function targetRate(now: number): number {
   if (transitioning) return RATES.active
   if (overlay) return 0
   const cap = savingBattery() ? RATES.saver : RATES.active
-  if (!document.hasFocus() || !isExploring) return RATES.background
+  if (!document.hasFocus()) return RATES.background
+  if (!isExploring) return Math.min(cap, RATES.idle)
   if (heldKeys.size > 0 || now - lastInput < ACTIVE_FOR_MS || viewing) return cap
   return Math.min(cap, RATES.idle)
 }
