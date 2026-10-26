@@ -20,6 +20,7 @@ import { useLathe } from '../hooks/useLathe.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { LOUNGE, loungeChair } from './dimensions.ts'
+import { Letters, OvalPortrait, PocketWatch } from './LoungeKeepsakes.tsx'
 import { RoomShell } from './RoomShell.tsx'
 
 // The Philosophy Lounge: a Georgian study for conversation by the fire. Dark
@@ -379,6 +380,7 @@ function Fireplace() {
           </group>
         ))}
       </group>
+      <Letters position={[0.36, 1.22, 0.3]} rotationY={0.25} />
       {/* Gilt mirror above the mantel, catching the room. */}
       <mesh position={[0, 2.15, 0.04]}>
         <boxGeometry args={[1.2, 1.25, 0.06]} />
@@ -629,6 +631,7 @@ function SideTable() {
             {glassMaterial}
           </mesh>
         ))}
+        <PocketWatch position={[0.18, 0, 0.17]} rotationY={-0.6} />
         {/* An open book, face down. */}
         <mesh position={[-0.02, 0.012, 0.18]} rotation={[0, 0.4, 0]}>
           <boxGeometry args={[0.24, 0.024, 0.16]} />
@@ -1036,6 +1039,7 @@ export default function PhilosophyLounge() {
       <Window />
       <Painting name="hills" position={[W / 2 - 0.01, 1.85, LOUNGE.windowZ]} rotationY={-Math.PI / 2} width={1} />
       <ChessTable />
+      <OvalPortrait position={[-2.65, 1.85, L / 2 - 0.02]} rotationY={Math.PI} />
       <Fern x={-W / 2 + 0.45} z={-L / 2 + 0.5} />
       {[-1.3, 1.3].map((sx) => (
         <Sconce key={sx} x={sx} z={L / 2 - 0.01} rotationY={Math.PI} />
