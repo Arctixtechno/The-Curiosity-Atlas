@@ -4,7 +4,7 @@
 // licensors' published descriptions); individual plants vary.
 
 /** The stages built so far: units at or below this one can be run. */
-export const LIVE_STAGE = 2
+export const LIVE_STAGE = 3
 
 export type UnitId =
   | 'desalter'
@@ -76,7 +76,7 @@ export const UNITS: Record<UnitId, RefineryUnit> = {
     id: 'isom',
     name: 'Isomerisation',
     short: 'Isomerisation',
-    stage: 3,
+    stage: 4,
     does: 'Rearranges straight-chain pentanes and hexanes into branched ones, which knock far less in an engine.',
     conditions: ['120–180 °C on chlorided alumina, or about 250 °C on zeolite', 'Hydrogen, 20–30 bar', 'Unconverted straight chains recycled'],
     chemistry: 'n-pentane → isopentane; n-hexane → 2,2-dimethylbutane. Octane rises from about 70 to 87–92.',

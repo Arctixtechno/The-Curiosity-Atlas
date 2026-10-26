@@ -2,3 +2,4 @@
 export const CDU_OVERLAY = 'refinery-cdu'
 export const OVERVIEW_OVERLAY = 'refinery-overview'
 export const CONVERSION_OVERLAY = 'refinery-conversion'
+export const REFORMER_OVERLAY = 'refinery-reformer'

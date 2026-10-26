@@ -13,7 +13,7 @@ import {
   Vector3,
 } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY } from '../features/refinery/overlayIds.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY } from '../features/refinery/overlayIds.ts'
 import { usePlant } from '../features/refinery/plant.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
@@ -684,8 +684,9 @@ function Reformer({ m }: { m: Materials }) {
       ))}
       <UnitSign
         at={[0, size[1] / 2 + 1.2]}
-        text="Reformer · stage 3"
-        prompt="The catalytic reformer opens in stage 3: it turns naphtha into high-octane petrol and hydrogen"
+        text="Unit 500 · Catalytic reformer"
+        prompt="Press E to run the naphtha hydrotreater and reformer"
+        overlay={REFORMER_OVERLAY}
       />
     </group>
   )

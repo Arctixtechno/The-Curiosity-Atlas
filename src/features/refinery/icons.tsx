@@ -50,3 +50,14 @@ export const CatCrackerIcon = ({ size }: { size?: number }) => (
     <path d="M7 11V8.5M7 6.5v-1" />
   </Icon>
 )
+
+/** A reformer: three reactors in a row, getting bigger. */
+export const ReformerIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M2.5 21h19" />
+    <rect x="3" y="13" width="4" height="8" rx="2" />
+    <rect x="9.5" y="10" width="4.5" height="11" rx="2.25" />
+    <rect x="16.5" y="6" width="5" height="15" rx="2.5" />
+    <path d="M5 13V9h6.75v1M11.75 9V5h7.25v1" />
+  </Icon>
+)

@@ -1,17 +1,36 @@
 import { useSyncExternalStore } from 'react'
 import { CDU_LIMITS, CDU_START, runCdu, type CduInputs, type CduResult, type SteamLevel } from './cdu.ts'
-import type { CrudeId } from './crudes.ts'
+import { CRUDES, percentBelow, type CrudeId } from './crudes.ts'
 import { runFcc, FCC_START, type FccInputs, type FccResult } from './fcc.ts'
 import { measured, RELIGHT_BELOW, startFurnace, stepFurnace, valveFor, type FurnaceState, type Mode, type Tuning } from './furnace.ts'
 import { runVdu, VDU_START, type VduInputs, type VduResult } from './vdu.ts'
+import {
+  ageCatalyst,
+  FRESH_CATALYST,
+  LIGHT_NAPHTHA_END,
+  NAPHTHA_PNA,
+  NHT_START,
+  REFORMER_LIMITS,
+  REFORMER_START,
+  runNht,
+  runReformer,
+  type CatalystState,
+  type NhtInputs,
+  type NhtResult,
+  type ReformerFeed,
+  type ReformerInputs,
+  type ReformerResult,
+} from './reformer.ts'
 
 // The live crude unit: the furnace simulation plus the column's settings,
 // shared by the operator's panel and the 3D site (which glows with the
 // furnace's firing). It runs only while the panel is open, so walking round
 // the site costs nothing, and the plant waits where you left it.
 //
-// The vacuum unit and cat cracker downstream are steady-state models: they
-// answer their settings at once, fed by whatever the crude unit is doing.
+// The vacuum unit, cat cracker, naphtha hydrotreater and reformer downstream
+// are steady-state models: they answer their settings at once, fed by
+// whatever the crude unit is doing. The reformer's catalyst ages only when
+// you run it on through its cycle.
 
 export interface ColumnSettings {
   topTemp: number
@@ -41,12 +60,24 @@ export interface Plant {
   column: ColumnSettings
   vdu: VduInputs
   fcc: FccInputs
+  nht: NhtInputs
+  reformer: ReformerInputs
+  catalyst: CatalystState
+  /** The catalyst cycle so far, one point each time it is run on. */
+  cycle: CyclePoint[]
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
   /** Simulated seconds per real second. */
   speed: number
   paused: boolean
+}
+
+export interface CyclePoint {
+  days: number
+  wait: number
+  octane: number
+  coke: number
 }
 
 export const SPEEDS = [1, 10, 30]
@@ -62,6 +93,10 @@ function fresh(): Plant {
     column: { topTemp, keroDraw, dieselDraw, steam },
     vdu: VDU_START,
     fcc: FCC_START,
+    nht: NHT_START,
+    reformer: REFORMER_START,
+    catalyst: FRESH_CATALYST,
+    cycle: [],
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -121,6 +156,25 @@ export function conversionResult(p: Plant = plant): ConversionResult {
   return { cdu, vdu, fcc, toTank: vdu.vgoRate - p.fcc.feed }
 }
 
+export interface ReformingResult {
+  cdu: CduResult
+  feed: ReformerFeed
+  nht: NhtResult
+  reformer: ReformerResult
+}
+
+/** What the naphtha hydrotreater and reformer are doing, fed with the heavy part of the crude unit's naphtha. */
+export function reformingResult(p: Plant = plant): ReformingResult {
+  const cdu = currentResult(p)
+  const naphtha = cdu.products.naphtha
+  const crude = CRUDES[p.furnace.crude]
+  const heavy = Math.max(0, percentBelow(crude, naphtha.to) - percentBelow(crude, LIGHT_NAPHTHA_END))
+  const rate = (Math.min(heavy, naphtha.percent) / 100) * p.furnace.feed
+  const nht = runNht(naphtha.sulphurPpm, rate, p.nht)
+  const feed = { rate, ...NAPHTHA_PNA[p.furnace.crude], endPoint: naphtha.to, sulphur: nht.sulphurOut }
+  return { cdu, feed, nht, reformer: runReformer(p.reformer, feed, p.catalyst) }
+}
+
 /** Advances the simulation by `realSeconds` of wall-clock time at the plant's speed. */
 export function advancePlant(realSeconds: number) {
   if (plant.paused) return
@@ -139,6 +193,10 @@ export function advancePlant(realSeconds: number) {
   publish({ ...next, alarms: updateAlarms(next) })
 }
 let carry = 0
+
+function startPoint(p: Plant): CyclePoint {
+  return { days: p.catalyst.days, wait: p.reformer.wait, octane: reformingResult(p).reformer.octane, coke: p.catalyst.coke }
+}
 
 const ALARM_LIMIT = 30
 
@@ -212,6 +270,27 @@ export const controls = {
   },
   setFcc(change: Partial<FccInputs>) {
     publish({ ...plant, fcc: { ...plant.fcc, ...change } })
+  },
+  setNht(change: Partial<NhtInputs>) {
+    publish({ ...plant, nht: { ...plant.nht, ...change } })
+  },
+  setReformer(change: Partial<ReformerInputs>) {
+    publish({ ...plant, reformer: { ...plant.reformer, ...change } })
+  },
+  /** Runs the reformer on for some days at its current settings, laying coke on the catalyst. */
+  runCatalyst(days: number) {
+    if (plant.catalyst.coke >= REFORMER_LIMITS.cokeMax) return
+    const catalyst = ageCatalyst(plant.catalyst, reformingResult(plant).reformer, days)
+    const next = { ...plant, catalyst }
+    const point = { days: catalyst.days, wait: plant.reformer.wait, octane: reformingResult(next).reformer.octane, coke: catalyst.coke }
+    publish({ ...next, cycle: [...(plant.cycle.length ? plant.cycle : [startPoint(plant)]), point] })
+  },
+  /** Burns the coke off the catalyst and starts a new cycle. */
+  regenerate() {
+    publish({ ...plant, catalyst: FRESH_CATALYST, cycle: [] })
+  },
+  resetReforming() {
+    publish({ ...plant, nht: NHT_START, reformer: REFORMER_START, catalyst: FRESH_CATALYST, cycle: [] })
   },
   resetConversion() {
     publish({ ...plant, vdu: VDU_START, fcc: FCC_START })

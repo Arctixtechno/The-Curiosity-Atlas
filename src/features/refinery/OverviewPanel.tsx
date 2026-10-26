@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { openOverlay } from '../../world/overlay.ts'
-import { CDU_OVERLAY, CONVERSION_OVERLAY } from './overlayIds.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, REFORMER_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import './Refinery.css'
 
@@ -11,7 +11,13 @@ const H = 520
 const OUT_X = 812
 
 /** The operator screen each runnable unit opens. */
-const SCREENS: Partial<Record<UnitId, string>> = { cdu: CDU_OVERLAY, vdu: CONVERSION_OVERLAY, fcc: CONVERSION_OVERLAY }
+const SCREENS: Partial<Record<UnitId, string>> = {
+  cdu: CDU_OVERLAY,
+  vdu: CONVERSION_OVERLAY,
+  fcc: CONVERSION_OVERLAY,
+  nht: REFORMER_OVERLAY,
+  reformer: REFORMER_OVERLAY,
+}
 
 function box(id: UnitId) {
   const [x, y] = BOARD_LAYOUT[id]
@@ -157,8 +163,8 @@ export function OverviewPanel() {
       </div>
       <p className="muted">
         Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. The crude
-        unit, the vacuum unit and the cat cracker can be run today: pick one and press Run it, or walk to it on site. The reformer
-        and its hydrotreater come next.
+        unit, vacuum unit, cat cracker, naphtha hydrotreater and reformer can be run today: pick one and press Run it, or walk to it
+        on site. The other hydrotreaters, the sulphur plant, the gas plant and alkylation come next.
       </p>
     </Panel>
   )

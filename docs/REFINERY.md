@@ -12,8 +12,8 @@ A car is parked in the courtyard by the east hedge. Getting in plays a drive (Lo
 | --- | --- | --- |
 | 1 | The drive, the site, the site board (every unit explained, with a block flow diagram) and the **crude distillation unit**: furnace and its temperature controller, column draws, stripping steam, product specs, sulphur, economics, alarms and shift tasks | ✅ Done |
 | 2 | **Vacuum unit** and **fluid catalytic cracker**: vacuum cut point from pressure, heat and steam; feed quality (carbon residue, metals); riser temperature, catalyst-to-oil ratio, the reactor–regenerator heat balance, conversion against coke and gas make, regenerator, air blower, wet gas compressor and slide valve limits, catalyst cooler; shift tasks | ✅ Done |
-| 3 | **Naphtha hydrotreater** and **catalytic reformer**: reactor inlet temperatures, the octane–yield trade-off, hydrogen make, catalyst deactivation and regeneration | ⬜ |
-| 4 | **Hydrotreaters, amine and sulphur recovery**: where the sulphur goes, ultra-low-sulphur diesel, hydrogen balance; **gas plant** and **alkylation**; blending products to spec | ⬜ |
+| 3 | **Naphtha hydrotreater** and **catalytic reformer**: sulphur removal and breakthrough, reactor inlet temperatures, the three-reactor temperature profile, the octane–yield trade-off, pressure and hydrogen, hydrogen make, catalyst coking over a whole cycle and regeneration; shift tasks | ✅ Done |
+| 4 | **Isomerisation**, **hydrotreaters, amine and sulphur recovery**: where the sulphur goes, ultra-low-sulphur diesel, hydrogen balance; **gas plant** and **alkylation**; blending products to spec | ⬜ |
 | 5 | **Hydrocracker** and **delayed coker**, then the control room as a full DCS: several units at once, cascade and feed-forward control, start-up and shutdown procedures, relief and flare, permits and a HAZOP walk-through | ⬜ |
 
 ## The crude unit model (stage 1)
@@ -50,3 +50,18 @@ One operator screen (`ConversionPanel.tsx`) runs both, because what the vacuum u
   - Limits: regenerator 750 °C, air blower 165 t/h (14 kg of air per kg of coke), wet gas compressor 50 t/h, slide valve between cat/oil 3.5 and 10.
   - Design (30 kb/d, 230 °C preheat, 525 °C riser, MAT 70) lines out at cat/oil about 6, regenerator about 730 °C, 75% conversion and 4.7% coke, typical of a vacuum gas oil cracker in Sadeghbeigi's handbook.
 - **Shift tasks** (`conversionTasks.ts`): octane for the blenders, filling the cracker to 45 kb/d, a deep vacuum cut, and running Maya with clean enough feed. Each is checked in the tests to be undone at design and achievable.
+
+## The naphtha hydrotreater and reformer (stage 3)
+
+One screen (`ReformerPanel.tsx`), opened from the reformer's sign on site or from the site board. Tests are in `reforming.test.ts`.
+
+- **Feed** (`plant.ts`): the crude unit's naphtha above 80 °C (the light part goes to isomerisation), so the crude, its rate and the column's top temperature all reach the reformer. Each crude's heavy naphtha has its own paraffin, naphthene and aromatic split (`NAPHTHA_PNA`), and the naphtha's end point sets how fast coke builds.
+- **Hydrotreater** (`reformer.ts`, `runNht`): first-order desulphurisation with an activation energy of about 100 kJ/mol, scaled by space velocity. At design (320 °C) it removes 99.97% of the sulphur; 25 °C cooler and sulphur breaks through past the 0.5 ppm the platinum tolerates.
+- **Reformer** (`runReformer`):
+  - Three lumped reactions, each first order with an Arrhenius rate: naphthene dehydrogenation (fast, +2150 kJ/kg), paraffin dehydrocyclisation (slower, +2600 kJ/kg, held back by pressure) and hydrocracking (exothermic, helped by pressure, the yield loss).
+  - Three adiabatic reactors holding 15, 30 and 55% of the catalyst, each integrated in 40 slices for composition and temperature together, with a furnace back to the inlet temperature before each. Design drops are about 90, 75 and 50 °C.
+  - Octane from the reformate's composition (aromatics 111, naphthenes 72, remaining branched paraffins 62). Hydrogen from the stoichiometry: 3 H₂ per naphthene and 4 per paraffin reformed, less what cracking uses.
+  - Catalyst activity falls with coke (e-fold per 14 wt%) and with sulphur over the limit. Coke builds at a rate that rises with temperature and feed end point and falls with pressure and hydrogen ratio. At design a cycle lasts about a year to the 20 wt% coke limit; holding 97.5 octane by raising the inlets runs out of furnace at about day 200.
+  - Design (505 °C, 18 bar, H₂/oil 5) makes about 97 octane at 88.6 wt% reformate and 3.3 wt% hydrogen from Brent naphtha.
+- **Catalyst cycle**: "Run 10/30/90 days" ages the catalyst at the current settings and plots inlet temperature and octane against days on stream. Regenerate starts a new cycle.
+- **Shift tasks** (`reformingTasks.ts`): premium octane, hydrogen for the hydrotreaters, reforming paraffinic Arab Light, and a 240-day run without the octane dropping below 97 (impossible at design pressure; more pressure and hydrogen make it). The tests check each is undone at design and achievable.
