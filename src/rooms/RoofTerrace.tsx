@@ -506,7 +506,7 @@ export default function RoofTerrace() {
 
       {/* The courtyard far below, to look at only. */}
       <group position={COURTYARD_SHIFT}>
-        <CourtyardScenery phase={phase} distantHeight={8.5} />
+        <CourtyardScenery phase={phase} distantHeight={8.5} fromAbove />
         <CafeExterior />
       </group>
       <HouseRoof night={night} />

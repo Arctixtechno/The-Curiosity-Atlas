@@ -54,7 +54,8 @@ function crownClumps(x: number, z: number) {
  * Every tree in the garden, drawn as three instanced meshes (trunks, dark
  * inner crowns and leafy clumps) instead of three meshes per tree.
  */
-function Trees({ trees }: { trees: TreeSpot[] }) {
+/** Trees with leafy crowns; `detail` 0 is for trees only seen from a distance, at a quarter of the triangles. */
+function Trees({ trees, detail = 1 }: { trees: TreeSpot[]; detail?: 0 | 1 }) {
   const leaves = useTiledTexture('hedge', 1, 1)
   const trunks = useRef<InstancedMesh>(null)
   const cores = useRef<InstancedMesh>(null)
@@ -103,7 +104,7 @@ function Trees({ trees }: { trees: TreeSpot[] }) {
         <meshStandardMaterial color="#1a2c12" roughness={1} />
       </instancedMesh>
       <instancedMesh ref={clumps} args={[undefined, undefined, clumpList.length]} castShadow>
-        <icosahedronGeometry args={[1, 1]} />
+        <icosahedronGeometry args={[1, detail]} />
         <meshStandardMaterial color="#c4dca8" map={leaves} roughness={0.95} />
       </instancedMesh>
     </>
@@ -154,8 +155,10 @@ function FountainSurround() {
   )
 }
 
-const TREES: TreeSpot[] = [
-  ...COURTYARD_PLANTERS.map(([x, z]): TreeSpot => [x, z + 0, 0.7]),
+/** The small trees in the courtyard's planters, seen close up. */
+const NEAR_TREES: TreeSpot[] = COURTYARD_PLANTERS.map(([x, z]): TreeSpot => [x, z + 0, 0.7])
+/** Plane trees beyond the hedges, only ever seen from across the gardens. */
+const FAR_TREES: TreeSpot[] = [
   [-12, 4, 1.1],
   [-15, 14, 1.3],
   [13, 6, 1.2],
@@ -283,10 +286,18 @@ const HOUSE_WINDOWS_NIGHT = HOUSE_WINDOWS.map((w, i) => ({ ...w, lit: i % 5 !== 
 const TERRACE_WINDOWS_NIGHT = TERRACE_WINDOWS.map((w, i) => ({ ...w, lit: (i * 7) % 3 !== 0 }))
 
 /** The front of the house: a white stucco terrace with a columned porch around the entrance. */
-function HouseFront({ night }: { night: boolean }) {
+function HouseFront({ night, fromAbove }: { night: boolean; fromAbove?: boolean }) {
   return (
     <group position={[0, 0, HOUSE_Z]}>
-      <TerraceWall width={TERRACE_WIDTH} height={11} seed={3} pilasters={{ spacing: 4, offset: 2 }} balcony={{ gap: 2.1 }} />
+      <TerraceWall
+        width={TERRACE_WIDTH}
+        height={11}
+        seed={3}
+        pilasters={{ spacing: 4, offset: 2 }}
+        balcony={{ gap: 2.1 }}
+        // From the roof the first-floor balcony is far below, out of sight under the parapet.
+        distant={{ balcony: fromAbove }}
+      />
       <SashWindows windows={night ? HOUSE_WINDOWS_NIGHT : HOUSE_WINDOWS} />
       <Portico />
     </group>
@@ -297,7 +308,7 @@ function HouseFront({ night }: { night: boolean }) {
 function DistantTerrace({ night, height = 13 }: { night: boolean; height?: number }) {
   return (
     <group position={[0, 0, 34]} rotation={[0, Math.PI, 0]}>
-      <TerraceWall width={110} height={height} seed={8} pilasters={{ spacing: 5, offset: 2.5 }} />
+      <TerraceWall width={110} height={height} seed={8} pilasters={{ spacing: 5, offset: 2.5 }} distant={{ parapet: true }} />
       <SashWindows windows={night ? TERRACE_WINDOWS_NIGHT : TERRACE_WINDOWS} />
     </group>
   )
@@ -433,7 +444,15 @@ export default function Courtyard() {
  * terrace draws it too, far below its balustrade, with lower houses opposite
  * so the city shows over their roofs.
  */
-export function CourtyardScenery({ phase, distantHeight }: { phase: DayPhase; distantHeight?: number }) {
+export function CourtyardScenery({
+  phase,
+  distantHeight,
+  fromAbove,
+}: {
+  phase: DayPhase
+  distantHeight?: number
+  fromAbove?: boolean
+}) {
   const hw = COURTYARD.width / 2
   const hl = COURTYARD.length / 2
   const night = phase === 'night'
@@ -446,7 +465,7 @@ export function CourtyardScenery({ phase, distantHeight }: { phase: DayPhase; di
       <Hedge x={hw + 0.2} z={-0.075} width={0.4} length={COURTYARD.length + 0.15} />
       <Hedge x={0} z={hl + 0.2} width={COURTYARD.width + 0.8} length={0.4} />
 
-      <HouseFront night={night} />
+      <HouseFront night={night} fromAbove={fromAbove} />
       {DOOR_POTS.map(([x, z]) => (
         <BoxBallPot key={x} position={[x, 0, z]} />
       ))}
@@ -468,7 +487,8 @@ export function CourtyardScenery({ phase, distantHeight }: { phase: DayPhase; di
       {COURTYARD_PLANTERS.map(([x, z]) => (
         <Planter key={`${x},${z}`} x={x} z={z} />
       ))}
-      <Trees trees={TREES} />
+      <Trees trees={NEAR_TREES} detail={fromAbove ? 0 : 1} />
+      <Trees trees={FAR_TREES} detail={0} />
     </group>
   )
 }
