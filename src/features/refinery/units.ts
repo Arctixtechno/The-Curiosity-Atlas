@@ -4,7 +4,7 @@
 // licensors' published descriptions); individual plants vary.
 
 /** The stages built so far: units at or below this one can be run. */
-export const LIVE_STAGE = 3
+export const LIVE_STAGE = 4
 
 export type UnitId =
   | 'desalter'
@@ -67,7 +67,7 @@ export const UNITS: Record<UnitId, RefineryUnit> = {
     id: 'gasPlant',
     name: 'Gas plant',
     short: 'Gas plant',
-    stage: 4,
+    stage: 5,
     does: 'Separates the light gases from all over the refinery in a series of columns: fuel gas (methane, ethane, hydrogen), propane and butanes.',
     conditions: ['Absorbers and debutaniser at 10–20 bar', 'Depropaniser and deisobutaniser in sequence'],
     why: 'Fuel gas fires the refinery furnaces; propane and butane are sold as LPG; isobutane feeds the alkylation unit.',
@@ -76,7 +76,7 @@ export const UNITS: Record<UnitId, RefineryUnit> = {
     id: 'isom',
     name: 'Isomerisation',
     short: 'Isomerisation',
-    stage: 4,
+    stage: 5,
     does: 'Rearranges straight-chain pentanes and hexanes into branched ones, which knock far less in an engine.',
     conditions: ['120–180 °C on chlorided alumina, or about 250 °C on zeolite', 'Hydrogen, 20–30 bar', 'Unconverted straight chains recycled'],
     chemistry: 'n-pentane → isopentane; n-hexane → 2,2-dimethylbutane. Octane rises from about 70 to 87–92.',
@@ -146,7 +146,7 @@ export const UNITS: Record<UnitId, RefineryUnit> = {
     id: 'alky',
     name: 'Alkylation unit',
     short: 'Alkylation',
-    stage: 4,
+    stage: 5,
     does: 'Joins isobutane to the propylene and butylenes from the cat cracker, making alkylate: a clean, high-octane petrol component with no aromatics or sulphur.',
     conditions: ['Sulphuric acid at 5–10 °C, or hydrofluoric acid at 30–40 °C', 'A large excess of isobutane'],
     chemistry: 'isobutane + 2-butene → 2,2,4-trimethylpentane (isooctane, octane 100)',
@@ -156,7 +156,7 @@ export const UNITS: Record<UnitId, RefineryUnit> = {
     id: 'hydrocracker',
     name: 'Hydrocracker',
     short: 'Hydrocracker',
-    stage: 5,
+    stage: 6,
     does: 'Cracks heavy gas oil in a large excess of hydrogen, on a catalyst that both cracks (acid sites) and hydrogenates (metal sites). Makes very clean jet and diesel.',
     conditions: ['350–430 °C', '100–200 bar of hydrogen', 'Hydrotreating catalyst first, then cracking catalyst'],
     why: 'The best route from heavy oil to middle distillates, and the biggest user of hydrogen in the refinery.',
@@ -165,7 +165,7 @@ export const UNITS: Record<UnitId, RefineryUnit> = {
     id: 'coker',
     name: 'Delayed coker',
     short: 'Coker',
-    stage: 5,
+    stage: 6,
     does: 'Heats vacuum residue and lets it crack slowly in huge drums, until what is left is solid petroleum coke. The cracked vapours become naphtha, gas oil and gas. Drums are filled and emptied in turn: the coke is cut out with high-pressure water jets.',
     conditions: ['Furnace outlet 490–505 °C', 'Drums at 1–3 bar', 'About 15–24 hours to fill each drum'],
     why: 'Turns the bottom of the barrel, which would otherwise be low-value fuel oil, into lighter products. Coke is sold as fuel or for anodes.',

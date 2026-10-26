@@ -13,7 +13,7 @@ import {
   Vector3,
 } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY } from '../features/refinery/overlayIds.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
 import { usePlant } from '../features/refinery/plant.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
@@ -692,6 +692,38 @@ function Reformer({ m }: { m: Materials }) {
   )
 }
 
+/** The diesel hydrotreater's reactors and the sulphur plant, with its incinerator stack and sulphur pit. */
+function Treating({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.treating
+  const [x, z] = at
+  return (
+    <group position={[x, 0, z]}>
+      <Vessel x={-2.6} z={-1.2} radius={1.1} height={9} base={1} material={m.cladding} />
+      <Vessel x={-0.2} z={-1.2} radius={1.1} height={9} base={1} material={m.cladding} />
+      {/* Claus furnace and converters, low and long. */}
+      <mesh position={[2.2, 1.4, -1]} rotation={[Math.PI / 2, 0, 0]} material={m.steel} castShadow>
+        <cylinderGeometry args={[1, 1, 3.6, 16]} />
+      </mesh>
+      <mesh position={[2.2, 1, 1.4]} material={m.darkSteel} castShadow>
+        <boxGeometry args={[3, 2, 1.4]} />
+      </mesh>
+      <mesh position={[size[0] / 2 - 0.6, 7, -1.8]} material={m.darkSteel} castShadow>
+        <cylinderGeometry args={[0.35, 0.45, 14, 12]} />
+      </mesh>
+      {/* The sulphur pit, its liquid sulphur showing through the grating. */}
+      <mesh position={[-1.4, 0.06, 1.9]} rotation={[-Math.PI / 2, 0, 0]} material={m.yellow}>
+        <planeGeometry args={[3, 1.2]} />
+      </mesh>
+      <UnitSign
+        at={[0, size[1] / 2 + 1.2]}
+        text="Units 600–700 · Hydrotreating and sulphur"
+        prompt="Press E to run the diesel hydrotreater and sulphur plant"
+        overlay={TREATING_OVERLAY}
+      />
+    </group>
+  )
+}
+
 /** Storage tanks with floating roofs, in the tank farm. */
 function Tanks({ m }: { m: Materials }) {
   const r = REFINERY.tankRadius
@@ -865,6 +897,7 @@ export default function Refinery() {
       <VacuumUnit m={m} />
       <CatCracker m={m} />
       <Reformer m={m} />
+      <Treating m={m} />
       <Tanks m={m} />
       <Flare m={m} />
       <Distance m={m} />

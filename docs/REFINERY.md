@@ -13,8 +13,9 @@ A car is parked in the courtyard by the east hedge. Getting in plays a drive (Lo
 | 1 | The drive, the site, the site board (every unit explained, with a block flow diagram) and the **crude distillation unit**: furnace and its temperature controller, column draws, stripping steam, product specs, sulphur, economics, alarms and shift tasks | ✅ Done |
 | 2 | **Vacuum unit** and **fluid catalytic cracker**: vacuum cut point from pressure, heat and steam; feed quality (carbon residue, metals); riser temperature, catalyst-to-oil ratio, the reactor–regenerator heat balance, conversion against coke and gas make, regenerator, air blower, wet gas compressor and slide valve limits, catalyst cooler; shift tasks | ✅ Done |
 | 3 | **Naphtha hydrotreater** and **catalytic reformer**: sulphur removal and breakthrough, reactor inlet temperatures, the three-reactor temperature profile, the octane–yield trade-off, pressure and hydrogen, hydrogen make, catalyst coking over a whole cycle and regeneration; shift tasks | ✅ Done |
-| 4 | **Isomerisation**, **hydrotreaters, amine and sulphur recovery**: where the sulphur goes, ultra-low-sulphur diesel, hydrogen balance; **gas plant** and **alkylation**; blending products to spec | ⬜ |
-| 5 | **Hydrocracker** and **delayed coker**, then the control room as a full DCS: several units at once, cascade and feed-forward control, start-up and shutdown procedures, relief and flare, permits and a HAZOP walk-through | ⬜ |
+| 4 | **Diesel hydrotreater**, **hydrogen header**, **amine unit** and **Claus sulphur recovery**: ultra-low-sulphur diesel, cracked stock, hydrogen balance, where the crude's sulphur goes, the 2:1 air ratio, converters and tail gas unit, SO₂ permit; shift tasks | ✅ Done |
+| 5 | **Isomerisation**, **gas plant** and **alkylation**; blending petrol and diesel to spec from every unit's streams | ⬜ |
+| 6 | **Hydrocracker** and **delayed coker**, then the control room as a full DCS: several units at once, cascade and feed-forward control, start-up and shutdown procedures, relief and flare, permits and a HAZOP walk-through | ⬜ |
 
 ## The crude unit model (stage 1)
 
@@ -65,3 +66,13 @@ One screen (`ReformerPanel.tsx`), opened from the reformer's sign on site or fro
   - Design (505 °C, 18 bar, H₂/oil 5) makes about 97 octane at 88.6 wt% reformate and 3.3 wt% hydrogen from Brent naphtha.
 - **Catalyst cycle**: "Run 10/30/90 days" ages the catalyst at the current settings and plots inlet temperature and octane against days on stream. Regenerate starts a new cycle.
 - **Shift tasks** (`reformingTasks.ts`): premium octane, hydrogen for the hydrotreaters, reforming paraffinic Arab Light, and a 240-day run without the octane dropping below 97 (impossible at design pressure; more pressure and hydrogen make it). The tests check each is undone at design and achievable.
+
+## Hydrotreating, hydrogen and sulphur recovery (stage 4)
+
+One screen (`TreatingPanel.tsx`), opened from the hydrotreating and sulphur plot on site (west of the crude furnace) or from any of its four units on the site board. Tests are in `treating.test.ts`.
+
+- **Diesel hydrotreater** (`treating.ts`, `runDht`): two first-order sulphur lumps, easy (E/R 11 000 K, half order in pressure) and sterically hindered dibenzothiophenes (E/R 15 000 K, pressure order 1.3), scaled by space velocity. Straight-run gas oil has 20% of its sulphur in the hard lump and the cat cracker's light cycle oil 45%, and cycle oil's aromatics and nitrogen inhibit both. Design (345 °C, 45 bar) makes about 7 ppm from Brent; with cycle oil in it takes about 365 °C or 60 bar. Hydrogen use is lumped: about 0.45 wt% for straight-run and 2 wt% for cycle oil, rising with pressure as aromatics saturate.
+- **Hydrogen header**: supply from the reformer, users the naphtha hydrotreater, kerosene treater and diesel hydrotreater. A shortfall is bought from a steam methane reformer; a surplus goes to fuel gas.
+- **Sulphur sources**: H₂S from the naphtha hydrotreater, kerosene treater, diesel hydrotreater and cat cracker (45% of its feed's sulphur), compared with the sulphur in the crude.
+- **Claus plant** (`runSru`): recovery 95.6% with two converters or 97.2% with three at the exact 2:1 ratio, less 0.09 points per (% air error)²; a tail gas unit recovers 97.5% of what's left. The analyser shows the tail gas H₂S:SO₂ ratio. Unrecovered sulphur leaves the stack as SO₂ against a 3 t/d permit; plant capacity is 150 t/d.
+- **Shift tasks** (`treatingTasks.ts`): take the cycle oil into diesel on spec, do it on 30 t/d of hydrogen or less (temperature, not pressure), recover 97% without the tail gas unit (third converter and trimmed air), and run a sour crude inside the SO₂ permit.

@@ -61,3 +61,12 @@ export const ReformerIcon = ({ size }: { size?: number }) => (
     <path d="M5 13V9h6.75v1M11.75 9V5h7.25v1" />
   </Icon>
 )
+
+/** Sulphur: a crystal over a drop. */
+export const SulphurIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M12 2.5l5 4v6l-5 4-5-4v-6z" />
+    <path d="M7 6.5l5 4 5-4M12 10.5v6" />
+    <path d="M12 18.5c-1.2 1.4-1.8 2.2-1.8 2.9a1.8 1.8 0 0 0 3.6 0c0-.7-.6-1.5-1.8-2.9z" />
+  </Icon>
+)

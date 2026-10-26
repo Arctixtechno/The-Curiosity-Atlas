@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { CDU_LIMITS, CDU_START, runCdu, type CduInputs, type CduResult, type SteamLevel } from './cdu.ts'
 import { CRUDES, percentBelow, type CrudeId } from './crudes.ts'
-import { runFcc, FCC_START, type FccInputs, type FccResult } from './fcc.ts'
+import { feedMass, runFcc, FCC_START, type FccInputs, type FccResult } from './fcc.ts'
 import { measured, RELIGHT_BELOW, startFurnace, stepFurnace, valveFor, type FurnaceState, type Mode, type Tuning } from './furnace.ts'
 import { runVdu, VDU_START, type VduInputs, type VduResult } from './vdu.ts'
 import {
@@ -9,6 +9,7 @@ import {
   FRESH_CATALYST,
   LIGHT_NAPHTHA_END,
   NAPHTHA_PNA,
+  naphthaTonnes,
   NHT_START,
   REFORMER_LIMITS,
   REFORMER_START,
@@ -21,6 +22,19 @@ import {
   type ReformerInputs,
   type ReformerResult,
 } from './reformer.ts'
+import {
+  DHT_START,
+  gasOilTonnes,
+  hydrogenBalance,
+  runDht,
+  runSru,
+  SRU_START,
+  type DhtInputs,
+  type DhtResult,
+  type HydrogenBalance,
+  type SruInputs,
+  type SruResult,
+} from './treating.ts'
 
 // The live crude unit: the furnace simulation plus the column's settings,
 // shared by the operator's panel and the 3D site (which glows with the
@@ -65,6 +79,8 @@ export interface Plant {
   catalyst: CatalystState
   /** The catalyst cycle so far, one point each time it is run on. */
   cycle: CyclePoint[]
+  dht: DhtInputs
+  sru: SruInputs
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -97,6 +113,8 @@ function fresh(): Plant {
     reformer: REFORMER_START,
     catalyst: FRESH_CATALYST,
     cycle: [],
+    dht: DHT_START,
+    sru: SRU_START,
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -173,6 +191,63 @@ export function reformingResult(p: Plant = plant): ReformingResult {
   const nht = runNht(naphtha.sulphurPpm, rate, p.nht)
   const feed = { rate, ...NAPHTHA_PNA[p.furnace.crude], endPoint: naphtha.to, sulphur: nht.sulphurOut }
   return { cdu, feed, nht, reformer: runReformer(p.reformer, feed, p.catalyst) }
+}
+
+export interface TreatingResult {
+  conversion: ConversionResult
+  reforming: ReformingResult
+  dht: DhtResult
+  /** Light cycle oil the cat cracker makes, thousand barrels a day, and its sulphur, ppm. */
+  lco: { rate: number; sulphur: number }
+  kero: { rate: number; sulphurIn: number; sulphurOut: number }
+  hydrogen: HydrogenBalance
+  /** Where the H₂S comes from, tonnes of sulphur a day. */
+  sulphurSources: { name: string; tonnes: number }[]
+  /** Sulphur in the crude, tonnes a day. */
+  crudeSulphur: number
+  sru: SruResult
+}
+
+/** Share of the kerosene's sulphur the kerosene treater takes out, and the hydrogen it uses, wt% of feed. */
+const KERO_TREATER = { removal: 0.97, hydrogen: 0.06 }
+/** Share of the cat cracker's feed sulphur that leaves as H₂S. */
+const FCC_H2S = 0.45
+
+/** The hydrotreaters, the hydrogen header and the sulphur plant, fed by everything upstream. */
+export function treatingResult(p: Plant = plant): TreatingResult {
+  const conversion = conversionResult(p)
+  const reforming = reformingResult(p)
+  const { cdu, fcc } = conversion
+  // Gas oil carries most of the residue's sulphur; cracking concentrates it in the cycle oil.
+  const vgoSulphur = cdu.products.residue.sulphurPpm * 0.75
+  const fccTonnes = (feedMass(p.fcc.feed) * 86400) / 1000
+  const lcoTonnes = (fcc.yields.lco / 100) * fccTonnes
+  const lco = { rate: lcoTonnes / (0.158987 * 950), sulphur: vgoSulphur * 1.3 }
+  const diesel = cdu.products.diesel
+  const dht = runDht({ rate: diesel.rate, sulphur: diesel.sulphurPpm, lcoRate: lco.rate, lcoSulphur: lco.sulphur }, p.dht)
+  const keroIn = cdu.products.kerosene
+  const kero = { rate: keroIn.rate, sulphurIn: keroIn.sulphurPpm, sulphurOut: keroIn.sulphurPpm * (1 - KERO_TREATER.removal) }
+  const keroTonnes = gasOilTonnes(kero.rate, 800)
+  const nhtTonnes = naphthaTonnes(reforming.feed.rate)
+
+  const hydrogen = hydrogenBalance(reforming.reformer.hydrogen, [
+    { name: 'Naphtha hydrotreater', tonnes: nhtTonnes * 0.0005 },
+    { name: 'Kerosene treater', tonnes: (keroTonnes * KERO_TREATER.hydrogen) / 100 },
+    { name: 'Diesel hydrotreater', tonnes: dht.hydrogen },
+  ])
+  const sulphurSources = [
+    { name: 'Naphtha hydrotreater', tonnes: (nhtTonnes * (reforming.nht.sulphurIn - reforming.nht.sulphurOut)) / 1e6 },
+    { name: 'Kerosene treater', tonnes: (keroTonnes * (kero.sulphurIn - kero.sulphurOut)) / 1e6 },
+    { name: 'Diesel hydrotreater', tonnes: dht.sulphurRemoved },
+    { name: 'Cat cracker', tonnes: (fccTonnes * vgoSulphur * FCC_H2S) / 1e6 },
+  ]
+  const crudeTonnes = p.furnace.feed * 158.987 * (141.5 / (CRUDES[p.furnace.crude].api + 131.5))
+  const crudeSulphur = (crudeTonnes * CRUDES[p.furnace.crude].sulphur) / 100
+  const sru = runSru(
+    sulphurSources.reduce((sum, s) => sum + s.tonnes, 0),
+    p.sru,
+  )
+  return { conversion, reforming, dht, lco, kero, hydrogen, sulphurSources, crudeSulphur, sru }
 }
 
 /** Advances the simulation by `realSeconds` of wall-clock time at the plant's speed. */
@@ -291,6 +366,15 @@ export const controls = {
   },
   resetReforming() {
     publish({ ...plant, nht: NHT_START, reformer: REFORMER_START, catalyst: FRESH_CATALYST, cycle: [] })
+  },
+  setDht(change: Partial<DhtInputs>) {
+    publish({ ...plant, dht: { ...plant.dht, ...change } })
+  },
+  setSru(change: Partial<SruInputs>) {
+    publish({ ...plant, sru: { ...plant.sru, ...change } })
+  },
+  resetTreating() {
+    publish({ ...plant, dht: DHT_START, sru: SRU_START })
   },
   resetConversion() {
     publish({ ...plant, vdu: VDU_START, fcc: FCC_START })

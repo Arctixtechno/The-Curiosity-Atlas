@@ -283,6 +283,7 @@ export const REFINERY = {
   vacuum: { at: [17, -13] as [number, number], radius: 3.2, height: 22 },
   fcc: { at: [-20, -14] as [number, number], size: 9 },
   reformer: { at: [-3, -19] as [number, number], size: [13, 7] as [number, number] },
+  treating: { at: [-23, -1] as [number, number], size: [8, 6] as [number, number] },
   tanks: [
     { at: [25, 19] as [number, number], label: 'Crude oil' },
     { at: [25, 7] as [number, number], label: 'Diesel' },

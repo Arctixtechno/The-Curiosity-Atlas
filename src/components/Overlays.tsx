@@ -7,7 +7,7 @@ import { CAFE_OVERLAY } from '../features/cafe/overlayId.ts'
 import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
 import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.ts'
 import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY } from '../features/refinery/overlayIds.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
@@ -32,6 +32,7 @@ const SolarSystemPanel = lazy(() =>
 const CduPanel = lazy(() => import('../features/refinery/CduPanel.tsx').then((m) => ({ default: m.CduPanel })))
 const ConversionPanel = lazy(() => import('../features/refinery/ConversionPanel.tsx').then((m) => ({ default: m.ConversionPanel })))
 const ReformerPanel = lazy(() => import('../features/refinery/ReformerPanel.tsx').then((m) => ({ default: m.ReformerPanel })))
+const TreatingPanel = lazy(() => import('../features/refinery/TreatingPanel.tsx').then((m) => ({ default: m.TreatingPanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
@@ -80,6 +81,7 @@ export function Overlays() {
     [CONVERSION_OVERLAY]: ConversionPanel,
     [OVERVIEW_OVERLAY]: OverviewPanel,
     [REFORMER_OVERLAY]: ReformerPanel,
+    [TREATING_OVERLAY]: TreatingPanel,
   }[overlay ?? '']
   if (Lazy)
     return (

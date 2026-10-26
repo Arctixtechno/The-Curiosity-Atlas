@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { openOverlay } from '../../world/overlay.ts'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, REFORMER_OVERLAY } from './overlayIds.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import './Refinery.css'
 
@@ -17,6 +17,10 @@ const SCREENS: Partial<Record<UnitId, string>> = {
   fcc: CONVERSION_OVERLAY,
   nht: REFORMER_OVERLAY,
   reformer: REFORMER_OVERLAY,
+  keroTreater: TREATING_OVERLAY,
+  dht: TREATING_OVERLAY,
+  amine: TREATING_OVERLAY,
+  sru: TREATING_OVERLAY,
 }
 
 function box(id: UnitId) {
@@ -72,7 +76,7 @@ function route(from: UnitId | 'crude', to: UnitId | ProductOut, index: number): 
 export function OverviewPanel() {
   const [selected, setSelected] = useState<UnitId>('cdu')
   const unit = UNITS[selected]
-  const screen = unit.stage <= LIVE_STAGE ? SCREENS[unit.id] : undefined
+  const screen = SCREENS[unit.id]
   return (
     <Panel title="How a refinery works" subtitle="The site board at Marshgate: follow a barrel of crude from tank to tanker" icon={<RefineryIcon />} wide>
       <div className="board">
@@ -108,7 +112,7 @@ export function OverviewPanel() {
             return (
               <g
                 key={id}
-                className={`board-unit${selected === id ? ' board-unit-selected' : ''}${u.stage <= LIVE_STAGE ? ' board-unit-live' : ''}`}
+                className={`board-unit${selected === id ? ' board-unit-selected' : ''}${u.stage <= LIVE_STAGE || SCREENS[id] ? ' board-unit-live' : ''}`}
                 role="button"
                 tabIndex={0}
                 aria-label={u.name}
@@ -163,8 +167,8 @@ export function OverviewPanel() {
       </div>
       <p className="muted">
         Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. The crude
-        unit, vacuum unit, cat cracker, naphtha hydrotreater and reformer can be run today: pick one and press Run it, or walk to it
-        on site. The other hydrotreaters, the sulphur plant, the gas plant and alkylation come next.
+        unit, vacuum unit, cat cracker, reformer, hydrotreaters and sulphur plant can be run today: pick one and press Run it, or walk
+        to it on site. Isomerisation, the gas plant, alkylation and product blending come next.
       </p>
     </Panel>
   )
