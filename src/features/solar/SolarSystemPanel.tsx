@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { PlanetIcon } from '../../components/icons.tsx'
 import { AU_KM, findPlanet, PLANETS, position, separation, SUN_DIAMETER_KM, VALID_YEARS, type PlanetId } from './planets.ts'
 import './SolarSystemPanel.css'
 
@@ -187,7 +188,7 @@ export function SolarSystemPanel() {
   const million = (km: number) => `${(km / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 })} million km`
 
   return (
-    <Panel title="The solar system" wide>
+    <Panel title="The solar system" subtitle="The planets, to scale in time if not in size" icon={<PlanetIcon />} wide>
       <div className="solar-layout">
         <div>
           <canvas

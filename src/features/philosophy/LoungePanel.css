@@ -1,0 +1,855 @@
+/* The lounge conversation: the resting room behind, firelight over it, the
+   companion above the other chair and the conversation down the right. */
+
+.lounge-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  font-family: var(--serif);
+  /* Drag the room to glance round it. */
+  cursor: grab;
+  touch-action: none;
+}
+
+.lounge-scene:active {
+  cursor: grabbing;
+}
+
+.lounge-column {
+  cursor: auto;
+  touch-action: auto;
+}
+
+/* Firelight, centred on the grate, keeps the still room alive. Only opacity animates, which costs next to nothing. */
+.lounge-firelight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 38% 42% at var(--fire-x) var(--fire-y),
+    rgba(255, 150, 60, 0.2),
+    rgba(255, 120, 40, 0.07) 55%,
+    transparent 80%
+  );
+  mix-blend-mode: screen;
+  animation: firelight 3.7s steps(18, end) infinite;
+}
+
+@keyframes firelight {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  13% {
+    opacity: 1;
+  }
+  27% {
+    opacity: 0.65;
+  }
+  41% {
+    opacity: 0.95;
+  }
+  58% {
+    opacity: 0.72;
+  }
+  74% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 0.7;
+  }
+}
+
+/* Darken the right-hand side behind the conversation, and the edges a little, like a seated view by firelight. */
+.lounge-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 45%, rgba(10, 6, 3, 0.55) 78%),
+    radial-gradient(ellipse 80% 80% at 35% 50%, transparent 55%, rgba(8, 5, 2, 0.5));
+  animation: fade-in 0.6s ease both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The companion */
+
+.companion {
+  --size: clamp(84px, 11vw, 150px);
+  position: absolute;
+  left: var(--companion-x);
+  top: var(--companion-y);
+  width: var(--size);
+  height: var(--size);
+  transform: translate(-50%, -50%);
+  animation: companion-arrive 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  pointer-events: none;
+}
+
+@keyframes companion-arrive {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.6);
+  }
+}
+
+.companion > div {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.companion-halo {
+  inset: -70% !important;
+  background: radial-gradient(circle, rgba(255, 196, 120, 0.32), rgba(255, 160, 80, 0.1) 40%, transparent 68%);
+  animation: breathe-halo 6s ease-in-out infinite;
+}
+
+.companion-core {
+  inset: 22% !important;
+  background: radial-gradient(
+    circle at 50% 42%,
+    #fffaf0 0%,
+    #ffe2b0 22%,
+    #f2b264 46%,
+    rgba(224, 140, 70, 0.55) 66%,
+    rgba(224, 140, 70, 0) 74%
+  );
+  box-shadow:
+    0 0 30px rgba(255, 190, 110, 0.55),
+    0 0 80px rgba(255, 150, 70, 0.25);
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.companion-ring {
+  border: 1px solid transparent;
+  border-top-color: rgba(255, 220, 170, 0.55);
+  border-left-color: rgba(255, 220, 170, 0.18);
+  animation: spin 22s linear infinite;
+}
+
+.companion-ring-b {
+  inset: 9% !important;
+  border-top-color: transparent;
+  border-bottom-color: rgba(255, 210, 150, 0.4);
+  border-right-color: rgba(255, 210, 150, 0.12);
+  animation-duration: 34s;
+  animation-direction: reverse;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.88;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes breathe-halo {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tiny embers drifting up from the presence. */
+.companion-sparks i {
+  --i: 0;
+  position: absolute;
+  left: calc(36% + var(--i) * 4.5%);
+  bottom: 40%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffd9a0;
+  box-shadow: 0 0 6px #ffb060;
+  opacity: 0;
+  animation: rise 4.6s ease-out infinite;
+  animation-delay: calc(var(--i) * -0.66s);
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc((var(--i) - 3) * 6px), -130%);
+  }
+}
+
+.companion-label {
+  position: absolute;
+  top: calc(100% + 26px);
+  left: 50%;
+  width: max-content;
+  margin: 0;
+  transform: translateX(-50%);
+  color: rgba(255, 236, 210, 0.92);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+.companion-label span {
+  display: block;
+  color: rgba(255, 214, 160, 0.7);
+  font-size: 0.75rem;
+  font-style: italic;
+  letter-spacing: 0.08em;
+}
+
+/* Leaning in while the visitor types. */
+.companion-attentive .companion-core {
+  animation-duration: 4s;
+  filter: brightness(1.12);
+}
+
+/* Thinking: the rings quicken and the light pulses. */
+.companion-thinking .companion-ring {
+  animation-duration: 3.2s;
+}
+
+.companion-thinking .companion-ring-b {
+  animation-duration: 4.8s;
+}
+
+.companion-thinking .companion-core {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+/* Speaking: a quick flutter of brightness, like a voice. */
+.companion-speaking .companion-core {
+  animation: speak 0.42s ease-in-out infinite alternate;
+}
+
+.companion-speaking .companion-halo {
+  animation-duration: 1.4s;
+}
+
+@keyframes speak {
+  from {
+    transform: scale(0.97);
+    filter: brightness(1);
+  }
+  to {
+    transform: scale(1.05);
+    filter: brightness(1.18);
+  }
+}
+
+/* The conversation column */
+
+.lounge-column {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  width: min(460px, calc(100% - 32px));
+  border: 1px solid var(--glass-edge);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(34, 24, 16, 0.78), rgba(20, 14, 9, 0.86));
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 240, 220, 0.08);
+  animation: column-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lounge-column:focus {
+  outline: none;
+}
+
+@keyframes column-in {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+
+.lounge-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 12px 22px;
+  border-bottom: 1px solid rgba(244, 234, 216, 0.08);
+}
+
+.lounge-place {
+  margin: 0 0 2px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lounge-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: -8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.lounge-mode:hover:not(:disabled) {
+  background: rgba(244, 234, 216, 0.07);
+}
+
+.lounge-mode[aria-expanded='true'] svg:last-child {
+  transform: rotate(180deg);
+}
+
+.lounge-mode .mode-glyph {
+  color: var(--accent);
+}
+
+.lounge-header-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 34px;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid rgba(244, 234, 216, 0.14);
+  border-radius: 10px;
+  background: rgba(244, 234, 216, 0.04);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.icon-button:hover:not(:disabled) {
+  border-color: rgba(224, 164, 88, 0.5);
+  background: rgba(224, 164, 88, 0.12);
+  color: var(--ink);
+}
+
+.icon-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.icon-button.stand {
+  padding: 0 12px;
+}
+
+/* Choosing the kind of conversation */
+
+.mode-sheet {
+  padding: 12px 18px 16px;
+  border-bottom: 1px solid rgba(244, 234, 216, 0.08);
+  animation: sheet-in 0.25s ease both;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mode-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  align-content: start;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.1);
+  border-radius: 12px;
+  background: rgba(244, 234, 216, 0.03);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.mode-card:hover {
+  border-color: rgba(224, 164, 88, 0.45);
+  background: rgba(224, 164, 88, 0.07);
+}
+
+.mode-card[aria-checked='true'] {
+  border-color: var(--accent);
+  background: rgba(224, 164, 88, 0.14);
+}
+
+.mode-card .mode-glyph {
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.mode-card strong {
+  font-size: 0.92rem;
+  font-weight: normal;
+}
+
+.mode-card span {
+  grid-column: 2;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* The conversation itself */
+
+.lounge-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 22px 12px;
+  overflow-y: auto;
+  /* Lines fade out as they scroll under the header. */
+  mask-image: linear-gradient(180deg, transparent, #000 18px);
+}
+
+.line p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.line-companion {
+  color: #f6ecdc;
+  font-size: 1.04rem;
+  line-height: 1.65;
+  animation: line-in 0.35s ease both;
+}
+
+.line-companion > p::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 10px 2px 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff1d6, #e0a458);
+  box-shadow: 0 0 8px rgba(255, 180, 100, 0.8);
+  vertical-align: middle;
+}
+
+.line-speaking {
+  cursor: pointer;
+}
+
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-left: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.7;
+  animation: breathe 0.8s ease-in-out infinite;
+}
+
+.line-visitor {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 10px 14px;
+  border: 1px solid rgba(224, 164, 88, 0.25);
+  border-radius: 16px 16px 4px 16px;
+  background: rgba(224, 164, 88, 0.13);
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  animation: line-in 0.25s ease both;
+}
+
+@keyframes line-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.line-actions {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 0 14px;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+.line-companion:hover .line-actions,
+.line-actions:focus-within {
+  opacity: 1;
+}
+
+.line-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.line-actions button:hover:not(:disabled) {
+  background: rgba(244, 234, 216, 0.07);
+  color: var(--ink);
+}
+
+.line-actions button:disabled {
+  color: var(--accent);
+  cursor: default;
+}
+
+.lounge-start {
+  display: grid;
+  gap: 12px;
+  animation: line-in 0.4s 0.2s ease both;
+}
+
+.lounge-mode-note {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.lounge-small {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.lounge-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.follow-ups {
+  animation: line-in 0.3s 0.15s ease both;
+}
+
+.chip {
+  padding: 7px 13px;
+  border: 1px solid rgba(244, 234, 216, 0.16);
+  border-radius: 999px;
+  background: rgba(244, 234, 216, 0.04);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s;
+}
+
+.chip:hover {
+  border-color: rgba(224, 164, 88, 0.55);
+  background: rgba(224, 164, 88, 0.1);
+  transform: translateY(-1px);
+}
+
+.lounge-thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dot 1.2s ease-in-out infinite;
+}
+
+.dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.lounge-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(224, 138, 122, 0.35);
+  border-radius: 12px;
+  background: rgba(224, 138, 122, 0.08);
+  color: #f3cbbf;
+  font-size: 0.9rem;
+}
+
+/* Writing a message */
+
+.lounge-composer {
+  padding: 10px 16px 14px;
+  border-top: 1px solid rgba(244, 234, 216, 0.08);
+}
+
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid rgba(244, 234, 216, 0.16);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.28);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.composer-box:focus-within {
+  border-color: rgba(224, 164, 88, 0.6);
+  box-shadow: 0 0 0 3px rgba(224, 164, 88, 0.12);
+}
+
+.composer-box textarea {
+  flex: 1;
+  min-height: 26px;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.45;
+  resize: none;
+}
+
+.composer-box textarea::placeholder {
+  color: rgba(201, 185, 156, 0.6);
+  font-style: italic;
+}
+
+.composer-count {
+  align-self: center;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #1c150e;
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+.send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.send:disabled {
+  background: rgba(244, 234, 216, 0.12);
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.composer-hint {
+  margin: 8px 2px 0;
+  color: rgba(201, 185, 156, 0.6);
+  font-size: 0.72rem;
+}
+
+.composer-hint kbd,
+.lounge-column kbd {
+  padding: 0 4px;
+  border: 1px solid rgba(244, 234, 216, 0.18);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.7rem;
+}
+
+/* Phones and narrow windows: the conversation fills the lower part, the companion glows above it. */
+@media (max-width: 760px) {
+  .lounge-column {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    height: min(68vh, 640px);
+  }
+
+  .companion {
+    left: 50%;
+    top: 15vh;
+    --size: 72px;
+  }
+
+  .companion-label {
+    top: calc(100% + 14px);
+  }
+
+  .lounge-shade {
+    background: linear-gradient(180deg, transparent 20%, rgba(10, 6, 3, 0.6) 55%);
+  }
+
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .composer-hint {
+    display: none;
+  }
+
+  .lounge-header {
+    padding: 14px 12px 10px 16px;
+  }
+
+  .lounge-mode {
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+
+  .icon-button.stand span {
+    display: none;
+  }
+
+  .icon-button.stand {
+    padding: 0 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lounge-firelight,
+  .companion-sparks {
+    display: none;
+  }
+}
+
+/* The Library count in the header, which a saved insight flies into. */
+.lounge-shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.lounge-shelf-count {
+  display: inline-block;
+  min-width: 1ch;
+  color: var(--accent);
+  animation: shelf-bump 0.5s ease 0.7s both;
+}
+
+@keyframes shelf-bump {
+  40% {
+    transform: scale(1.6);
+  }
+}
+
+.lounge-flying-bookmark {
+  position: fixed;
+  z-index: 100;
+  width: 12px;
+  height: 18px;
+  pointer-events: none;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  filter: drop-shadow(0 0 6px rgba(224, 164, 88, 0.8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lounge-shelf-count {
+    animation: none;
+  }
+}

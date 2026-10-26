@@ -12,7 +12,10 @@ import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { MAP_OVERLAY, MapPanel } from './MapPanel.tsx'
+import { PanelLoading } from './Panel.tsx'
 import { SETTINGS_OVERLAY, SettingsPanel } from './SettingsPanel.tsx'
+import { VISIT_OVERLAY } from '../features/visit/overlayId.ts'
+import { VisitPanel } from '../features/visit/VisitPanel.tsx'
 
 // Panels that only some rooms use load when first opened: the London map pulls in Leaflet.
 const CityExplorerPanel = lazy(() =>
@@ -29,8 +32,8 @@ const SolarSystemPanel = lazy(() =>
 )
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
-/** Keys that open a panel from anywhere: M for the map, O for settings, L for the library. */
-const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library' }
+/** Keys that open a panel from anywhere: M for the map, O for settings, L for the library, V for your visit. */
+const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library', KeyV: VISIT_OVERLAY }
 
 /** Shows whichever full-screen panel is open, and handles the keys that open them. */
 export function Overlays() {
@@ -55,10 +58,11 @@ export function Overlays() {
   if (overlay === 'lounge') return <LoungePanel />
   if (overlay === MAP_OVERLAY) return <MapPanel />
   if (overlay === SETTINGS_OVERLAY) return <SettingsPanel />
+  if (overlay === VISIT_OVERLAY) return <VisitPanel />
   const exhibit = exhibitFromOverlay(overlay)
   if (exhibit)
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PanelLoading />}>
         <ExhibitPanel key={exhibit} id={exhibit} />
       </Suspense>
     )
@@ -73,7 +77,7 @@ export function Overlays() {
   }[overlay ?? '']
   if (Lazy)
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PanelLoading />}>
         <Lazy />
       </Suspense>
     )

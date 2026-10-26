@@ -2,55 +2,160 @@
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
-  padding: 16px;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.6));
+  /* Pinned from the top rather than centred, so opening How to play grows the card downwards instead of shifting it. */
+  justify-items: center;
+  align-items: start;
+  padding: max(16px, calc(50vh - 230px)) 16px 16px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.65));
   pointer-events: none;
+  animation: intro-in 0.6s ease both;
+}
+
+@keyframes intro-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .intro-panel {
-  max-width: 420px;
-  padding: 28px 32px;
-  border-radius: 12px;
-  background: var(--panel);
+  width: min(440px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 30px 32px 22px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(36, 26, 18, 0.72), rgba(20, 14, 9, 0.84));
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 240, 220, 0.08);
   text-align: center;
-  backdrop-filter: blur(6px);
+}
+
+.intro-kicker {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
 .intro-panel h1 {
-  margin: 0 0 6px;
-  font-size: 1.9rem;
+  margin: 4px 0 6px;
+  font-size: 2.2rem;
   font-weight: normal;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .tagline {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   color: var(--ink-muted);
   font-style: italic;
 }
 
 .start {
-  margin: 0 0 12px;
-  color: var(--accent);
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 30px rgba(224, 164, 88, 0.35);
+  color: #1c150e;
+  animation: start-glow 2.6s ease-in-out infinite;
+}
+
+@keyframes start-glow {
+  50% {
+    box-shadow: 0 0 44px rgba(224, 164, 88, 0.6);
+  }
 }
 
 .intro-actions {
   display: flex;
   gap: 8px;
   justify-content: center;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   pointer-events: auto;
+}
+
+.how-to-play {
+  border-top: 1px solid rgba(244, 234, 216, 0.08);
+  pointer-events: auto;
+  text-align: left;
+}
+
+.how-to-toggle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.how-to-toggle:hover,
+.how-to-toggle:focus-visible {
+  color: var(--ink);
+}
+
+.how-to-chevron {
+  transition: transform 0.35s ease;
+}
+
+.how-to-play.open .how-to-chevron {
+  transform: rotate(180deg);
+}
+
+.how-to-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease;
+}
+
+.how-to-drawer > div {
+  overflow: hidden;
+}
+
+.how-to-play.open .how-to-drawer {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-to-drawer,
+  .how-to-chevron {
+    transition: none;
+  }
 }
 
 .controls {
   display: grid;
-  gap: 6px;
-  margin: 0;
+  gap: 8px;
+  margin: 10px 0 4px;
   padding: 0;
   list-style: none;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--ink-muted);
+}
+
+.controls li {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls li > span:first-child {
+  color: var(--ink);
 }
 
 kbd {
@@ -81,14 +186,40 @@ kbd {
   position: fixed;
   left: 50%;
   bottom: 18%;
-  transform: translateX(-50%);
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: var(--panel);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 10px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: rgba(22, 16, 10, 0.62);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 0.98rem;
   white-space: nowrap;
   pointer-events: none;
+  transform: translateX(-50%);
+  animation: prompt-in 0.22s ease both;
+}
+
+.prompt kbd {
+  margin: 0;
+  min-width: 26px;
+  padding: 2px 7px;
+  border-color: rgba(224, 164, 88, 0.6);
+  border-bottom-width: 2px;
+  border-radius: 7px;
+  background: rgba(224, 164, 88, 0.16);
+  color: #ffe9c9;
+  text-align: center;
+}
+
+@keyframes prompt-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
 }
 
 .room-name {
@@ -100,6 +231,15 @@ kbd {
   letter-spacing: 0.04em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   pointer-events: none;
+}
+
+.room-name .clock {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(244, 234, 216, 0.3);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
 }
 
 .fade {
@@ -146,11 +286,22 @@ kbd {
   position: fixed;
   top: 16px;
   right: 16px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: var(--panel);
-  font-size: 0.85rem;
+  padding: 8px 14px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 12px;
+  background: rgba(22, 16, 10, 0.7);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  font-size: 0.88rem;
   pointer-events: none;
+  animation: toast-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 }
 
 .eyepiece {
@@ -170,5 +321,94 @@ kbd {
   color: var(--ink-muted);
   font-size: 0.9rem;
   text-align: center;
+  pointer-events: none;
+}
+
+/* The spyglass has a smaller, brass-rimmed field. */
+.eyepiece-spyglass {
+  background: radial-gradient(
+    circle at center,
+    transparent 0,
+    transparent 31vmin,
+    rgba(150, 110, 50, 0.9) 31.5vmin,
+    rgba(70, 50, 20, 0.95) 33vmin,
+    #000 34vmin
+  );
+}
+
+.spy-label {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 236, 200, 0.5);
+  border-radius: 999px;
+  background: rgba(20, 16, 10, 0.6);
+  color: #fff4dc;
+  font:
+    13px Georgia,
+    'Times New Roman',
+    serif;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+}
+
+/* First-visit pointers, bottom left, fading in after a moment and out on their own. */
+.welcome {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: min(300px, calc(100% - 48px));
+  padding: 14px 18px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  background: rgba(20, 14, 9, 0.78);
+  backdrop-filter: blur(12px);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  pointer-events: none;
+  animation: welcome 16s ease both;
+}
+
+.welcome-title {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.welcome ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-muted);
+}
+
+@keyframes welcome {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  10%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* On a touch screen the whole start screen is tappable. */
+.intro.intro-touch {
+  pointer-events: auto;
+}
+
+/* Clear of the thumb stick. */
+.welcome.welcome-touch {
+  top: 64px;
+  bottom: auto;
+  z-index: 3;
   pointer-events: none;
 }

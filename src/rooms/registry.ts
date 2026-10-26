@@ -10,16 +10,23 @@ import {
   HALL_FURNITURE,
   HALL_PLANTS,
   LAB_COAT_STAND,
-  COURTYARD_BENCH,
+  COURTYARD_BENCHES,
+  COURTYARD_FOUNTAIN,
+  COURTYARD_PLANTERS,
   DOOR_POTS,
   LABORATORY,
   LOUNGE,
   MAIN_HALL,
   MAP_TABLE,
+  LIBRARY,
   MUSEUM,
+  MUSEUM_ROPE,
   OBSERVATORY,
+  OBSERVATORY_TERRACE_DOOR,
   observatoryWallPoint,
   PORTICO,
+  QUESTION_STAND,
+  TERRACE,
   THEATRE,
   WORKSHOP,
   THEATRE_AISLE,
@@ -32,6 +39,8 @@ import {
 
 // Every room the Room Manager knows about. Interiors are loaded on demand
 // through `load`, so each one ends up in its own code-split chunk.
+
+const terraceDoor = observatoryWallPoint(OBSERVATORY_TERRACE_DOOR, 0.15)
 
 const hallL = MAIN_HALL.length / 2 - 0.05
 const hallW = MAIN_HALL.width / 2 - 0.05
@@ -67,7 +76,13 @@ const mainHallDoors: DoorDefinition[] = [
     rotationY: Math.PI / 2,
     target: { roomId: 'museum', doorId: 'hall' },
   },
-  { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
+  {
+    id: 'library',
+    label: 'Library',
+    position: [0, 0, -hallL],
+    rotationY: 0,
+    target: { roomId: 'library', doorId: 'hall' },
+  },
   {
     id: 'laboratory',
     label: 'Laboratory',
@@ -90,7 +105,8 @@ export const rooms: Record<string, RoomDefinition> = {
     displayName: 'Main Hall',
     colliders: [
       ...wallColliders(MAIN_HALL.width, MAIN_HALL.length),
-      boxCollider(0, 0, 2.2, 2.2),
+      // The round table in the middle of the hall.
+      boxCollider(0, 0, 1.5, 1.5),
       ...HALL_PLANTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       boxCollider(...MAP_TABLE, 1.1, 1.6),
       boxCollider(...HALL_FURNITURE.coatStand, 0.5, 0.5),
@@ -152,8 +168,37 @@ export const rooms: Record<string, RoomDefinition> = {
         rotationY: Math.PI,
         target: { roomId: 'mainHall', doorId: 'observatory' },
       },
+      {
+        id: 'terrace',
+        label: 'Roof Terrace',
+        prompt: 'Press E to step out onto the roof terrace',
+        position: [terraceDoor[0], 0, terraceDoor[1]],
+        rotationY: OBSERVATORY_TERRACE_DOOR + Math.PI,
+        target: { roomId: 'terrace', doorId: 'observatory' },
+      },
     ],
     load: () => import('./Observatory.tsx'),
+  },
+  terrace: {
+    id: 'terrace',
+    displayName: 'Roof Terrace',
+    colliders: [
+      // The balustrade on three sides and the dome's wall behind, kept a little short of their faces.
+      ...wallColliders(TERRACE.width - 0.8, TERRACE.depth - 0.8),
+      boxCollider(...TERRACE.bench, 1.7, 0.6),
+      boxCollider(...TERRACE.telescope, 0.9, 0.9),
+      ...TERRACE.bays.map(([x, z]) => boxCollider(x, z, 0.8, 0.8)),
+    ],
+    doors: [
+      {
+        id: 'observatory',
+        label: 'Observatory',
+        position: [0, 0, -TERRACE.depth / 2 + 0.05],
+        rotationY: 0,
+        target: { roomId: 'observatory', doorId: 'terrace' },
+      },
+    ],
+    load: () => import('./RoofTerrace.tsx'),
   },
   laboratory: {
     id: 'laboratory',
@@ -195,8 +240,11 @@ export const rooms: Record<string, RoomDefinition> = {
     colliders: [
       ...wallColliders(LOUNGE.width, LOUNGE.length),
       // Armchairs, table and fireplace, then the bookcases along each side wall.
-      boxCollider(0, LOUNGE.seatingZ, LOUNGE.chairX * 2 + 1, 1),
-      boxCollider(0, -LOUNGE.length / 2 + 0.2, 2.3, 0.5),
+      // The two armchairs and the table between them.
+      boxCollider(0, LOUNGE.seatingZ, LOUNGE.chairX * 2 + 1, 1.1),
+      // The hearth and fireplace.
+      boxCollider(0, -LOUNGE.length / 2 + 0.35, 2.4, 0.7),
+      boxCollider(...LOUNGE.chessTable, 0.9, 0.9),
       boxCollider(-LOUNGE.width / 2 + 0.2, LOUNGE.bookcaseZ, 0.4, LOUNGE.bookcaseLength),
       boxCollider(LOUNGE.width / 2 - 0.2, LOUNGE.bookcaseZ, 0.4, LOUNGE.bookcaseLength),
     ],
@@ -210,6 +258,32 @@ export const rooms: Record<string, RoomDefinition> = {
       },
     ],
     load: () => import('./PhilosophyLounge.tsx'),
+  },
+  library: {
+    id: 'library',
+    displayName: 'Library',
+    colliders: [
+      ...wallColliders(LIBRARY.width, LIBRARY.length),
+      // The bookcases down each side and on the far wall, and the ladder's feet.
+      boxCollider(-LIBRARY.width / 2 + 0.2, LIBRARY.sideCases.z, 0.4, LIBRARY.sideCases.length),
+      boxCollider(LIBRARY.width / 2 - 0.2, LIBRARY.sideCases.z, 0.4, LIBRARY.sideCases.length),
+      boxCollider(-LIBRARY.backCases.x, -LIBRARY.length / 2 + 0.2, LIBRARY.backCases.length, 0.4),
+      boxCollider(LIBRARY.backCases.x, -LIBRARY.length / 2 + 0.2, LIBRARY.backCases.length, 0.4),
+      boxCollider(-LIBRARY.width / 2 + 0.7, 1.4, 0.7, 0.6),
+      // The reading table with its chairs, and the desk.
+      boxCollider(...LIBRARY.table.at, LIBRARY.table.width + 1.1, LIBRARY.table.length + 0.2),
+      boxCollider(...LIBRARY.desk, 1.9, 0.8),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, LIBRARY.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'library' },
+      },
+    ],
+    load: () => import('./Library.tsx'),
   },
   workshop: {
     id: 'workshop',
@@ -242,7 +316,7 @@ export const rooms: Record<string, RoomDefinition> = {
         kind === 'tall'
           ? boxCollider(...at, 1.4, 0.9)
           : kind === 'open'
-            ? boxCollider(...at, 1.0, 1.0)
+            ? boxCollider(...at, MUSEUM_ROPE * 2 + 0.2, MUSEUM_ROPE * 2 + 0.2)
             : boxCollider(...at, 1.1, 0.9),
       ),
       // The open plinth's label stand.
@@ -269,9 +343,11 @@ export const rooms: Record<string, RoomDefinition> = {
       // Café tables and the chalkboard outside it.
       ...CAFE_TABLES.map(([x, z]) => boxCollider(x, z, 1.6, 0.9)),
       boxCollider(1.3, CAFE.frontZ - 0.75, 0.6, 0.5),
-      boxCollider(-4.5, -2, 0.8, 0.8),
-      boxCollider(4.5, -2, 0.8, 0.8),
-      boxCollider(...COURTYARD_BENCH, 0.5, 1.6),
+      ...COURTYARD_PLANTERS.map(([x, z]) => boxCollider(x, z, 0.8, 0.8)),
+      ...COURTYARD_BENCHES.map(([x, z]) => boxCollider(x, z, 0.5, 1.6)),
+      // The fountain's basin.
+      boxCollider(...COURTYARD_FOUNTAIN.at, 2.3 * COURTYARD_FOUNTAIN.scale, 2.3 * COURTYARD_FOUNTAIN.scale),
+      boxCollider(...QUESTION_STAND, 0.5, 0.5),
       ...DOOR_POTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       // Portico columns either side of the front door.
       boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),

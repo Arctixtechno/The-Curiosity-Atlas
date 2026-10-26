@@ -1,6 +1,7 @@
 import { Bounds, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Panel } from '../../components/Panel.tsx'
+import { ColumnIcon } from '../../components/icons.tsx'
 import { prefersReducedMotion } from '../../world/settings.ts'
 import { EXHIBITS } from './exhibits.ts'
 import { MODELS } from './models.tsx'
@@ -12,7 +13,7 @@ export function ExhibitPanel({ id }: { id: ExhibitId }) {
   const exhibit = EXHIBITS[id]
   const Model = MODELS[id]
   return (
-    <Panel title={exhibit.name} wide>
+    <Panel title={exhibit.name} subtitle="From the museum's collection" icon={<ColumnIcon />} wide>
       <div className="exhibit-layout">
         <div className="exhibit-view">
           <Canvas camera={{ fov: 30, position: [0, 0.1, 1] }} dpr={[1, 1.5]} gl={{ antialias: true }}>

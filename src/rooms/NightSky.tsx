@@ -1,24 +1,31 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AdditiveBlending,
   BackSide,
   BufferGeometry,
   CanvasTexture,
   Color,
+  CubeCamera,
   DataTexture,
   Float32BufferAttribute,
   LinearFilter,
   LinearMipmapLinearFilter,
   Matrix4,
+  Mesh as ThreeMesh,
   RepeatWrapping,
+  Scene,
   ShaderMaterial,
+  SphereGeometry,
   SRGBColorSpace,
   Vector3,
+  WebGLCubeRenderTarget,
   type Mesh,
+  type WebGLRenderer,
   type MeshBasicMaterial,
 } from 'three'
 import { useGame } from '../world/store.ts'
+import { requestFrame, useMotion } from '../world/FrameScheduler.tsx'
 
 // A night sky generated afresh on every visit: a Milky Way band, coloured
 // stars, faint nebulae, a cratered moon and the odd shooting star. Directions
@@ -27,6 +34,11 @@ import { useGame } from '../world/store.ts'
 // in radians above the horizon.
 
 const SKY_RADIUS = 85
+/**
+ * The moon's radius at about 80 m away: half a degree across, as it really looks, so a small bright disc by eye
+ * whose seas and craters only show through the telescope.
+ */
+const MOON_RADIUS = 0.36
 const STAR_RADIUS = 80
 /** Azimuth of -z, the way the observatory's opening faces. The Milky Way passes overhead there. */
 const OPENING_U = 0.75
@@ -328,6 +340,8 @@ function starMaterial() {
 /** Twinkles the stars, with points sized for the screen's pixel density. */
 function Stars({ geometry, material }: { geometry: BufferGeometry; material: ShaderMaterial }) {
   const pixelRatio = useThree((s) => s.viewport.dpr)
+  // Twinkling is slow enough to look smooth at a modest frame rate.
+  useMotion(15)
   useFrame(({ clock }) => {
     material.uniforms.time.value = clock.elapsedTime
     material.uniforms.pixelRatio.value = pixelRatio
@@ -580,6 +594,8 @@ function ShootingStar({ rand }: { rand: Rand }) {
     m.quaternion.setFromRotationMatrix(basis)
     m.position.copy(s.head).addScaledVector(xAxis, -METEOR.length / 2)
     material.opacity = Math.sin(s.t * Math.PI)
+    // A meteor is over in a moment, so it's drawn at full speed while it lasts.
+    requestFrame()
   })
 
   return (
@@ -598,12 +614,66 @@ function ShootingStar({ rand }: { rand: Rand }) {
   )
 }
 
+/** Size of each face of the baked sky, in pixels: about one texel per screen pixel at the normal field of view. */
+const BAKED_SKY_SIZE = 1024
+
+/**
+ * Paints the sky's shader once into a cube map. Its noise and stars don't
+ * change, so the room samples this instead of working the sky out for every
+ * pixel on every frame, which was most of the observatory's cost.
+ */
+function bakeSky(gl: WebGLRenderer, material: ShaderMaterial) {
+  const target = new WebGLCubeRenderTarget(BAKED_SKY_SIZE)
+  const scene = new Scene()
+  const geometry = new SphereGeometry(SKY_RADIUS, 48, 24)
+  scene.add(new ThreeMesh(geometry, material))
+  new CubeCamera(1, SKY_RADIUS * 2, target).update(gl, scene)
+  geometry.dispose()
+  return target
+}
+
+/** Shows the baked sky: one texture look-up per pixel. */
+function bakedSkyMaterial(target: WebGLCubeRenderTarget) {
+  return new ShaderMaterial({
+    uniforms: { sky: { value: target.texture } },
+    vertexShader: /* glsl */ `
+      varying vec3 vDir;
+      void main() {
+        vDir = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform samplerCube sky;
+      varying vec3 vDir;
+      void main() {
+        gl_FragColor = vec4(textureCube(sky, vDir).rgb, 1.0);
+      }
+    `,
+    side: BackSide,
+    depthWrite: false,
+  })
+}
+
 /** The night sky outside the observatory, different on every visit. `moon` is where the moon sits. */
 export function NightSky({ moon }: { moon: [number, number, number] }) {
   const rand = useMemo(() => randomSource(Math.floor(Math.random() * 2147483646) + 1), [])
   // The moon's glow in the air only shows by eye, not through the eyepiece.
   const looking = useGame((s) => s.viewing !== null)
   const sky = useMemo(() => skyMaterial(rand, new Vector3(...moon)), [rand, moon])
+  // Through the telescope the full shader draws the sky, so fainter stars come out as you zoom; by eye, the baked copy.
+  const gl = useThree((s) => s.gl)
+  // Baked in an effect so the cube map lives exactly as long as the room shows it.
+  const [baked, setBaked] = useState<{ target: WebGLCubeRenderTarget; material: ShaderMaterial } | null>(null)
+  useEffect(() => {
+    const target = bakeSky(gl, sky.material)
+    const material = bakedSkyMaterial(target)
+    setBaked({ target, material })
+    return () => {
+      target.dispose()
+      material.dispose()
+    }
+  }, [gl, sky])
   const stars = useMemo(() => makeStars(rand, sky.toGalaxy), [rand, sky])
   const starShading = useMemo(starMaterial, [])
   const moonMap = useMemo(() => paintMoon(rand), [rand])
@@ -625,17 +695,18 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
   )
   return (
     <group>
-      <mesh material={sky.material}>
-        <sphereGeometry args={[SKY_RADIUS, 64, 32]} />
+      {/* Drawn after the room, so its costly shading only runs where the dome's opening leaves sky showing. */}
+      <mesh material={looking || !baked ? sky.material : baked.material} renderOrder={1}>
+        <sphereGeometry args={[SKY_RADIUS, 48, 24]} />
       </mesh>
       <Stars geometry={stars} material={starShading} />
       {/* Tilted so its poles sit side-on to the room, where the map is least stretched. */}
       <mesh position={moon} rotation={[0.86, 2.2, 0]} material={moonShading}>
-        <sphereGeometry args={[2, 128, 64]} />
+        <sphereGeometry args={[MOON_RADIUS, 48, 24]} />
       </mesh>
       {/* A faint glow of moonlight in the air round it. */}
       <mesh position={moon} renderOrder={1} visible={!looking} onUpdate={(m) => m.lookAt(0, 0, 0)}>
-        <planeGeometry args={[18, 18]} />
+        <planeGeometry args={[MOON_RADIUS * 12, MOON_RADIUS * 12]} />
         <meshBasicMaterial
           map={halo}
           color="#dfe6ff"

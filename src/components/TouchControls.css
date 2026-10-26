@@ -1,0 +1,69 @@
+.touch-controls {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Everywhere not covered by a control: drag to look around. */
+.touch-look {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.touch-stick {
+  position: absolute;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(28px, env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 50%;
+  background: rgba(22, 16, 10, 0.32);
+  backdrop-filter: blur(6px);
+  touch-action: none;
+}
+
+.touch-stick span {
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(244, 234, 216, 0.4);
+  border-radius: 50%;
+  background: rgba(244, 234, 216, 0.22);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.touch-buttons {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+}
+
+.touch-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 12px;
+  background: rgba(22, 16, 10, 0.55);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  touch-action: manipulation;
+}
+
+/* The prompt becomes the button that uses what's in front of you. */
+.prompt.touch-prompt {
+  padding: 12px 20px;
+  font: inherit;
+  pointer-events: auto;
+  touch-action: manipulation;
+}

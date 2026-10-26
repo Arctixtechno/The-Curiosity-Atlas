@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { HowItWorks } from '../../components/HowItWorks.tsx'
+import { GearIcon } from '../../components/icons.tsx'
 import { CHALLENGES, GEAR_START, MAX_STAGES, meetsChallenge, TEETH, train, type Stage } from './gears.ts'
 import './Workshop.css'
 
@@ -156,7 +158,7 @@ export function GearPanel() {
   const format = (n: number) => (Number.isInteger(n) ? `${n}` : n < 1 ? n.toFixed(3) : n.toFixed(2))
 
   return (
-    <Panel title="Gears: the train bench" wide>
+    <Panel title="Gears" subtitle="The train bench: how gears trade speed for force" icon={<GearIcon />} wide>
       <div className="shop-layout">
         <canvas ref={canvas} width={W} height={H} className="shop-canvas" aria-label="The gear train, turning" />
         <div>
@@ -212,16 +214,17 @@ export function GearPanel() {
           </li>
         ))}
       </ul>
-      <h3>What's happening</h3>
-      <p>
-        Meshing teeth move past each other at the same speed, so a gear with three times the teeth turns a third as fast, and each
-        pair of gears turns in opposite directions. On a compound train the gears on a shared shaft turn together, so the ratios
-        multiply. The torque grows by the same ratio the speed falls, which is why a low gear helps you climb a hill.
-      </p>
-      <p className="muted">
-        Calculated from the tooth counts, for ideal gears with no friction. Real gear trains lose some power to friction at each
-        mesh.
-      </p>
+      <HowItWorks>
+        <p>
+          Meshing teeth move past each other at the same speed, so a gear with three times the teeth turns a third as fast, and
+          each pair of gears turns in opposite directions. On a compound train the gears on a shared shaft turn together, so the
+          ratios multiply. The torque grows by the same ratio the speed falls, which is why a low gear helps you climb a hill.
+        </p>
+        <p className="muted">
+          Calculated from the tooth counts, for ideal gears with no friction. Real gear trains lose some power to friction at each
+          mesh.
+        </p>
+      </HowItWorks>
     </Panel>
   )
 }

@@ -25,6 +25,8 @@ export interface GameState {
   overlay: string | null
   /** Looking through an instrument (the telescope) instead of walking about. */
   viewing: string | null
+  /** What the instrument is pointed at, when that's something to name (a landmark through the spyglass). */
+  viewingTarget: string | null
 }
 
 const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
@@ -58,6 +60,7 @@ let state: GameState = {
   toast: null,
   overlay: null,
   viewing: null,
+  viewingTarget: null,
 }
 
 const listeners = new Set<() => void>()

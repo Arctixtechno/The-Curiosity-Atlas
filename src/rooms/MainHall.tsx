@@ -1,33 +1,57 @@
-import { FountainInteraction } from '../features/discoveries/FountainInteraction.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Bench, CoatStand, ConsoleTable, Flowers } from '../components/Furnishings.tsx'
 import { Painting } from '../components/Painting.tsx'
+import { FactPlaque } from '../features/facts/FactPlaque.tsx'
 import { MapTable } from '../features/tourism/MapTable.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
 import { HALL_FURNITURE, HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
+import { useLathe } from '../hooks/useLathe.ts'
 import { RoomShell } from './RoomShell.tsx'
 
-const FOUNTAIN_RADIUS = 1.1
 const SKIRTING_HEIGHT = 0.18
 const BEAM_SPACING = 2.5
 
-function Fountain() {
-  const stone = useTiledTexture('stone', 3, 0.5)
+const PEDESTAL: [number, number][] = [
+  [0.001, 0],
+  [0.32, 0],
+  [0.34, 0.04],
+  [0.22, 0.1],
+  [0.12, 0.16],
+  [0.09, 0.3],
+  [0.12, 0.42],
+  [0.08, 0.52],
+  [0.07, 0.66],
+  [0.14, 0.72],
+  [0.001, 0.72],
+]
+
+/**
+ * A round mahogany table in the middle of the hall, as grand houses have in
+ * their entrance halls, with a big arrangement of flowers and a few books.
+ */
+function CentreTable() {
+  const wood = useTiledTexture('wood', 1, 1)
+  const pedestal = useLathe(PEDESTAL, 32)
+  const mahogany = <meshStandardMaterial color="#6a3420" map={wood} roughness={0.35} metalness={0.05} />
   return (
     <group>
-      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[FOUNTAIN_RADIUS, FOUNTAIN_RADIUS + 0.1, 0.5, 32]} />
-        <meshStandardMaterial color="#c8bca8" map={stone} bumpMap={stone} bumpScale={0.8} roughness={0.9} />
+      <mesh geometry={pedestal} castShadow>
+        {mahogany}
       </mesh>
-      <mesh position={[0, 0.46, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[FOUNTAIN_RADIUS - 0.1, 32]} />
-        <meshStandardMaterial color="#5fa3b8" emissive="#1d4e5c" roughness={0.1} metalness={0.2} />
+      <mesh position={[0, 0.745, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.72, 0.7, 0.05, 48]} />
+        {mahogany}
       </mesh>
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <cylinderGeometry args={[0.12, 0.18, 0.9, 16]} />
-        <meshStandardMaterial color="#c8bca8" map={stone} roughness={0.8} />
-      </mesh>
-      <pointLight position={[0, 1.6, 0]} color="#9fd8e8" intensity={3} distance={5} />
+      {/* A big arrangement of flowers in a stone urn. */}
+      <group position={[0, 0.77, 0]} scale={2.2}>
+        <Flowers position={[0, 0, 0]} colours={['#f4d6dc', '#fff6e8']} />
+      </group>
+      {[0, 1].map((i) => (
+        <mesh key={i} position={[0.42, 0.79 + i * 0.045, 0.18]} rotation={[0, 0.4 + i * 0.3, 0]}>
+          <boxGeometry args={[0.24, 0.04, 0.17]} />
+          <meshStandardMaterial color={i ? '#1f3a5a' : '#6a2c22'} roughness={0.8} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -129,7 +153,9 @@ function Paintings() {
       <Painting name="botanical" position={[-x, 1.85, 3]} rotationY={Math.PI / 2} width={0.9} />
       <Painting name="stars" position={[x, 1.85, -3]} rotationY={-Math.PI / 2} width={1} />
       <Painting name="hills" position={[x, 1.85, 3]} rotationY={-Math.PI / 2} />
-      <Painting name="abstract" position={[x, 1.85, 6]} rotationY={-Math.PI / 2} width={0.9} />
+      {/* "Did you know?" boards, each showing a new fact every hour of the house's clock. */}
+      <FactPlaque plaque={0} position={[x, 1.75, 6]} rotationY={-Math.PI / 2} width={0.95} />
+      <FactPlaque plaque={1} position={[x, 1.8, -8.2]} rotationY={-Math.PI / 2} width={0.85} />
       <Painting name="hills" position={[-2.5, 1.85, -z]} rotationY={0} width={0.8} />
       <Painting name="map" position={[2.5, 1.85, -z]} rotationY={0} width={0.8} />
     </>
@@ -186,8 +212,7 @@ export default function MainHall() {
       ))}
       <CeilingBeams />
       <Runner />
-      <Fountain />
-      <FountainInteraction />
+      <CentreTable />
       <MapTable />
       <CoatStand position={[HALL_FURNITURE.coatStand[0], 0, HALL_FURNITURE.coatStand[1]]} />
       <Bench position={[HALL_FURNITURE.bench[0], 0, HALL_FURNITURE.bench[1]]} rotationY={Math.PI / 2} />

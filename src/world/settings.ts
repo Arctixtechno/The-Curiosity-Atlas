@@ -4,6 +4,8 @@ import { useSyncExternalStore } from 'react'
 // the game store because the [ and ] keys change it mid-game.
 
 export type Quality = 'auto' | 'high' | 'low'
+/** Battery saver: on, off, or on whenever the computer is running on its battery. */
+export type BatterySaver = 'auto' | 'on' | 'off'
 
 export interface Settings {
   /** Auto lowers the resolution when frames drop; high and low fix it. */
@@ -12,13 +14,25 @@ export interface Settings {
   headBob: boolean
   /** Vertical field of view in degrees. */
   fov: number
+  batterySaver: BatterySaver
+  /** Loudness of the house's own sounds (rooms and footsteps), 0 to 1. Films have their own volume. */
+  soundVolume: number
+  /** All the house's sounds off, from the N key or the settings. */
+  muted: boolean
 }
 
 const KEY = 'atlas.settings'
 /** The system asks for less movement on screen. */
 export const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export const DEFAULT_SETTINGS: Settings = { quality: 'auto', headBob: !prefersReducedMotion, fov: 70 }
+export const DEFAULT_SETTINGS: Settings = {
+  quality: 'auto',
+  headBob: !prefersReducedMotion,
+  fov: 70,
+  batterySaver: 'auto',
+  soundVolume: 0.6,
+  muted: false,
+}
 export const FOV_RANGE = [55, 90] as const
 
 function load(): Settings {
@@ -44,12 +58,44 @@ export function updateSettings(partial: Partial<Settings>) {
   listeners.forEach((l) => l())
 }
 
+export function subscribeSettings(listener: () => void) {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
 export function useSettings<T>(selector: (s: Settings) => T): T {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l)
-      return () => listeners.delete(l)
-    },
-    () => selector(settings),
-  )
+  return useSyncExternalStore(subscribeSettings, () => selector(settings))
+}
+
+// Whether the computer is running on its battery, where the browser says (Chrome and Edge do; Safari and Firefox don't).
+let onBattery = false
+
+interface BatteryManager extends EventTarget {
+  charging: boolean
+}
+
+if (typeof navigator !== 'undefined' && 'getBattery' in navigator) {
+  void (navigator as Navigator & { getBattery: () => Promise<BatteryManager> })
+    .getBattery()
+    .then((battery) => {
+      const update = () => {
+        onBattery = !battery.charging
+        listeners.forEach((l) => l())
+      }
+      battery.addEventListener('chargingchange', update)
+      update()
+    })
+    .catch(() => undefined)
+}
+
+/** Whether battery saving is in effect now. */
+export function savingBattery(s: Settings = settings) {
+  return s.batterySaver === 'on' || (s.batterySaver === 'auto' && onBattery)
+}
+
+/** Battery saving, for components: re-renders when it switches on or off. */
+export function useSavingBattery() {
+  return useSyncExternalStore(subscribeSettings, () => savingBattery())
 }

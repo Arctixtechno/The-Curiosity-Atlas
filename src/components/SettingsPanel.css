@@ -1,7 +1,5 @@
-.segmented {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 6px;
+.segmented + .muted {
+  margin-top: 8px;
 }
 
 .setting {

@@ -1,11 +1,13 @@
 import { MAIN_HALL } from '../rooms/dimensions.ts'
 import { rooms } from '../rooms/registry.ts'
 import type { DoorDefinition } from '../types/room.ts'
-import { closeOverlay } from '../world/overlay.ts'
+import { VISIT_OVERLAY } from '../features/visit/overlayId.ts'
+import { closeOverlay, openOverlay } from '../world/overlay.ts'
 import { playerPose, useGame } from '../world/store.ts'
 import { travelTo } from '../world/travel.ts'
 import { useVisited } from '../world/visited.ts'
 import { Panel } from './Panel.tsx'
+import { MapIcon } from './icons.tsx'
 import './MapPanel.css'
 
 export const MAP_OVERLAY = 'map'
@@ -66,7 +68,7 @@ export function MapPanel() {
   const inHall = activeRoomId === 'mainHall'
 
   return (
-    <Panel title="Map of the house">
+    <Panel title="Map of the house" subtitle="Where you are, and the rooms you've been to" icon={<MapIcon />}>
       <svg className="map" viewBox={`${minX} ${minZ} ${maxX - minX} ${maxZ - minZ}`} role="img" aria-label="Plan of the house">
         <rect
           className={`map-room${inHall ? ' map-here' : ''}${canGo('mainHall') ? ' map-go' : ''}`}
@@ -138,6 +140,9 @@ export function MapPanel() {
         Press <kbd>M</kbd> to open or close the map. Click a room you've been in to go straight back. Rooms marked "coming later"
         open in later versions.
       </p>
+      <button className="button button-quiet" onClick={() => openOverlay(VISIT_OVERLAY)}>
+        Your visit: rooms seen and things tried (<kbd>V</kbd>)
+      </button>
     </Panel>
   )
 }

@@ -3,7 +3,10 @@
   --ink-muted: #c9b99c;
   --panel: rgba(24, 18, 12, 0.72);
   --accent: #e0a458;
-  font-family: Georgia, 'Times New Roman', serif;
+  --serif: Georgia, 'Times New Roman', serif;
+  --glass: rgba(26, 19, 13, 0.8);
+  --glass-edge: rgba(244, 222, 190, 0.14);
+  font-family: var(--serif);
   color: var(--ink);
   background: #120d08;
 }
@@ -21,6 +24,13 @@ body,
   overflow: hidden;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
 
 /* A clear ring on whatever the keyboard has focused, but not on mouse clicks. */
 :focus-visible {
@@ -38,5 +48,38 @@ body,
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* Slim scrollbars in the house's colours everywhere: a rounded brass thumb on no track, without arrow buttons.
+   Chrome ignores these pseudo-elements once scrollbar-color is set, so that is only given where they aren't supported. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(224, 164, 88, 0.3) padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(224, 164, 88, 0.55);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(224, 164, 88, 0.35) transparent;
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { CupIcon } from '../../components/icons.tsx'
 import {
   CUP_LIMIT,
   DRINKS,
@@ -14,6 +15,7 @@ import {
   type Drink,
   type ShotKind,
 } from './drinks.ts'
+import { noteDrink } from '../../world/visitLog.ts'
 import './CafePanel.css'
 
 const W = 300
@@ -150,11 +152,15 @@ export function CafePanel() {
   const add = (part: Partial<Cup>) => setCup((c) => ({ ...c, ...part }))
   const pull = (s: ShotKind) => add({ shots: [...cup.shots, s] })
   const made = identify(cup)
+  // Each new drink made is ticked off on the "Your visit" page.
+  useEffect(() => {
+    if (made) noteDrink(made.id)
+  }, [made])
   const misses = order ? differences(cup, order) : []
   const nothing = totalMl(cup) === 0
 
   return (
-    <Panel title="The café counter" wide>
+    <Panel title="The café counter" subtitle="Make a drink and see the science in the cup" icon={<CupIcon />} wide>
       <div className="cafe-layout">
         <canvas ref={canvas} width={W} height={H} className="cafe-canvas" aria-label="Your cup, side on" />
         <div>

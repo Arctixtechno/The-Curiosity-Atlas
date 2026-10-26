@@ -83,9 +83,50 @@ export const LABORATORY = {
 }
 /** Where the laboratory's coat stand stands, by its door, as [x, z]. */
 export const LAB_COAT_STAND: [number, number] = [-1.7, 5.5]
-/** Philosophy Lounge: armchairs by the fire at the far end, bookcases along both side walls. */
-export const LOUNGE = { width: 8, length: 9, height: 3.4, seatingZ: -2, chairX: 0.95, bookcaseZ: 1, bookcaseLength: 3.2 }
-export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
+/**
+ * Philosophy Lounge: two wingback chairs angled in towards the fire at the far
+ * (north) end, built-in bookcases along both side walls, a tall window on the
+ * west wall and a chess table opposite it.
+ */
+export const LOUNGE = {
+  width: 8,
+  length: 9,
+  height: 3.4,
+  seatingZ: -2.2,
+  chairX: 1.05,
+  /** How far each chair is turned from facing the other towards the fire, in radians. */
+  chairTurn: 0.42,
+  bookcaseZ: 1.2,
+  bookcaseLength: 3.2,
+  windowZ: -3,
+  chessTable: [2.75, -2.9] as [number, number],
+  /** Height of the eye when sitting in an armchair. */
+  seatedEye: 1.12,
+}
+
+/** Where an armchair stands and which way it faces (its front is local +z). `side` -1 is the visitor's, +1 the companion's. */
+export function loungeChair(side: -1 | 1) {
+  return {
+    x: side * LOUNGE.chairX,
+    z: LOUNGE.seatingZ,
+    rotationY: -side * (Math.PI / 2 + LOUNGE.chairTurn),
+  }
+}
+export const COURTYARD = { width: 20, length: 26, hedgeHeight: 1.2 }
+/** The Discovery Fountain in the middle of the courtyard: where it stands, as [x, z], and how much bigger than life-size model it's built. */
+export const COURTYARD_FOUNTAIN = { at: [0, -1.5] as [number, number], scale: 1.75 }
+/** The stand with today's question, on the house side of the fountain, as [x, z]. */
+export const QUESTION_STAND: [number, number] = [
+  COURTYARD_FOUNTAIN.at[0] + 1.2,
+  COURTYARD_FOUNTAIN.at[1] - (1.3 * COURTYARD_FOUNTAIN.scale + 2.2),
+]
+/** Stone planters with clipped trees, round the fountain, as [x, z]. */
+export const COURTYARD_PLANTERS: [number, number][] = [
+  [-7, -7],
+  [7, -7],
+  [-7, 4.5],
+  [7, 4.5],
+]
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }
 /** Bistro tables outside the café, as [x, z]. */
@@ -139,6 +180,26 @@ export const MUSEUM = {
   bench: [0, 2.4] as [number, number],
 }
 
+/**
+ * The Library: a tall reading room off the north end of the hall, lined with
+ * books. Its door is the +z wall; the reading desk with your own saved
+ * discoveries stands against the far wall.
+ */
+export const LIBRARY = {
+  width: 9,
+  length: 12,
+  height: 4.4,
+  /** The side walls' bookcases: centre along z, and length. */
+  sideCases: { z: -0.6, length: 9.6 },
+  /** The far wall's two bookcases either side of the desk: centre x (each side), and length. */
+  backCases: { x: 2.75, length: 2.9 },
+  table: { at: [0, -0.4] as [number, number], width: 1.2, length: 3.6 },
+  desk: [0, -5.35] as [number, number],
+}
+
+/** Half the width of the roped-off square round the museum's open plinth. */
+export const MUSEUM_ROPE = 0.85
+
 /** The workshop, off the laboratory's west wall. Its door is the +z wall; the benches stand along the back. */
 export const WORKSHOP = {
   width: 9,
@@ -153,11 +214,14 @@ export const WORKSHOP = {
   chest: [3.95, 2.6] as [number, number],
 }
 
-/** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
-export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
+/** Garden benches against the side hedges, facing the fountain, and the pots either side of the front porch, as [x, z]. */
+export const COURTYARD_BENCHES: [number, number][] = [
+  [-9.65, -1.5],
+  [9.65, -1.5],
+]
 export const DOOR_POTS: [number, number][] = [
-  [-2.1, -8.5],
-  [2.1, -8.5],
+  [-2.1, -COURTYARD.length / 2 + 0.5],
+  [2.1, -COURTYARD.length / 2 + 0.5],
 ]
 
 /** Columned porch around the house's front door, relative to the house wall. */
@@ -181,3 +245,25 @@ export function wallColliders(width: number, length: number, t = WALL_THICKNESS)
 export function boxCollider(x: number, z: number, sizeX: number, sizeZ: number): BoxCollider {
   return { minX: x - sizeX / 2, maxX: x + sizeX / 2, minZ: z - sizeZ / 2, maxZ: z + sizeZ / 2 }
 }
+
+/**
+ * The roof terrace beside the observatory dome: a stone terrace behind a
+ * marble balustrade, looking out over London. The door is in the middle of
+ * the back wall (z = -depth / 2). Positions are [x, z].
+ */
+export const TERRACE = {
+  width: 12,
+  depth: 7,
+  /** Height of the roof above the street, for the view. */
+  roofHeight: 24,
+  balustradeInset: 0.2,
+  bench: [-2.6, 1.2] as [number, number],
+  telescope: [3.9, 2.4] as [number, number],
+  bays: [
+    [-5.2, -2.9],
+    [5.2, -2.9],
+    [-5.2, 2.9],
+  ] as [number, number][],
+}
+/** Where the observatory's door onto the terrace is, by angle round the room (see observatoryWallPoint). */
+export const OBSERVATORY_TERRACE_DOOR = 1.55

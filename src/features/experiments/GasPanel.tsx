@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { HowItWorks } from '../../components/HowItWorks.tsx'
+import { FlaskIcon } from '../../components/icons.tsx'
 import { ATMOSPHERE_KPA, celsius, GAS_LIMITS, GAS_START, pressureKPa, rmsSpeed, type GasState } from './gasLaw.ts'
 import './Experiments.css'
 
@@ -187,7 +189,7 @@ export function GasPanel() {
   const p = pressureKPa(gas)
   const set = (change: Partial<GasState>) => setGas((g) => ({ ...g, ...change }))
   return (
-    <Panel title="Gas laws: the piston" wide>
+    <Panel title="Gas laws" subtitle="The piston: pressure, volume and temperature" icon={<FlaskIcon />} wide>
       <div className="lab-layout">
         <canvas ref={canvas} width={W} height={H} className="lab-canvas" aria-label="A gas in a cylinder under a piston" />
         <div>
@@ -241,16 +243,17 @@ export function GasPanel() {
           </button>
         </div>
       </div>
-      <h3>What's happening</h3>
-      <p>
-        Pressure is molecules hitting the walls. Squeeze the gas into half the space and they hit twice as often, so the pressure
-        doubles (Boyle's law). Heat it and they move faster, hitting harder and more often (Gay-Lussac's law). Add more gas and
-        there are more of them to hit. All three are one rule, the ideal gas law: <em>pV = nRT</em>.
-      </p>
-      <p className="muted">
-        Calculated with the ideal gas law (R = 8.314 J/mol·K), which is accurate to well under one per cent for air at these
-        conditions. The dots stand in for between 10²² and 10²³ real molecules, and move far slower than the real ones.
-      </p>
+      <HowItWorks>
+        <p>
+          Pressure is molecules hitting the walls. Squeeze the gas into half the space and they hit twice as often, so the
+          pressure doubles (Boyle's law). Heat it and they move faster, hitting harder and more often (Gay-Lussac's law). Add more
+          gas and there are more of them to hit. All three are one rule, the ideal gas law: <em>pV = nRT</em>.
+        </p>
+        <p className="muted">
+          Calculated with the ideal gas law (R = 8.314 J/mol·K), which is accurate to well under one per cent for air at these
+          conditions. The dots stand in for between 10²² and 10²³ real molecules, and move far slower than the real ones.
+        </p>
+      </HowItWorks>
     </Panel>
   )
 }

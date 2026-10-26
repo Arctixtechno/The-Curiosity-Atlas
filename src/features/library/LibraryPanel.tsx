@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { BookIcon } from '../../components/icons.tsx'
 import { library, searchLibrary, useLibrary, type LibraryItem } from '../../services/library.ts'
 import { openPanel } from '../panels.ts'
 import '../FeaturePanels.css'
@@ -17,7 +18,7 @@ export function LibraryPanel() {
 
   if (items.length === 0) {
     return (
-      <Panel title="Library of Discoveries">
+      <Panel title="Library of Discoveries" subtitle="Everything you've saved on your travels" icon={<BookIcon />}>
         <div className="feature-panel">
           <h2>Your library is empty</h2>
           <p>Discoveries you save at the fountain in the Main Hall will be kept here to revisit.</p>
@@ -32,7 +33,7 @@ export function LibraryPanel() {
   }
 
   return (
-    <Panel title="Library of Discoveries">
+    <Panel title="Library of Discoveries" subtitle="Everything you've saved on your travels" icon={<BookIcon />}>
       <div className="feature-panel">
         <h2>
           {items.length} saved {items.length === 1 ? 'discovery' : 'discoveries'}
