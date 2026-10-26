@@ -399,3 +399,16 @@ kbd {
     opacity: 0;
   }
 }
+
+/* On a touch screen the whole start screen is tappable. */
+.intro.intro-touch {
+  pointer-events: auto;
+}
+
+/* Clear of the thumb stick. */
+.welcome.welcome-touch {
+  top: 64px;
+  bottom: auto;
+  z-index: 3;
+  pointer-events: none;
+}

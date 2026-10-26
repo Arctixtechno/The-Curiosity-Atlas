@@ -10,7 +10,8 @@ import { floorIn } from './Ambience.tsx'
 import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
 import { footstep } from './sound.ts'
 import { getSettings, prefersReducedMotion, updateSettings } from './settings.ts'
-import { gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
+import { DEFAULT_SENSITIVITY, gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
+import { touchInput } from './touch.ts'
 
 const WALK_SPEED = 2.2
 const RUN_SPEED = 4
@@ -23,6 +24,11 @@ const SENSITIVITY_STEP = 0.2
 /** Look speed while viewing through an instrument with a narrow field of view. */
 const VIEWING_LOOK_SCALE = 0.08
 const SENSITIVITY_RANGE = [0.4, 6] as const
+/** Look speed for a finger dragged across a touch screen, in radians per pixel at the default sensitivity. */
+const TOUCH_LOOK = 0.004
+/** How far the thumb stick must lean before you move, and how far for walking faster. */
+const STICK_DEAD = 0.15
+const STICK_RUN = 0.95
 /** On the start screen the view sways gently from side to side: how far (radians) and how slowly (radians per second). */
 const DRIFT_YAW = 0.07
 const DRIFT_PITCH = 0.015
@@ -132,6 +138,16 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
       euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + l.pitch * dt * lookScale))
       camera.quaternion.setFromEuler(euler)
     }
+    // A finger dragged across a touch screen looks around, like the mouse.
+    const drag = touchInput.look
+    if (drag.x || drag.y) {
+      const scale = ((TOUCH_LOOK * gameStore.get().mouseSensitivity) / DEFAULT_SENSITIVITY) * lookScale
+      euler.setFromQuaternion(camera.quaternion)
+      euler.y -= drag.x * scale
+      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x - drag.y * scale))
+      camera.quaternion.setFromEuler(euler)
+      drag.x = drag.y = 0
+    }
     // The instrument holds the camera in place.
     if (viewing) return
 
@@ -146,9 +162,14 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     const b = bob.current
     camera.position.addScaledVector(right, -b.side)
 
-    const ahead = held(k, 'KeyW') - held(k, 'KeyS')
-    const side = held(k, 'KeyD') - held(k, 'KeyA')
-    const running = k.has('ShiftLeft') || k.has('ShiftRight')
+    // Keys, or else the touch screen's thumb stick, which walks slower the less it leans.
+    const stick = touchInput.move
+    const lean = Math.min(1, Math.hypot(stick.x, stick.y))
+    const onStick = lean > STICK_DEAD
+    const ahead = held(k, 'KeyW') - held(k, 'KeyS') || (onStick ? -stick.y : 0)
+    const side = held(k, 'KeyD') - held(k, 'KeyA') || (onStick ? stick.x : 0)
+    const running = k.has('ShiftLeft') || k.has('ShiftRight') || lean > STICK_RUN
+    const pace = onStick && !running ? Math.min(1, (lean - STICK_DEAD) / (STICK_RUN - STICK_DEAD) + 0.3) : 1
     let moved = 0
 
     if (ahead || side) {
@@ -159,7 +180,7 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
         .multiplyScalar(ahead)
         .addScaledVector(right, side)
         .normalize()
-        .multiplyScalar(speed * dt)
+        .multiplyScalar(speed * pace * dt)
       const [x, z] = moveWithCollisions(camera.position.x, camera.position.z, move.x, move.z, colliders)
       moved = Math.hypot(x - camera.position.x, z - camera.position.z)
       camera.position.x = x

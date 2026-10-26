@@ -2,6 +2,7 @@ import { advance, useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import { savingBattery, subscribeSettings } from './settings.ts'
 import { gameStore } from './store.ts'
+import { touchInput } from './touch.ts'
 
 // Draws the world only as often as it needs to, to save battery. The canvas
 // runs with frameloop="never" and this loop decides when to draw:
@@ -65,7 +66,7 @@ export function targetRate(now: number): number {
   const cap = savingBattery() ? RATES.saver : RATES.active
   if (!document.hasFocus()) return Math.min(RATES.background, motionRate())
   if (!isExploring) return Math.min(cap, RATES.idle)
-  if (heldKeys.size > 0 || now - lastInput < ACTIVE_FOR_MS || viewing) return cap
+  if (heldKeys.size > 0 || touchInput.held > 0 || now - lastInput < ACTIVE_FOR_MS || viewing) return cap
   return Math.min(cap, motionRate())
 }
 
@@ -98,6 +99,7 @@ export function FrameScheduler({ onPace }: { onPace?: (pace: 'slow' | 'fast') =>
     window.addEventListener('mousemove', noteInput)
     window.addEventListener('wheel', noteInput)
     window.addEventListener('pointerdown', noteInput)
+    window.addEventListener('pointermove', noteInput)
     window.addEventListener('blur', onBlur)
     window.addEventListener('resize', onResize)
     // Anything that changes what's on screen gets drawn, even behind a panel.
@@ -139,6 +141,7 @@ export function FrameScheduler({ onPace }: { onPace?: (pace: 'slow' | 'fast') =>
       window.removeEventListener('mousemove', noteInput)
       window.removeEventListener('wheel', noteInput)
       window.removeEventListener('pointerdown', noteInput)
+      window.removeEventListener('pointermove', noteInput)
       window.removeEventListener('blur', onBlur)
       window.removeEventListener('resize', onResize)
       unsubscribeGame()
