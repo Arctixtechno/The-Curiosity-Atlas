@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
+import { clockText, useHour } from '../world/clock.ts'
 import { useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
 import { DriveScreen } from './DriveScreen.tsx'
 import { MAP_OVERLAY } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
-import { GearIcon, MapIcon } from './icons.tsx'
+import { ChevronIcon, GearIcon, MapIcon } from './icons.tsx'
 import './Hud.css'
 import './Panel.css'
 
@@ -21,6 +22,7 @@ export function Hud() {
   const viewing = useGame((s) => s.viewing)
   const journey = useGame((s) => s.journey)
   const [showRoomStates, setShowRoomStates] = useState(false)
+  const hour = useHour()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -34,10 +36,16 @@ export function Hud() {
     <>
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
       {journey && <DriveScreen journey={journey} />}
-      <div className="room-name">{rooms[activeRoomId].displayName}</div>
+      <div className="room-name">
+        {rooms[activeRoomId].displayName}
+        <span className="clock" title="The house's clock: a day passes in 40 minutes">
+          {clockText(hour)}
+        </span>
+      </div>
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
       {viewing === 'telescope' && <Eyepiece />}
+      {viewing === 'spyglass' && <Spyglass />}
       {isExploring
         ? !viewing && (
             <>
@@ -73,6 +81,26 @@ function Eyepiece() {
   )
 }
 
+/** The spyglass on the roof terrace: names what it's pointed at and offers to open it in the City Explorer. */
+function Spyglass() {
+  const target = useGame((s) => s.viewingTarget)
+  return (
+    <>
+      <div className="eyepiece eyepiece-spyglass" aria-hidden="true" />
+      <div className="eyepiece-caption" role="status">
+        {target ? (
+          <>
+            <strong>{target}</strong> · <kbd>E</kbd> to open it in the City Explorer
+          </>
+        ) : (
+          'Move the mouse to aim at a landmark on the horizon'
+        )}{' '}
+        · scroll to zoom · <kbd>Q</kbd> to step back
+      </div>
+    </>
+  )
+}
+
 /** Developer view of the Room Manager (toggle with the ` key). */
 function RoomStates() {
   const activeRoomId = useGame((s) => s.activeRoomId)
@@ -93,6 +121,7 @@ function RoomStates() {
 }
 
 function Intro() {
+  const [howTo, setHowTo] = useState(false)
   return (
     <div className="intro">
       <div className="intro-panel">
@@ -111,61 +140,68 @@ function Intro() {
             <MapIcon size={16} /> Map
           </button>
         </div>
-        <details className="how-to-play" onClick={(e) => e.stopPropagation()}>
-          <summary>How to play</summary>
-          <ul className="controls">
-            <li>
-              <span>
-                <kbd>W</kbd>
-                <kbd>A</kbd>
-                <kbd>S</kbd>
-                <kbd>D</kbd>
-              </span>
-              Move
-            </li>
-            <li>
-              <span>
-                <kbd>Mouse</kbd> or arrows
-              </span>
-              Look around
-            </li>
-            <li>
-              <span>
-                <kbd>E</kbd>
-              </span>
-              Open doors, sit, use things
-            </li>
-            <li>
-              <span>
-                <kbd>Shift</kbd>
-              </span>
-              Walk faster
-            </li>
-            <li>
-              <span>
-                <kbd>[</kbd>
-                <kbd>]</kbd>
-              </span>
-              Mouse sensitivity
-            </li>
-            <li>
-              <span>
-                <kbd>M</kbd>
-                <kbd>L</kbd>
-                <kbd>O</kbd>
-              </span>
-              Map, Library, Settings
-            </li>
-            <li>
-              <span>
-                <kbd>Q</kbd>
-              </span>
-              <span className="control-note">
-                Release the cursor (<kbd>Esc</kbd> also leaves full screen)
-              </span>
-            </li>
-          </ul>
-        </details>
+        <div className={`how-to-play${howTo ? ' open' : ''}`} onClick={(e) => e.stopPropagation()}>
+          <button className="how-to-toggle" aria-expanded={howTo} aria-controls="how-to-play" onClick={() => setHowTo((v) => !v)}>
+            How to play <ChevronIcon className="how-to-chevron" size={14} />
+          </button>
+          {/* Slides open: the row grows from nothing to the list's height, so the card below never jumps. */}
+          <div className="how-to-drawer" id="how-to-play">
+            <div>
+              <ul className="controls">
+                <li>
+                  <span>
+                    <kbd>W</kbd>
+                    <kbd>A</kbd>
+                    <kbd>S</kbd>
+                    <kbd>D</kbd>
+                  </span>
+                  Move
+                </li>
+                <li>
+                  <span>
+                    <kbd>Mouse</kbd> or arrows
+                  </span>
+                  Look around
+                </li>
+                <li>
+                  <span>
+                    <kbd>E</kbd>
+                  </span>
+                  Open doors, sit, use things
+                </li>
+                <li>
+                  <span>
+                    <kbd>Shift</kbd>
+                  </span>
+                  Walk faster
+                </li>
+                <li>
+                  <span>
+                    <kbd>[</kbd>
+                    <kbd>]</kbd>
+                  </span>
+                  Mouse sensitivity
+                </li>
+                <li>
+                  <span>
+                    <kbd>M</kbd>
+                    <kbd>L</kbd>
+                    <kbd>O</kbd>
+                  </span>
+                  Map, Library, Settings
+                </li>
+                <li>
+                  <span>
+                    <kbd>Q</kbd>
+                  </span>
+                  <span className="control-note">
+                    Release the cursor (<kbd>Esc</kbd> also leaves full screen)
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

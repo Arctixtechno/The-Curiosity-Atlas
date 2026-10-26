@@ -722,6 +722,23 @@ const painters = {
       ctx.stroke()
     }
   },
+
+  /** Welsh slates in courses, each a slightly different blue-grey, with dark shadow lines under each course. */
+  slate: (c) => {
+    const { ctx, w, h, ppm, rand } = c
+    ctx.fillStyle = '#2c3036'
+    ctx.fillRect(0, 0, w, h)
+    const course = 0.25 * ppm
+    const slate = 0.3 * ppm
+    for (let row = 0; row * course < h; row++) {
+      const y = row * course
+      for (let x = row % 2 ? -slate / 2 : 0; x < w; x += slate) {
+        ctx.fillStyle = rgb('#6a7078', (rand() - 0.5) * 0.12)
+        ctx.fillRect(x + 1, y + 2, slate - 2, course - 2)
+      }
+    }
+    grain(c, 0.08)
+  },
 } satisfies Record<string, Painter>
 
 export type TextureName = keyof typeof painters
@@ -762,6 +779,7 @@ const TILE_SIZES: Partial<Record<TextureName, [number, number]>> = {
   boxleaf: [1, 512],
   grass: [2, 256],
   fabric: [0.5, 512],
+  slate: [1, 256],
 }
 
 const tileCache = new Map<TextureName, CanvasTexture>()

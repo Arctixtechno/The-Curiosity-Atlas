@@ -27,6 +27,8 @@ export interface GameState {
   viewing: string | null
   /** A drive in progress, shown in place of the fade, and whether it is heading out or coming home. */
   journey: (Journey & { homeward: boolean }) | null
+  /** What the instrument is pointed at, when that's something to name (a landmark through the spyglass). */
+  viewingTarget: string | null
 }
 
 const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
@@ -61,6 +63,7 @@ let state: GameState = {
   overlay: null,
   viewing: null,
   journey: null,
+  viewingTarget: null,
 }
 
 const listeners = new Set<() => void>()

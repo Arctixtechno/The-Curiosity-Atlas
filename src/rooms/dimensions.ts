@@ -112,7 +112,16 @@ export function loungeChair(side: -1 | 1) {
     rotationY: -side * (Math.PI / 2 + LOUNGE.chairTurn),
   }
 }
-export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
+export const COURTYARD = { width: 20, length: 26, hedgeHeight: 1.2 }
+/** The Discovery Fountain in the middle of the courtyard: where it stands, as [x, z], and how much bigger than life-size model it's built. */
+export const COURTYARD_FOUNTAIN = { at: [0, -1.5] as [number, number], scale: 1.75 }
+/** Stone planters with clipped trees, round the fountain, as [x, z]. */
+export const COURTYARD_PLANTERS: [number, number][] = [
+  [-7, -7],
+  [7, -7],
+  [-7, 4.5],
+  [7, 4.5],
+]
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }
 /** Bistro tables outside the café, as [x, z]. */
@@ -180,11 +189,14 @@ export const WORKSHOP = {
   chest: [3.95, 2.6] as [number, number],
 }
 
-/** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
-export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
+/** Garden benches against the side hedges, facing the fountain, and the pots either side of the front porch, as [x, z]. */
+export const COURTYARD_BENCHES: [number, number][] = [
+  [-9.65, -1.5],
+  [9.65, -1.5],
+]
 export const DOOR_POTS: [number, number][] = [
-  [-2.1, -8.5],
-  [2.1, -8.5],
+  [-2.1, -COURTYARD.length / 2 + 0.5],
+  [2.1, -COURTYARD.length / 2 + 0.5],
 ]
 
 /** Columned porch around the house's front door, relative to the house wall. */

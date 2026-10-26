@@ -33,6 +33,11 @@ import { useGame } from '../world/store.ts'
 // in radians above the horizon.
 
 const SKY_RADIUS = 85
+/**
+ * The moon's radius at about 80 m away: half a degree across, as it really looks, so a small bright disc by eye
+ * whose seas and craters only show through the telescope.
+ */
+const MOON_RADIUS = 0.36
 const STAR_RADIUS = 80
 /** Azimuth of -z, the way the observatory's opening faces. The Milky Way passes overhead there. */
 const OPENING_U = 0.75
@@ -692,11 +697,11 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
       <Stars geometry={stars} material={starShading} />
       {/* Tilted so its poles sit side-on to the room, where the map is least stretched. */}
       <mesh position={moon} rotation={[0.86, 2.2, 0]} material={moonShading}>
-        <sphereGeometry args={[2, 96, 48]} />
+        <sphereGeometry args={[MOON_RADIUS, 96, 48]} />
       </mesh>
       {/* A faint glow of moonlight in the air round it. */}
       <mesh position={moon} renderOrder={1} visible={!looking} onUpdate={(m) => m.lookAt(0, 0, 0)}>
-        <planeGeometry args={[18, 18]} />
+        <planeGeometry args={[MOON_RADIUS * 12, MOON_RADIUS * 12]} />
         <meshBasicMaterial
           map={halo}
           color="#dfe6ff"

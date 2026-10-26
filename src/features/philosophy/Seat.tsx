@@ -1,16 +1,16 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
-import { Quaternion, Vector3, type Camera, type PerspectiveCamera } from 'three'
+import { CatmullRomCurve3, Quaternion, Vector3, type Camera, type PerspectiveCamera } from 'three'
 import { EYE_HEIGHT, LOUNGE, loungeChair } from '../../rooms/dimensions.ts'
 import { requestFrame } from '../../world/FrameScheduler.tsx'
 import { closeOverlay } from '../../world/overlay.ts'
 import { prefersReducedMotion } from '../../world/settings.ts'
 import { gameStore, useGame } from '../../world/store.ts'
 import { openPanel } from '../panels.ts'
-import { setSeatAnchors } from './seatView.ts'
+import { onGlance, resetGlance, setSeatAnchors } from './seatView.ts'
 
-// Sitting down in the lounge: the camera eases into the visitor's armchair
-// and turns to the companion's chair, then the conversation opens over that
+// Sitting down in the lounge: the camera walks round to the front of the
+// visitor's armchair, sits back into it and turns to the companion's chair, then the conversation opens over that
 // view. Closing the conversation stands you back up in front of the chair.
 
 export const SEAT_VIEW = 'lounge-seat'
@@ -31,20 +31,74 @@ export const COMPANION_HEAD = new Vector3(companion.x, 1.05, companion.z)
 const FIRE = new Vector3(0, 0.45, -LOUNGE.length / 2 + 0.3)
 /** Standing up leaves you in front of the chairs, facing the fire. */
 const STANDING = new Vector3(visitor.x, EYE_HEIGHT, LOUNGE.seatingZ + 1.05)
+/** Which way the visitor's chair faces, and the way across it. */
+const CHAIR_FRONT = new Vector3(Math.sin(visitor.rotationY), 0, Math.cos(visitor.rotationY))
+const CHAIR_SIDE = new Vector3(CHAIR_FRONT.z, 0, -CHAIR_FRONT.x)
+const CHAIR = new Vector3(visitor.x, 0, visitor.z)
+/** Standing just in front of the chair, before turning to sit back into it. */
+const IN_FRONT = CHAIR.clone()
+  .addScaledVector(CHAIR_FRONT, 0.85)
+  .setY(EYE_HEIGHT - 0.1)
+/** Half-way down, over the front of the seat. */
+const LOWERING = CHAIR.clone()
+  .addScaledVector(CHAIR_FRONT, 0.35)
+  .setY((EYE_HEIGHT + LOUNGE.seatedEye) / 2)
+
+/**
+ * The way from where the visitor stands to the seat: round the chair if
+ * they're behind or beside it, to stand in front of it, then down into it.
+ * Never through the chair.
+ */
+export function pathToSeat(from: Vector3) {
+  const points = [from.clone()]
+  const offset = new Vector3().subVectors(from, CHAIR).setY(0)
+  if (offset.dot(CHAIR_FRONT) < 0.3) {
+    // Go round whichever side is nearer.
+    const side = offset.dot(CHAIR_SIDE) >= 0 ? 1 : -1
+    if (offset.dot(CHAIR_FRONT) < -0.2) {
+      points.push(
+        CHAIR.clone()
+          .addScaledVector(CHAIR_SIDE, side * 1.0)
+          .addScaledVector(CHAIR_FRONT, -0.5)
+          .setY(EYE_HEIGHT),
+      )
+    }
+    points.push(
+      CHAIR.clone()
+        .addScaledVector(CHAIR_SIDE, side * 0.95)
+        .addScaledVector(CHAIR_FRONT, 0.45)
+        .setY(EYE_HEIGHT),
+    )
+  }
+  points.push(IN_FRONT.clone(), LOWERING.clone(), SEATED.clone())
+  return new CatmullRomCurve3(points, false, 'centripetal')
+}
+
+/** Standing up: forward out of the chair, then a step clear of it. */
+const PATH_TO_STAND = new CatmullRomCurve3(
+  [SEATED.clone(), LOWERING.clone(), IN_FRONT.clone(), STANDING.clone()],
+  false,
+  'centripetal',
+)
 
 /**
  * Seated, you look across at the companion's chair. On a wide screen it sits
  * left of centre, leaving the right-hand side for the conversation, with the
  * fire's glow coming in from the left; on a narrow one it's straight ahead.
  */
-function seatedRotation(camera: Camera) {
+function seatedAngles(camera: Camera) {
   const to = new Vector3().subVectors(COMPANION_HEAD, SEATED)
   const facing = Math.atan2(-to.x, -to.z)
   const { fov, aspect } = camera as PerspectiveCamera
   const wide = aspect > 1.2 && window.innerWidth > 760
   // Turn right until the companion is 40% of the way from the centre to the left edge.
   const turn = wide ? Math.atan(0.4 * Math.tan(((fov / 2) * Math.PI) / 180) * aspect) : 0
-  return eulerQuat(facing - turn, -0.1)
+  return { yaw: facing - turn, pitch: -0.1 }
+}
+
+function seatedRotation(camera: Camera) {
+  const { yaw, pitch } = seatedAngles(camera)
+  return eulerQuat(yaw, pitch)
 }
 
 function eulerQuat(yaw: number, pitch: number) {
@@ -59,8 +113,10 @@ export function sitDown() {
 }
 
 interface Move {
-  from: { position: Vector3; rotation: Quaternion }
+  path: CatmullRomCurve3
+  from: { rotation: Quaternion }
   to: { position: Vector3; rotation: Quaternion }
+  seconds: number
   start: number
   done: () => void
 }
@@ -77,7 +133,7 @@ function placeAnchors(camera: Camera) {
 }
 
 function pose(camera: Camera) {
-  return { position: camera.position.clone(), rotation: camera.quaternion.clone() }
+  return { rotation: camera.quaternion.clone() }
 }
 
 export function LoungeSeat() {
@@ -89,8 +145,11 @@ export function LoungeSeat() {
   // Whether the visitor is seated with the conversation open, so its closing means standing up.
   const talking = useRef(false)
 
-  const animate = (to: Move['to'], done: () => void) => {
-    move.current = { from: pose(camera), to, start: -1, done }
+  const animate = (path: CatmullRomCurve3, rotation: Quaternion, done: () => void) => {
+    const to = { position: path.getPoint(1), rotation }
+    // A longer way round takes a little longer, as walking would.
+    const seconds = Math.min(3, SIT_SECONDS + path.getLength() * 0.3)
+    move.current = { path, from: pose(camera), to, seconds, start: -1, done }
     if (prefersReducedMotion) finish()
   }
   const finish = () => {
@@ -105,7 +164,7 @@ export function LoungeSeat() {
   // Sit down, then open the conversation.
   useEffect(() => {
     if (!seated || talking.current || move.current) return
-    animate({ position: SEATED.clone(), rotation: seatedRotation(camera) }, () => {
+    animate(pathToSeat(camera.position), seatedRotation(camera), () => {
       placeAnchors(camera)
       talking.current = true
       // Escape can release the mouse mid-way, which ends viewing; the visitor is in the chair all the same.
@@ -118,12 +177,25 @@ export function LoungeSeat() {
   // The conversation closed: stand up.
   useEffect(() => {
     if (!seated || overlay !== null || !talking.current) return
-    animate({ position: STANDING.clone(), rotation: eulerQuat(0, -0.08) }, () => {
+    resetGlance()
+    animate(PATH_TO_STAND, eulerQuat(0, -0.08), () => {
       talking.current = false
       gameStore.set({ viewing: null })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlay, seated])
+
+  // Glancing round while seated turns the head from the seated view, and the companion's place follows.
+  useEffect(() => {
+    if (!seated || overlay !== 'lounge') return
+    return onGlance((g) => {
+      if (move.current) return
+      const base = seatedAngles(camera)
+      camera.quaternion.copy(eulerQuat(base.yaw + g.yaw, base.pitch + g.pitch))
+      placeAnchors(camera)
+      requestFrame()
+    })
+  }, [seated, overlay, camera])
 
   // Keep the anchor right if the window changes size while talking.
   useEffect(() => {
@@ -144,11 +216,9 @@ export function LoungeSeat() {
     const m = move.current
     if (!m) return
     if (m.start < 0) m.start = clock.elapsedTime
-    const t = Math.min(1, (clock.elapsedTime - m.start) / SIT_SECONDS)
+    const t = Math.min(1, (clock.elapsedTime - m.start) / m.seconds)
     const k = ease(t)
-    camera.position.lerpVectors(m.from.position, m.to.position, k)
-    // Dip a little on the way down into the chair, as a body does.
-    camera.position.y -= Math.sin(t * Math.PI) * 0.04
+    m.path.getPoint(k, camera.position)
     camera.quaternion.slerpQuaternions(m.from.rotation, m.to.rotation, k)
     if (t >= 1) finish()
     // Keep drawing until the move ends, whatever the frame scheduler would otherwise choose.

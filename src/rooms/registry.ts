@@ -12,7 +12,9 @@ import {
   HALL_FURNITURE,
   HALL_PLANTS,
   LAB_COAT_STAND,
-  COURTYARD_BENCH,
+  COURTYARD_BENCHES,
+  COURTYARD_FOUNTAIN,
+  COURTYARD_PLANTERS,
   DOOR_POTS,
   LABORATORY,
   LOUNGE,
@@ -97,7 +99,8 @@ export const rooms: Record<string, RoomDefinition> = {
     displayName: 'Main Hall',
     colliders: [
       ...wallColliders(MAIN_HALL.width, MAIN_HALL.length),
-      boxCollider(0, 0, 2.2, 2.2),
+      // The round table in the middle of the hall.
+      boxCollider(0, 0, 1.5, 1.5),
       ...HALL_PLANTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       boxCollider(...MAP_TABLE, 1.1, 1.6),
       boxCollider(...HALL_FURNITURE.coatStand, 0.5, 0.5),
@@ -308,9 +311,10 @@ export const rooms: Record<string, RoomDefinition> = {
       // Café tables and the chalkboard outside it.
       ...CAFE_TABLES.map(([x, z]) => boxCollider(x, z, 1.6, 0.9)),
       boxCollider(1.3, CAFE.frontZ - 0.75, 0.6, 0.5),
-      boxCollider(-4.5, -2, 0.8, 0.8),
-      boxCollider(4.5, -2, 0.8, 0.8),
-      boxCollider(...COURTYARD_BENCH, 0.5, 1.6),
+      ...COURTYARD_PLANTERS.map(([x, z]) => boxCollider(x, z, 0.8, 0.8)),
+      ...COURTYARD_BENCHES.map(([x, z]) => boxCollider(x, z, 0.5, 1.6)),
+      // The fountain's basin.
+      boxCollider(...COURTYARD_FOUNTAIN.at, 2.3 * COURTYARD_FOUNTAIN.scale, 2.3 * COURTYARD_FOUNTAIN.scale),
       ...DOOR_POTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       // Portico columns either side of the front door.
       boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),

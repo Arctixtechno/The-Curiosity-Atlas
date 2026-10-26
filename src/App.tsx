@@ -50,7 +50,7 @@ export default function App() {
         // Lets laptops with two graphics chips use the economical one; the world is light enough for it.
         gl={{ powerPreference: 'default' }}
         frameloop="never"
-        camera={{ fov: 70, near: 0.05, far: 100 }}
+        camera={{ fov: 70, near: 0.05, far: 400 }}
         onCreated={(state) => {
           // For profiling from the browser console during development.
           if (import.meta.env.DEV) Object.assign(window, { __atlas: state })

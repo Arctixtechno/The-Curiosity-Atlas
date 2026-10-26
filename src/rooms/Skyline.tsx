@@ -170,6 +170,33 @@ function paintBlocks(p: Painter, hazeAmount: number) {
   }
 }
 
+/**
+ * London's landmarks on the horizon: where each stands round the ring (0 to 1), its real height in metres and
+ * its City Explorer entry, so the terrace's spyglass can name them.
+ */
+export const LANDMARKS = {
+  shard: { u: 0.53, height: 310, placeId: 'the-shard' },
+  btTower: { u: 0.33, height: 190, placeId: 'bt-tower' },
+  stPauls: { u: 0.465, height: 111, placeId: 'st-pauls' },
+  eye: { u: 0.6, height: 135, placeId: 'london-eye' },
+  battersea: { u: 0.7, height: 100, placeId: 'battersea-power-station' },
+  gherkin: { u: 0.415, height: 180, placeId: 'gherkin' },
+}
+
+/**
+ * Where a landmark's top is in the room, for a skyline drawn with these radii, ground and turn. Follows the
+ * cylinder's mapping of the texture: across = angle round from +z.
+ */
+export function landmarkTop(
+  landmark: keyof typeof LANDMARKS,
+  { radii, ground = [0, 0, 0], rotationY = 0 }: Pick<SkylineProps, 'radii' | 'ground' | 'rotationY'>,
+): [number, number, number] {
+  const { u, height } = LANDMARKS[landmark]
+  const r = radii[2]
+  const theta = u * Math.PI * 2 + rotationY
+  return [r * Math.sin(theta), ground[2] + (height * TOP * r * 0.6) / 310, r * Math.cos(theta)]
+}
+
 /** The horizon: London's landmarks in the haze, placed round the ring by angle (0 to 1). */
 function paintLandmarks(p: Painter, hazeAmount: number) {
   const { ctx, rand, night, ground } = p
@@ -207,7 +234,7 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
   const sy = p.sy * scale
   // The Shard.
   {
-    const x = at(0.53)
+    const x = at(LANDMARKS.shard.u)
     ctx.beginPath()
     ctx.moveTo(x - 22 * sx, ground)
     ctx.lineTo(x - 2 * sx, ground - 300 * sy)
@@ -218,7 +245,7 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
   }
   // The BT Tower.
   {
-    const x = at(0.33)
+    const x = at(LANDMARKS.btTower.u)
     ctx.fillRect(x - 5 * sx, ground - 150 * sy, 10 * sx, 150 * sy)
     ctx.fillRect(x - 8 * sx, ground - 160 * sy, 16 * sx, 30 * sy)
     ctx.fillRect(x - 2 * sx, ground - 190 * sy, 4 * sx, 30 * sy)
@@ -226,7 +253,7 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
   }
   // St Paul's dome.
   {
-    const x = at(0.465)
+    const x = at(LANDMARKS.stPauls.u)
     ctx.fillRect(x - 40 * sx, ground - 30 * sy, 80 * sx, 30 * sy)
     ctx.fillRect(x - 18 * sx, ground - 62 * sy, 36 * sx, 34 * sy)
     ctx.beginPath()
@@ -238,7 +265,7 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
   }
   // The London Eye.
   {
-    const x = at(0.6)
+    const x = at(LANDMARKS.eye.u)
     const r = 60
     ctx.strokeStyle = fill
     ctx.lineWidth = Math.max(1, 1.5 * sx)
@@ -263,7 +290,7 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
   }
   // Battersea Power Station: the long body and four white chimneys.
   {
-    const x = at(0.7)
+    const x = at(LANDMARKS.battersea.u)
     ctx.fillRect(x - 80 * sx, ground - 50 * sy, 160 * sx, 50 * sy)
     for (const c of [-70, -40, 40, 70]) {
       ctx.beginPath()
@@ -277,7 +304,7 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
   }
   // The Gherkin.
   {
-    const x = at(0.415)
+    const x = at(LANDMARKS.gherkin.u)
     ctx.beginPath()
     ctx.ellipse(x, ground - 85 * sy, 17 * sx, 95 * sy, 0, Math.PI, 0)
     ctx.lineTo(x + 17 * sx, ground)
@@ -298,8 +325,8 @@ function paintLandmarks(p: Painter, hazeAmount: number) {
 
 const LAYERS = [
   { paint: paintTerraces, haze: 0.18, seed: 11 },
-  { paint: paintBlocks, haze: 0.45, seed: 23 },
-  { paint: paintLandmarks, haze: 0.62, seed: 37 },
+  { paint: paintBlocks, haze: 0.36, seed: 23 },
+  { paint: paintLandmarks, haze: 0.4, seed: 37 },
 ]
 
 interface SkylineProps {
