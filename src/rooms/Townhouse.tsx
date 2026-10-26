@@ -143,7 +143,7 @@ export function Balustrade({
   z?: number
   color?: string
 }) {
-  const baluster = useLathe(BALUSTER, 10)
+  const baluster = useLathe(BALUSTER, 8)
   const marble = useTiledTexture('marble', 4, 0.3)
   const spots = useMemo(
     () =>

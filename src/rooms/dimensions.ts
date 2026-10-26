@@ -115,6 +115,11 @@ export function loungeChair(side: -1 | 1) {
 export const COURTYARD = { width: 20, length: 26, hedgeHeight: 1.2 }
 /** The Discovery Fountain in the middle of the courtyard: where it stands, as [x, z], and how much bigger than life-size model it's built. */
 export const COURTYARD_FOUNTAIN = { at: [0, -1.5] as [number, number], scale: 1.75 }
+/** The stand with today's question, on the house side of the fountain, as [x, z]. */
+export const QUESTION_STAND: [number, number] = [
+  COURTYARD_FOUNTAIN.at[0] + 1.2,
+  COURTYARD_FOUNTAIN.at[1] - (1.3 * COURTYARD_FOUNTAIN.scale + 2.2),
+]
 /** Stone planters with clipped trees, round the fountain, as [x, z]. */
 export const COURTYARD_PLANTERS: [number, number][] = [
   [-7, -7],
@@ -174,6 +179,26 @@ export const MUSEUM = {
   } as Record<string, { at: [number, number]; case: 'tall' | 'open' | 'table' }>,
   bench: [0, 2.4] as [number, number],
 }
+
+/**
+ * The Library: a tall reading room off the north end of the hall, lined with
+ * books. Its door is the +z wall; the reading desk with your own saved
+ * discoveries stands against the far wall.
+ */
+export const LIBRARY = {
+  width: 9,
+  length: 12,
+  height: 4.4,
+  /** The side walls' bookcases: centre along z, and length. */
+  sideCases: { z: -0.6, length: 9.6 },
+  /** The far wall's two bookcases either side of the desk: centre x (each side), and length. */
+  backCases: { x: 2.75, length: 2.9 },
+  table: { at: [0, -0.4] as [number, number], width: 1.2, length: 3.6 },
+  desk: [0, -5.35] as [number, number],
+}
+
+/** Half the width of the roped-off square round the museum's open plinth. */
+export const MUSEUM_ROPE = 0.85
 
 /** The workshop, off the laboratory's west wall. Its door is the +z wall; the benches stand along the back. */
 export const WORKSHOP = {
@@ -257,7 +282,7 @@ export function carCollider(position: [number, number, number], rotationY: numbe
 }
 
 /** Where the car is parked in the courtyard, by the east hedge. */
-export const COURTYARD_CAR = { position: [5.0, 0, 1.5] as [number, number, number], rotationY: -Math.PI / 2 }
+export const COURTYARD_CAR = { position: [7.2, 0, 1.5] as [number, number, number], rotationY: -Math.PI / 2 }
 
 /**
  * Marshgate Refinery, out on the Thames estuary: an open site inside a fence,

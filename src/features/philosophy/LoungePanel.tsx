@@ -1,7 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { useModal } from '../../components/Panel.tsx'
-import { BookmarkIcon, CheckIcon, ChevronIcon, CopyIcon, RefreshIcon, SendIcon, StandIcon } from '../../components/icons.tsx'
-import { library } from '../../services/library.ts'
+import {
+  BookIcon,
+  BookmarkIcon,
+  CheckIcon,
+  ChevronIcon,
+  CopyIcon,
+  RefreshIcon,
+  SendIcon,
+  StandIcon,
+} from '../../components/icons.tsx'
+import { library, useLibrary } from '../../services/library.ts'
 import { closeOverlay } from '../../world/overlay.ts'
 import { prefersReducedMotion } from '../../world/settings.ts'
 import { chooseMode, retry, sendMessage, startFresh, useConversation, usesPlaceholderCompanion } from './conversation.ts'
@@ -97,6 +106,7 @@ export function LoungePanel() {
             </button>
           </div>
           <div className="lounge-header-actions">
+            <LibraryShelf />
             {messages.length > 0 && (
               <button className="icon-button" onClick={startFresh} disabled={pending} title="Start a fresh conversation">
                 <RefreshIcon />
@@ -269,10 +279,50 @@ function Line({ role, text, reveal = false, onSpeaking, onGrow, question, modeNa
   )
 }
 
+/** How many insights are in the Library, where a saved one flies to. */
+function LibraryShelf() {
+  const insights = useLibrary().filter((i) => i.kind === 'insight').length
+  return (
+    <span className="lounge-shelf" data-library-shelf title="Insights saved to your Library (L to open it once you stand)">
+      <BookIcon size={16} />
+      <span key={insights} className="lounge-shelf-count">
+        {insights}
+      </span>
+      <span className="visually-hidden">insights saved</span>
+    </span>
+  )
+}
+
+/** Sends a little bookmark from the save button up to the Library count in the header, which then ticks up. */
+function flyToShelf(from: Element) {
+  const shelf = document.querySelector('[data-library-shelf]')
+  if (!shelf || prefersReducedMotion) return
+  const a = from.getBoundingClientRect()
+  const b = shelf.getBoundingClientRect()
+  const mark = document.createElement('div')
+  mark.className = 'lounge-flying-bookmark'
+  mark.style.left = `${a.left + 10}px`
+  mark.style.top = `${a.top + a.height / 2 - 9}px`
+  document.body.appendChild(mark)
+  const dx = b.left + b.width / 2 - (a.left + 16)
+  const dy = b.top + b.height / 2 - (a.top + a.height / 2)
+  mark
+    .animate(
+      [
+        { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx * 0.4}px, ${dy * 0.6 - 60}px) scale(1.5) rotate(-12deg)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.5) rotate(0deg)`, opacity: 0.2 },
+      ],
+      { duration: 750, easing: 'cubic-bezier(0.45, 0, 0.3, 1)' },
+    )
+    .finished.finally(() => mark.remove())
+}
+
 function LineActions({ text, question, modeName }: { text: string; question?: string; modeName: string }) {
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
-  const save = () => {
+  const save = (e: React.MouseEvent) => {
+    flyToShelf(e.currentTarget)
     library.save({
       id: `insight:${Date.now()}`,
       kind: 'insight',

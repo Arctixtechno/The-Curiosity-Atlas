@@ -1,5 +1,6 @@
 import { rooms } from '../rooms/registry.ts'
 import type { DoorDefinition } from '../types/room.ts'
+import { bootDone } from './boot.ts'
 import { arrivalAt, findDoor } from './navigation.ts'
 import { gameStore } from './store.ts'
 import { prefersReducedMotion } from './settings.ts'
@@ -29,6 +30,7 @@ export function skipJourney() {
  * room shows as a slightly longer fade instead of a stutter on arrival.
  */
 export function roomReady() {
+  bootDone()
   markReady?.()
   markReady = null
 }

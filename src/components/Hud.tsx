@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
 import { clockText, useHour } from '../world/clock.ts'
-import { useGame } from '../world/store.ts'
+import { gameStore, useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
 import { DriveScreen } from './DriveScreen.tsx'
+import { isTouchMode, useTouchMode } from '../world/touch.ts'
 import { MAP_OVERLAY } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
 import { ChevronIcon, GearIcon, MapIcon } from './icons.tsx'
+import { TouchControls } from './TouchControls.tsx'
 import './Hud.css'
 import './Panel.css'
 
@@ -22,20 +24,27 @@ export function Hud() {
   const viewing = useGame((s) => s.viewing)
   const journey = useGame((s) => s.journey)
   const [showRoomStates, setShowRoomStates] = useState(false)
+  const [photo, setPhoto] = useState(false)
   const hour = useHour()
+  const touch = useTouchMode()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Backquote') setShowRoomStates((v) => !v)
+      // H hides everything on screen, for a clean screenshot.
+      if (e.code === 'KeyH' && !e.repeat && gameStore.get().isExploring && !gameStore.get().overlay) setPhoto((v) => !v)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  if (photo && isExploring) return <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
+
   return (
     <>
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
       {journey && <DriveScreen journey={journey} />}
+      {isExploring && !viewing && <Welcome />}
       <div className="room-name">
         {rooms[activeRoomId].displayName}
         <span className="clock" title="The house's clock: a day passes in 40 minutes">
@@ -46,11 +55,13 @@ export function Hud() {
       {toast && <div className="toast">{toast}</div>}
       {viewing === 'telescope' && <Eyepiece />}
       {viewing === 'spyglass' && <Spyglass />}
+      {isExploring && touch && viewing && !overlay && <TouchControls />}
       {isExploring
         ? !viewing && (
             <>
               <div className="crosshair" aria-hidden="true" />
-              {prompt && (
+              {touch && !overlay && <TouchControls />}
+              {!touch && prompt && (
                 <div className="prompt" role="status">
                   {prompt.startsWith('Press E') ? (
                     <>
@@ -66,6 +77,56 @@ export function Hud() {
           )
         : !overlay && <Intro />}
     </>
+  )
+}
+
+const WELCOMED_KEY = 'atlas.welcomed'
+
+/** A few pointers the first time someone starts exploring, which get out of the way after a while. */
+function Welcome() {
+  const [show, setShow] = useState(() => {
+    try {
+      return !localStorage.getItem(WELCOMED_KEY)
+    } catch {
+      return false
+    }
+  })
+  useEffect(() => {
+    if (!show) return
+    try {
+      localStorage.setItem(WELCOMED_KEY, '1')
+    } catch {
+      // Without storage the welcome just shows again next visit.
+    }
+    const timer = setTimeout(() => setShow(false), 16_000)
+    return () => clearTimeout(timer)
+  }, [show])
+  if (!show) return null
+  return (
+    <aside className={`welcome${isTouchMode() ? ' welcome-touch' : ''}`} aria-label="Getting started">
+      <p className="welcome-title">Getting started</p>
+      {isTouchMode() ? (
+        <ul>
+          <li>Lean the stick at the bottom left to walk, and drag anywhere else to look around.</li>
+          <li>Walk up to a door or an object and tap its prompt to use it.</li>
+          <li>The map button at the top jumps to any room you've been to.</li>
+          <li>Out in the courtyard, the fountain asks a new question every day.</li>
+        </ul>
+      ) : (
+        <ul>
+          <li>
+            Walk up to a door or an object and press <kbd>E</kbd> when its prompt appears.
+          </li>
+          <li>
+            <kbd>M</kbd> opens the map of the house, to jump to any room you've been to.
+          </li>
+          <li>Out in the courtyard, the fountain asks a new question every day.</li>
+          <li>
+            <kbd>N</kbd> turns the sound on and off; <kbd>H</kbd> hides everything for a clean screenshot.
+          </li>
+        </ul>
+      )}
+    </aside>
   )
 }
 
@@ -122,15 +183,20 @@ function RoomStates() {
 
 function Intro() {
   const [howTo, setHowTo] = useState(false)
+  const touch = useTouchMode()
   return (
-    <div className="intro">
+    // On a touch screen there's no mouse to take, so a tap anywhere starts exploring.
+    <div
+      className={`intro${touch ? ' intro-touch' : ''}`}
+      onClick={touch ? () => gameStore.set({ isExploring: true }) : undefined}
+    >
       <div className="intro-panel">
         <p className="intro-kicker">Welcome to</p>
         <h1>The Curiosity Atlas</h1>
         <p className="tagline">A small world built for endless curiosity.</p>
         {/* Not a real button: the click passes through to the world, which takes the mouse. */}
         <p className="start" aria-hidden="true">
-          Click anywhere to explore
+          {touch ? 'Tap anywhere to explore' : 'Click anywhere to explore'}
         </p>
         <div className="intro-actions">
           <button className="button button-quiet" onClick={(e) => (e.stopPropagation(), openOverlay(SETTINGS_OVERLAY))}>
@@ -140,68 +206,76 @@ function Intro() {
             <MapIcon size={16} /> Map
           </button>
         </div>
-        <div className={`how-to-play${howTo ? ' open' : ''}`} onClick={(e) => e.stopPropagation()}>
-          <button className="how-to-toggle" aria-expanded={howTo} aria-controls="how-to-play" onClick={() => setHowTo((v) => !v)}>
-            How to play <ChevronIcon className="how-to-chevron" size={14} />
-          </button>
-          {/* Slides open: the row grows from nothing to the list's height, so the card below never jumps. */}
-          <div className="how-to-drawer" id="how-to-play">
-            <div>
-              <ul className="controls">
-                <li>
-                  <span>
-                    <kbd>W</kbd>
-                    <kbd>A</kbd>
-                    <kbd>S</kbd>
-                    <kbd>D</kbd>
-                  </span>
-                  Move
-                </li>
-                <li>
-                  <span>
-                    <kbd>Mouse</kbd> or arrows
-                  </span>
-                  Look around
-                </li>
-                <li>
-                  <span>
-                    <kbd>E</kbd>
-                  </span>
-                  Open doors, sit, use things
-                </li>
-                <li>
-                  <span>
-                    <kbd>Shift</kbd>
-                  </span>
-                  Walk faster
-                </li>
-                <li>
-                  <span>
-                    <kbd>[</kbd>
-                    <kbd>]</kbd>
-                  </span>
-                  Mouse sensitivity
-                </li>
-                <li>
-                  <span>
-                    <kbd>M</kbd>
-                    <kbd>L</kbd>
-                    <kbd>O</kbd>
-                  </span>
-                  Map, Library, Settings
-                </li>
-                <li>
-                  <span>
-                    <kbd>Q</kbd>
-                  </span>
-                  <span className="control-note">
-                    Release the cursor (<kbd>Esc</kbd> also leaves full screen)
-                  </span>
-                </li>
-              </ul>
+        {/* The keyboard controls mean nothing on a touch screen, where the getting-started card explains the stick instead. */}
+        {!touch && (
+          <div className={`how-to-play${howTo ? ' open' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <button
+              className="how-to-toggle"
+              aria-expanded={howTo}
+              aria-controls="how-to-play"
+              onClick={() => setHowTo((v) => !v)}
+            >
+              How to play <ChevronIcon className="how-to-chevron" size={14} />
+            </button>
+            {/* Slides open: the row grows from nothing to the list's height, so the card below never jumps. */}
+            <div className="how-to-drawer" id="how-to-play">
+              <div>
+                <ul className="controls">
+                  <li>
+                    <span>
+                      <kbd>W</kbd>
+                      <kbd>A</kbd>
+                      <kbd>S</kbd>
+                      <kbd>D</kbd>
+                    </span>
+                    Move
+                  </li>
+                  <li>
+                    <span>
+                      <kbd>Mouse</kbd> or arrows
+                    </span>
+                    Look around
+                  </li>
+                  <li>
+                    <span>
+                      <kbd>E</kbd>
+                    </span>
+                    Open doors, sit, use things
+                  </li>
+                  <li>
+                    <span>
+                      <kbd>Shift</kbd>
+                    </span>
+                    Walk faster
+                  </li>
+                  <li>
+                    <span>
+                      <kbd>[</kbd>
+                      <kbd>]</kbd>
+                    </span>
+                    Mouse sensitivity
+                  </li>
+                  <li>
+                    <span>
+                      <kbd>M</kbd>
+                      <kbd>L</kbd>
+                      <kbd>O</kbd>
+                    </span>
+                    Map, Library, Settings
+                  </li>
+                  <li>
+                    <span>
+                      <kbd>Q</kbd>
+                    </span>
+                    <span className="control-note">
+                      Release the cursor (<kbd>Esc</kbd> also leaves full screen)
+                    </span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

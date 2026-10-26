@@ -9,6 +9,7 @@ import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { WORKSHOP } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
+import { useMotion } from '../world/FrameScheduler.tsx'
 
 const { width: W, length: L, height: H, bench: BENCH } = WORKSHOP
 const STEEL = { color: '#8a9096', metalness: 0.7, roughness: 0.35 }
@@ -216,6 +217,7 @@ function GearStation() {
     { r: 0.08, t: 16, x: 0.04, y: 0.45, speed: -1 / 3, colour: '#c9a24e', front: true },
     { r: 0.16, t: 32, x: 0.28, y: 0.45, speed: 1 / 6, colour: '#b8bcc0' },
   ]
+  useMotion()
   useFrame((_, delta) => {
     train.forEach((g, i) => {
       const group = gears.current[i]
@@ -483,7 +485,7 @@ function TailorsDummy() {
         <meshStandardMaterial color="#d8c8a8" roughness={0.9} />
       </mesh>
       <mesh position={[0, 1.48, 0]} scale={[1, 0.5, 0.72]}>
-        <sphereGeometry args={[0.2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[0.2, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial color="#d8c8a8" roughness={0.9} />
       </mesh>
       <mesh position={[0, 1.6, 0]}>

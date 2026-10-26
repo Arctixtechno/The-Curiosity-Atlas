@@ -9,6 +9,7 @@ import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { LAB_COAT_STAND, LABORATORY } from './dimensions.ts'
 import { RoomShell } from './RoomShell.tsx'
+import { useMotion } from '../world/FrameScheduler.tsx'
 
 const { width: W, length: L, height: H, bench: BENCH } = LABORATORY
 const BRASS = { color: '#d4b064', metalness: 0.55, roughness: 0.3 }
@@ -130,6 +131,7 @@ function GasStation() {
   })
   const piston = useRef<Group>(null)
   // The piston drifts gently, as if the gas were warming and cooling.
+  useMotion(20)
   useFrame(({ clock }) => {
     if (piston.current) piston.current.position.y = 0.42 + Math.sin(clock.elapsedTime * 0.6) * 0.08
   })
@@ -198,6 +200,7 @@ function BuoyancyStation() {
     onInteract: () => openOverlay(BUOYANCY_OVERLAY),
   })
   const block = useRef<Group>(null)
+  useMotion(20)
   useFrame(({ clock }) => {
     if (block.current) block.current.position.y = 0.36 + Math.sin(clock.elapsedTime * 1.3) * 0.008
   })

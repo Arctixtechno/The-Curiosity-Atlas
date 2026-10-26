@@ -1,10 +1,13 @@
 import { Canvas } from '@react-three/fiber'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { GraphicsErrorBoundary, GraphicsProblem } from './components/GraphicsProblem.tsx'
 import { Hud } from './components/Hud.tsx'
 import { Overlays } from './components/Overlays.tsx'
+import { Ambience } from './world/Ambience.tsx'
 import { FrameScheduler } from './world/FrameScheduler.tsx'
+import { followRoomLinks } from './world/roomLinks.ts'
 import { useSavingBattery, useSettings } from './world/settings.ts'
+import { followPanels } from './world/visitLog.ts'
 import { World } from './world/World.tsx'
 
 /**
@@ -24,6 +27,10 @@ export default function App() {
   const [autoDpr, setAutoDpr] = useState(MAX_DPR)
   const [rises, setRises] = useState(0)
   const quality = useSettings((s) => s.quality)
+  // A link such as #cafe opens in that room.
+  useEffect(followRoomLinks, [])
+  // Remembers each panel opened, for the "Your visit" page.
+  useEffect(followPanels, [])
   const saving = useSavingBattery()
   const chosen = quality === 'auto' ? autoDpr : quality === 'high' ? MAX_DPR : LOW_DPR
   // Battery saver draws at most one pixel per screen point, a quarter of a Retina screen's.
@@ -67,6 +74,7 @@ export default function App() {
         <World />
       </Canvas>
       <Hud />
+      <Ambience />
       <Overlays />
       {contextLost && (
         <GraphicsProblem
