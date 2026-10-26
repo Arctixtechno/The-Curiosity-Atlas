@@ -7,6 +7,7 @@ import { Ambience } from './world/Ambience.tsx'
 import { FrameScheduler } from './world/FrameScheduler.tsx'
 import { followRoomLinks } from './world/roomLinks.ts'
 import { useSavingBattery, useSettings } from './world/settings.ts'
+import { followPanels } from './world/visitLog.ts'
 import { World } from './world/World.tsx'
 
 /**
@@ -28,6 +29,8 @@ export default function App() {
   const quality = useSettings((s) => s.quality)
   // A link such as #cafe opens in that room.
   useEffect(followRoomLinks, [])
+  // Remembers each panel opened, for the "Your visit" page.
+  useEffect(followPanels, [])
   const saving = useSavingBattery()
   const chosen = quality === 'auto' ? autoDpr : quality === 'high' ? MAX_DPR : LOW_DPR
   // Battery saver draws at most one pixel per screen point, a quarter of a Retina screen's.

@@ -154,6 +154,14 @@ export function SettingsPanel() {
         </dt>
         <dd>Map of the house</dd>
         <dt>
+          <kbd>L</kbd>
+        </dt>
+        <dd>Your library</dd>
+        <dt>
+          <kbd>V</kbd>
+        </dt>
+        <dd>Your visit: rooms seen and things tried</dd>
+        <dt>
           <kbd>N</kbd>
         </dt>
         <dd>Sound on or off</dd>
