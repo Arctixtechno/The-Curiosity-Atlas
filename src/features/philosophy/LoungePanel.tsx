@@ -6,7 +6,7 @@ import { closeOverlay } from '../../world/overlay.ts'
 import { prefersReducedMotion } from '../../world/settings.ts'
 import { chooseMode, retry, sendMessage, startFresh, useConversation, usesPlaceholderCompanion } from './conversation.ts'
 import { conversationModes, type ConversationMode } from './modes.ts'
-import { useSeatAnchors } from './seatView.ts'
+import { glanceBy, useSeatAnchors } from './seatView.ts'
 import './LoungePanel.css'
 
 // The Philosophy Lounge conversation (spec section 5.2), shown once the
@@ -59,6 +59,7 @@ export function LoungePanel() {
 
   const mood: Mood = pending ? 'thinking' : speaking ? 'speaking' : draft.trim() ? 'attentive' : 'listening'
   const last = messages.at(-1)
+  const glanceHandlers = useGlanceDrag()
   const style = {
     '--companion-x': `${anchors.companion.x * 100}%`,
     '--companion-y': `${anchors.companion.y * 100}%`,
@@ -67,7 +68,7 @@ export function LoungePanel() {
   } as CSSProperties
 
   return (
-    <div className="lounge-scene" style={style} onClick={(e) => e.stopPropagation()}>
+    <div className="lounge-scene" style={style} onClick={(e) => e.stopPropagation()} {...glanceHandlers}>
       <div className="lounge-firelight" aria-hidden="true" />
       <div className="lounge-shade" aria-hidden="true" />
       <Companion mood={mood} modeName={mode.name} />
@@ -412,4 +413,26 @@ function Composer({
       </p>
     </form>
   )
+}
+
+/** Dragging across the room itself (not the conversation) glances round it. */
+function useGlanceDrag() {
+  const last = useRef<{ x: number; y: number } | null>(null)
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if ((e.target as HTMLElement).closest('.lounge-column, button')) return
+      last.current = { x: e.clientX, y: e.clientY }
+      e.currentTarget.setPointerCapture(e.pointerId)
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!last.current) return
+      // The room moves with the pointer, as if grabbed.
+      const scale = 0.0025
+      glanceBy((e.clientX - last.current.x) * scale, (e.clientY - last.current.y) * scale)
+      last.current = { x: e.clientX, y: e.clientY }
+    },
+    onPointerUp: () => {
+      last.current = null
+    },
+  }
 }

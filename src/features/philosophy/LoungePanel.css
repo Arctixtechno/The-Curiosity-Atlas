@@ -6,6 +6,18 @@
   inset: 0;
   overflow: hidden;
   font-family: var(--serif);
+  /* Drag the room to glance round it. */
+  cursor: grab;
+  touch-action: none;
+}
+
+.lounge-scene:active {
+  cursor: grabbing;
+}
+
+.lounge-column {
+  cursor: auto;
+  touch-action: auto;
 }
 
 /* Firelight, centred on the grate, keeps the still room alive. Only opacity animates, which costs next to nothing. */
