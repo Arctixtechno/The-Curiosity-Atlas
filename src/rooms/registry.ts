@@ -5,6 +5,8 @@ import {
   CAFE,
   CAFE_ROOM,
   CAFE_TABLES,
+  carCollider,
+  COURTYARD_CAR,
   COURTYARD,
   EYE_HEIGHT,
   HALL_FURNITURE,
@@ -21,6 +23,7 @@ import {
   OBSERVATORY_TERRACE_DOOR,
   observatoryWallPoint,
   PORTICO,
+  REFINERY,
   TERRACE,
   THEATRE,
   WORKSHOP,
@@ -312,6 +315,7 @@ export const rooms: Record<string, RoomDefinition> = {
       // Portico columns either side of the front door.
       boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
       boxCollider(PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
+      carCollider(COURTYARD_CAR.position, COURTYARD_CAR.rotationY),
     ],
     doors: [
       {
@@ -332,6 +336,14 @@ export const rooms: Record<string, RoomDefinition> = {
         color: '#5f9a7c',
         signHeight: 2.52,
         target: { roomId: 'cafe', doorId: 'courtyard' },
+      },
+      {
+        id: 'refinery',
+        label: 'Drive to the refinery',
+        prompt: 'Press E to drive to Marshgate Refinery',
+        ...COURTYARD_CAR,
+        variant: 'car',
+        target: { roomId: 'refinery', doorId: 'car' },
       },
     ],
     load: () => import('./Courtyard.tsx'),
@@ -375,6 +387,45 @@ export const rooms: Record<string, RoomDefinition> = {
     ],
     load: () => import('./Cafe.tsx'),
     exterior: CafeExterior,
+  },
+  refinery: {
+    id: 'refinery',
+    displayName: 'Marshgate Refinery',
+    colliders: [
+      ...wallColliders(REFINERY.width - 0.6, REFINERY.length - 0.6),
+      carCollider(REFINERY.car.position, REFINERY.car.rotationY),
+      boxCollider(...REFINERY.board, 2.6, 0.4),
+      boxCollider(...REFINERY.controlRoom.at, REFINERY.controlRoom.size[0] + 0.2, REFINERY.controlRoom.size[1] + 0.2),
+      boxCollider(...REFINERY.furnace.at, REFINERY.furnace.size[0] + 0.4, REFINERY.furnace.size[1] + 0.4),
+      // The column with its skirt and platforms, its field panel, the strippers and the reflux drum.
+      boxCollider(...REFINERY.column.at, REFINERY.column.radius * 2 + 1.2, REFINERY.column.radius * 2 + 1.2),
+      boxCollider(REFINERY.column.at[0], REFINERY.column.at[1] + REFINERY.column.radius + 1.6, 1, 0.4),
+      boxCollider(REFINERY.strippers[1][0], REFINERY.strippers[1][1], 1.6, 7.6),
+      boxCollider(...REFINERY.refluxDrum, 5.4, 2.2),
+      // Pipe rack legs, every bay along both sides.
+      ...Array.from({ length: Math.floor((REFINERY.rack.x[1] - REFINERY.rack.x[0]) / REFINERY.rack.bay) + 1 }, (_, i) =>
+        [-1, 1].map((s) =>
+          boxCollider(REFINERY.rack.x[0] + i * REFINERY.rack.bay, REFINERY.rack.z + (s * REFINERY.rack.width) / 2, 0.5, 0.5),
+        ),
+      ).flat(),
+      boxCollider(...REFINERY.vacuum.at, REFINERY.vacuum.radius * 2 + 2.4, REFINERY.vacuum.radius * 2 + 2.4),
+      boxCollider(REFINERY.fcc.at[0] + 1.6, REFINERY.fcc.at[1], REFINERY.fcc.size + 4, REFINERY.fcc.size + 0.6),
+      boxCollider(...REFINERY.reformer.at, REFINERY.reformer.size[0], REFINERY.reformer.size[1] - 1.5),
+      ...REFINERY.tanks.map(({ at }) => boxCollider(...at, REFINERY.tankRadius * 2 + 0.4, REFINERY.tankRadius * 2 + 0.4)),
+      boxCollider(...REFINERY.flare, 2, 2),
+    ],
+    doors: [
+      {
+        id: 'car',
+        label: 'Drive home',
+        prompt: 'Press E to drive back to the house',
+        ...REFINERY.car,
+        variant: 'car',
+        target: { roomId: 'courtyard', doorId: 'refinery' },
+      },
+    ],
+    load: () => import('./Refinery.tsx'),
+    journey: { place: 'Marshgate Refinery', miles: 34, minutes: 50, route: 'out along the Thames estuary' },
   },
 }
 

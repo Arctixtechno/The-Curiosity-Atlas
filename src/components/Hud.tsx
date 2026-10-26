@@ -3,6 +3,7 @@ import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
 import { useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
+import { DriveScreen } from './DriveScreen.tsx'
 import { MAP_OVERLAY } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
 import { GearIcon, MapIcon } from './icons.tsx'
@@ -18,6 +19,7 @@ export function Hud() {
   const toast = useGame((s) => s.toast)
   const overlay = useGame((s) => s.overlay)
   const viewing = useGame((s) => s.viewing)
+  const journey = useGame((s) => s.journey)
   const [showRoomStates, setShowRoomStates] = useState(false)
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export function Hud() {
   return (
     <>
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
+      {journey && <DriveScreen journey={journey} />}
       <div className="room-name">{rooms[activeRoomId].displayName}</div>
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
