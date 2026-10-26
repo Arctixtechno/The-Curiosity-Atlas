@@ -305,6 +305,7 @@ export default function Museum() {
       <pointLight position={[0, H - 0.6, -4]} color="#fff6e8" intensity={5} distance={9} decay={1.4} />
       <pointLight position={[0, H - 0.6, 2]} color="#fff6e8" intensity={5} distance={9} decay={1.4} />
       <RoomShell
+        cornerShade={false}
         width={W}
         length={L}
         height={H}

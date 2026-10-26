@@ -1013,6 +1013,7 @@ export default function PhilosophyLounge() {
       <Atmosphere background="#0c0806" />
       <hemisphereLight args={['#ffe2bf', '#2a1c12', 0.9]} />
       <RoomShell
+        cornerShade={false}
         width={W}
         length={L}
         height={H}
