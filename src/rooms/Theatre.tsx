@@ -423,26 +423,6 @@ function Curtains() {
   )
 }
 
-/** Square frosted wall lamp with a soft wash of light above and below it, and no hard light source. */
-function WallLamp({ side, z, dim }: { side: -1 | 1; z: number; dim: number }) {
-  const x = side * (HALF_W - 0.06)
-  const facing = side < 0 ? Math.PI / 2 : -Math.PI / 2
-  return (
-    <group position={[x, 3.3, z]} rotation={[0, facing, 0]}>
-      <mesh>
-        <boxGeometry args={[0.32, 0.32, 0.08]} />
-        <meshStandardMaterial color="#2a1c14" metalness={0.5} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 0, 0.041]}>
-        <planeGeometry args={[0.26, 0.26]} />
-        <meshStandardMaterial color="#ffe0b8" emissive="#ffc690" emissiveIntensity={0.9 * dim} />
-      </mesh>
-      <Glow position={[0, 0.7, 0.02]} size={[1.3, 2]} color={WARM} opacity={0.35 * dim} />
-      <Glow position={[0, -0.7, 0.02]} size={[1.1, 1.6]} color={WARM} opacity={0.22 * dim} />
-    </group>
-  )
-}
-
 /** Dropped soffit round the ceiling edge, hiding a warm LED cove that washes the ceiling with light. */
 const COVE = { width: 0.8, depth: 0.32 }
 function CeilingCove({ dim }: { dim: number }) {
@@ -538,6 +518,228 @@ function StarCeiling() {
   )
 }
 
+const GOLD = { color: '#c9a55c', metalness: 0.7, roughness: 0.3 }
+
+/**
+ * A gilded proscenium round the screen and curtains: fluted pilasters either
+ * side, a deep swagged valance across the top with a gold fringe, and a
+ * moulded gold arch.
+ */
+function Proscenium() {
+  const fabric = useTiledTexture('fabric', 6, 1)
+  const z = -HALF_L + 0.55
+  const span = SCREEN.width + 2.5
+  const top = THEATRE.height - 0.35
+  const swags = 7
+  return (
+    <group position={[0, 0, z]}>
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * (span / 2 + 0.2), 0, 0]}>
+          <mesh position={[0, top / 2, 0]} castShadow>
+            <boxGeometry args={[0.42, top, 0.3]} />
+            <meshStandardMaterial color="#2a1a14" roughness={0.5} />
+          </mesh>
+          {[-0.12, -0.04, 0.04, 0.12].map((fx) => (
+            <mesh key={fx} position={[fx, top / 2, 0.16]}>
+              <cylinderGeometry args={[0.022, 0.022, top - 0.6, 8]} />
+              <meshStandardMaterial {...GOLD} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0.2, 0.02]}>
+            <boxGeometry args={[0.5, 0.4, 0.36]} />
+            <meshStandardMaterial {...GOLD} />
+          </mesh>
+          <mesh position={[0, top - 0.25, 0.02]}>
+            <boxGeometry args={[0.52, 0.3, 0.36]} />
+            <meshStandardMaterial {...GOLD} />
+          </mesh>
+        </group>
+      ))}
+      {/* Valance: a deep pelmet of swags, each a curve of fabric, over a gold fringe. */}
+      <mesh position={[0, top - 0.35, 0.1]}>
+        <boxGeometry args={[span + 0.4, 0.7, 0.1]} />
+        <meshStandardMaterial color="#5a0e16" map={fabric} roughness={1} />
+      </mesh>
+      {Array.from({ length: swags }, (_, i) => {
+        const x = (i - (swags - 1) / 2) * ((span + 0.2) / swags)
+        return (
+          <group key={i} position={[x, top - 0.7, 0.16]}>
+            <mesh rotation={[0, 0, Math.PI]} scale={[1, 0.45, 0.5]}>
+              <torusGeometry args={[(span + 0.2) / swags / 2, 0.09, 8, 20, Math.PI]} />
+              <meshStandardMaterial color="#6a1219" map={fabric} roughness={1} />
+            </mesh>
+            {/* Tassel where two swags meet. */}
+            <mesh position={[(span + 0.2) / swags / 2, -0.1, 0]}>
+              <coneGeometry args={[0.05, 0.22, 10]} />
+              <meshStandardMaterial {...GOLD} />
+            </mesh>
+          </group>
+        )
+      })}
+      <mesh position={[0, top - 0.72, 0.17]}>
+        <boxGeometry args={[span + 0.4, 0.05, 0.04]} />
+        <meshStandardMaterial {...GOLD} />
+      </mesh>
+      <mesh position={[0, top + 0.05, 0.12]}>
+        <boxGeometry args={[span + 1.0, 0.16, 0.3]} />
+        <meshStandardMaterial {...GOLD} />
+      </mesh>
+    </group>
+  )
+}
+
+/** An art deco wall light: a gold fan-shaped shell throwing a wash of light up the wall. */
+function DecoSconce({ side, z, dim }: { side: -1 | 1; z: number; dim: number }) {
+  const x = side * (HALF_W - 0.04)
+  const facing = side < 0 ? Math.PI / 2 : -Math.PI / 2
+  return (
+    <group position={[x, 3.2, z]} rotation={[0, facing, 0]}>
+      <mesh position={[0, 0, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.2, 0.2, 0.06, 24, 1, false, Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial {...GOLD} />
+      </mesh>
+      {[-0.5, -0.25, 0, 0.25, 0.5].map((a) => (
+        <mesh key={a} position={[Math.sin(a) * 0.12, Math.cos(a) * 0.12, 0.075]} rotation={[0, 0, -a]}>
+          <boxGeometry args={[0.012, 0.16, 0.01]} />
+          <meshStandardMaterial color="#6a4a1c" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.02, 0.06]}>
+        <boxGeometry args={[0.3, 0.025, 0.05]} />
+        <meshStandardMaterial color="#ffe0b8" emissive="#ffc690" emissiveIntensity={1.2 * dim} />
+      </mesh>
+      <mesh position={[0, -0.12, 0.03]}>
+        <coneGeometry args={[0.05, 0.14, 12]} />
+        <meshStandardMaterial {...GOLD} />
+      </mesh>
+      <Glow position={[0, 0.85, 0.01]} size={[1.4, 2]} color={WARM} opacity={0.42 * dim} />
+    </group>
+  )
+}
+
+const POSTERS = [
+  { title: 'COSMOS', line: 'A journey to the edge of everything', colours: ['#0a0f2e', '#3b2a6a'], accent: '#f2c46a' },
+  { title: 'THE DEEP', line: 'Life where the light never reaches', colours: ['#03222e', '#0b5a6a'], accent: '#7fe0d0' },
+  { title: 'ROME', line: 'The rise of the eternal city', colours: ['#3a0e08', '#a2502a'], accent: '#f6d9a0' },
+  { title: 'GENIUS', line: 'Minds that changed the world', colours: ['#1a1a1a', '#4a3a20'], accent: '#e0a458' },
+]
+
+/** An art deco film poster: a sunburst over a gradient, the title in tall capitals and a "coming soon" band. */
+function usePoster(index: number) {
+  const texture = useMemo(() => {
+    const p = POSTERS[index % POSTERS.length]
+    const canvas = document.createElement('canvas')
+    canvas.width = 512
+    canvas.height = 768
+    const ctx = canvas.getContext('2d')!
+    const bg = ctx.createLinearGradient(0, 0, 0, 768)
+    bg.addColorStop(0, p.colours[0])
+    bg.addColorStop(1, p.colours[1])
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, 512, 768)
+    ctx.strokeStyle = p.accent
+    ctx.globalAlpha = 0.35
+    for (let i = 0; i < 24; i++) {
+      const a = Math.PI + (i / 23) * Math.PI
+      ctx.beginPath()
+      ctx.moveTo(256, 470)
+      ctx.lineTo(256 + Math.cos(a) * 520, 470 + Math.sin(a) * 520)
+      ctx.lineWidth = i % 2 ? 2 : 6
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+    ctx.beginPath()
+    ctx.arc(256, 470, 90, Math.PI, 0)
+    ctx.fillStyle = p.accent
+    ctx.fill()
+    ctx.lineWidth = 4
+    ctx.strokeRect(22, 22, 468, 724)
+    ctx.textAlign = 'center'
+    ctx.fillStyle = '#fff6e4'
+    ctx.font = 'bold 86px Georgia, serif'
+    ctx.fillText(p.title, 256, 170)
+    ctx.font = 'italic 26px Georgia, serif'
+    ctx.fillText(p.line, 256, 222)
+    ctx.fillStyle = p.accent
+    ctx.fillRect(22, 610, 468, 64)
+    ctx.fillStyle = p.colours[0]
+    ctx.font = 'bold 30px Georgia, serif'
+    ctx.fillText('COMING  SOON', 256, 653)
+    const tex = new CanvasTexture(canvas)
+    tex.colorSpace = SRGBColorSpace
+    tex.anisotropy = 4
+    return tex
+  }, [index])
+  useEffect(() => () => texture.dispose(), [texture])
+  return texture
+}
+
+/** A lit poster case on the wall: a gold frame round a softly backlit poster. */
+function PosterCase({ side, z, index, dim }: { side: -1 | 1; z: number; index: number; dim: number }) {
+  const poster = usePoster(index)
+  const w = 1.1
+  const h = 1.65
+  return (
+    <group position={[side * (HALF_W - 0.05), 2.65, z]} rotation={[0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+      <mesh position={[0, 0, 0.03]}>
+        <boxGeometry args={[w + 0.16, h + 0.16, 0.06]} />
+        <meshStandardMaterial {...GOLD} />
+      </mesh>
+      <mesh position={[0, 0, 0.062]}>
+        <planeGeometry args={[w, h]} />
+        <meshStandardMaterial map={poster} emissiveMap={poster} emissive="#ffffff" emissiveIntensity={0.55 * (0.4 + 0.6 * dim)} />
+      </mesh>
+      <Glow position={[0, 0, 0.01]} size={[w * 1.9, h * 1.5]} color={WARM} opacity={0.2 * dim} />
+    </group>
+  )
+}
+
+/**
+ * The projection booth's port in the back wall, high above the door. While a
+ * film plays, a faint beam reaches from it to the screen.
+ */
+function ProjectionBooth({ playing }: { playing: boolean }) {
+  const port = new Vector3(0, THEATRE.height - 0.9, HALF_L - 0.02)
+  const screen = new Vector3(0, SCREEN.y, -HALF_L + 0.2)
+  const length = port.distanceTo(screen)
+  const pitch = Math.atan2(port.y - screen.y, port.z - screen.z)
+  return (
+    <>
+      <group position={port}>
+        <mesh>
+          <boxGeometry args={[0.7, 0.42, 0.06]} />
+          <meshStandardMaterial {...GOLD} />
+        </mesh>
+        <mesh position={[0, 0, -0.035]}>
+          <planeGeometry args={[0.56, 0.3]} />
+          <meshStandardMaterial
+            color="#1a1420"
+            emissive="#c8d0ff"
+            emissiveIntensity={playing ? 1.4 : 0.15}
+            roughness={0.1}
+            side={2}
+          />
+        </mesh>
+      </group>
+      {playing && (
+        // A long cone, narrow at the port and as wide as the picture at the screen, drawn faintly and additively.
+        <mesh position={port.clone().lerp(screen, 0.5)} rotation={[Math.PI / 2 - pitch, 0, 0]}>
+          <cylinderGeometry args={[0.12, SCREEN.height * 0.55, length, 32, 1, true]} />
+          <meshBasicMaterial
+            color="#b8c4ff"
+            transparent
+            opacity={0.045}
+            depthWrite={false}
+            blending={2}
+            side={2}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+    </>
+  )
+}
+
 /** Home cinema: tiered floor rising to the entrance, leather recliners, soft wall lamps and a star ceiling. */
 export default function Theatre() {
   const popcorn = usePopcornTexture()
@@ -550,8 +752,8 @@ export default function Theatre() {
   return (
     <group>
       <Atmosphere background="#0a0709" fog={[18, 40]} />
-      <hemisphereLight args={['#ffd9b8', '#2a1a20', 0.8 * dim]} />
-      <ambientLight intensity={0.2 * dim} color="#ffcfa0" />
+      <hemisphereLight args={['#ffd9b8', '#2a1a20', 1.1 * dim]} />
+      <ambientLight intensity={0.3 * dim} color="#ffcfa0" />
       {/* Cove lighting along both side walls: wide, soft and warm. */}
       {[-1, 1].map((side) => (
         <rectAreaLight
@@ -578,6 +780,8 @@ export default function Theatre() {
       <Screen />
       <FilmLectern />
       <Curtains />
+      <Proscenium />
+      <ProjectionBooth playing={playing} />
 
       {rows.map((tier, r) =>
         THEATRE_SEAT_XS.map((x, i) => (
@@ -598,10 +802,14 @@ export default function Theatre() {
       )}
 
       {[-4.5, 0, 4.5].flatMap((z) =>
-        [-1, 1].map((side) => <WallLamp key={`${side}-${z}`} side={side as -1 | 1} z={z} dim={dim} />),
+        [-1, 1].map((side) => <DecoSconce key={`${side}-${z}`} side={side as -1 | 1} z={z} dim={dim} />),
       )}
-      {[-6.6, -2.25, 2.25, 6.6].flatMap((z) =>
+      {[-2.25, 2.25].flatMap((z) =>
         [-1, 1].map((side) => <AcousticPanel key={`${side}-${z}`} side={side as -1 | 1} z={z} parts={parts} />),
+      )}
+      {/* Coming-soon posters in lit cases, front and back of each side wall. */}
+      {[-6.6, 6.6].flatMap((z, i) =>
+        [-1, 1].map((side, j) => <PosterCase key={`${side}-${z}`} side={side as -1 | 1} z={z} index={i * 2 + j} dim={dim} />),
       )}
     </group>
   )
