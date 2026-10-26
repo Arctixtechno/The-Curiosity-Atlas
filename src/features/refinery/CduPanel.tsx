@@ -6,6 +6,7 @@ import { CHALLENGES, checkChallenges, useCompleted } from './challenges.ts'
 import { CRUDES, temperatureAt, type CrudeId } from './crudes.ts'
 import { DEAD_TIME, DEFAULT_TUNING, firedDuty, measured, RELIGHT_BELOW, TIME_CONSTANT } from './furnace.ts'
 import { Pfd } from './Pfd.tsx'
+import { money, Slider } from './ui.tsx'
 import { advancePlant, controls, currentResult, HISTORY_SECONDS, SPEEDS, usePlant, type Plant } from './plant.ts'
 import './Refinery.css'
 
@@ -86,36 +87,6 @@ function SimClock({ plant }: { plant: Plant }) {
         </button>
       </div>
     </div>
-  )
-}
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  onChange,
-  digits = 0,
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  unit: string
-  onChange: (v: number) => void
-  digits?: number
-}) {
-  return (
-    <label className="cdu-control">
-      <span>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
-      <output>
-        {value.toFixed(digits)} {unit}
-      </output>
-    </label>
   )
 }
 
@@ -512,12 +483,6 @@ function Products({ result }: { result: CduResult }) {
       </p>
     </div>
   )
-}
-
-function money(dollars: number) {
-  const sign = dollars < 0 ? '−' : ''
-  const abs = Math.abs(dollars)
-  return abs >= 1e6 ? `${sign}$${(abs / 1e6).toFixed(2)}m` : `${sign}$${Math.round(abs / 1000)}k`
 }
 
 function Economics({ result }: { result: CduResult }) {

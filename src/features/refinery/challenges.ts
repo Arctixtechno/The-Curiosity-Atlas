@@ -107,7 +107,8 @@ export function checkChallenges(plant: Plant, result: CduResult): Record<string,
   return progress
 }
 
-function complete(id: string) {
+/** Records a task as done, for good. */
+export function complete(id: string) {
   done = new Set(done).add(id)
   try {
     localStorage.setItem(KEY, JSON.stringify([...done]))

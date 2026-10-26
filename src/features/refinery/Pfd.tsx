@@ -19,7 +19,7 @@ function colour(id: ProductId) {
 }
 
 /** A reading in a small tag bubble, like an instrument on a P&ID. */
-function Tag({ x, y, tag, value, alarm }: { x: number; y: number; tag: string; value: string; alarm?: boolean }) {
+export function Tag({ x, y, tag, value, alarm }: { x: number; y: number; tag: string; value: string; alarm?: boolean }) {
   return (
     <g className={`pfd-tag${alarm ? ' pfd-tag-alarm' : ''}`} transform={`translate(${x} ${y})`}>
       <rect x={-46} y={-15} width={92} height={30} rx={6} />
@@ -189,7 +189,7 @@ export function Pfd({ plant, result }: { plant: Plant; result: CduResult }) {
   )
 }
 
-function Exchanger({ x, y }: { x: number; y: number }) {
+export function Exchanger({ x, y }: { x: number; y: number }) {
   return (
     <g className="pfd-equip">
       <circle cx={x} cy={y} r={14} />

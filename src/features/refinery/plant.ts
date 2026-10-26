@@ -1,12 +1,17 @@
 import { useSyncExternalStore } from 'react'
 import { CDU_LIMITS, CDU_START, runCdu, type CduInputs, type CduResult, type SteamLevel } from './cdu.ts'
 import type { CrudeId } from './crudes.ts'
+import { runFcc, FCC_START, type FccInputs, type FccResult } from './fcc.ts'
 import { measured, RELIGHT_BELOW, startFurnace, stepFurnace, valveFor, type FurnaceState, type Mode, type Tuning } from './furnace.ts'
+import { runVdu, VDU_START, type VduInputs, type VduResult } from './vdu.ts'
 
 // The live crude unit: the furnace simulation plus the column's settings,
 // shared by the operator's panel and the 3D site (which glows with the
 // furnace's firing). It runs only while the panel is open, so walking round
 // the site costs nothing, and the plant waits where you left it.
+//
+// The vacuum unit and cat cracker downstream are steady-state models: they
+// answer their settings at once, fed by whatever the crude unit is doing.
 
 export interface ColumnSettings {
   topTemp: number
@@ -34,6 +39,8 @@ export interface Alarm {
 export interface Plant {
   furnace: FurnaceState
   column: ColumnSettings
+  vdu: VduInputs
+  fcc: FccInputs
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -53,6 +60,8 @@ function fresh(): Plant {
   return {
     furnace,
     column: { topTemp, keroDraw, dieselDraw, steam },
+    vdu: VDU_START,
+    fcc: FCC_START,
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -94,6 +103,22 @@ export function cduInputs(p: Plant = plant): CduInputs {
 /** What the column is making right now. */
 export function currentResult(p: Plant = plant): CduResult {
   return runCdu(cduInputs(p))
+}
+
+export interface ConversionResult {
+  cdu: CduResult
+  vdu: VduResult
+  fcc: FccResult
+  /** Vacuum gas oil the cat cracker doesn't take, thousand barrels a day: negative when it draws on the tank. */
+  toTank: number
+}
+
+/** What the vacuum unit and cat cracker are doing, fed by the crude unit as it stands. */
+export function conversionResult(p: Plant = plant): ConversionResult {
+  const cdu = currentResult(p)
+  const vdu = runVdu(p.furnace.crude, p.furnace.feed, cdu.products.residue.from, p.vdu)
+  const fcc = runFcc(p.fcc, { carbon: vdu.carbon, metals: vdu.metals, crackability: vdu.crackability })
+  return { cdu, vdu, fcc, toTank: vdu.vgoRate - p.fcc.feed }
 }
 
 /** Advances the simulation by `realSeconds` of wall-clock time at the plant's speed. */
@@ -181,6 +206,15 @@ export const controls = {
     const f = plant.furnace
     if (!f.tripped || f.outlet > RELIGHT_BELOW) return
     setFurnace({ tripped: false, mode: 'manual', valve: Math.round(valveFor(f.crude, f.feed, 340, f.disturbances)) })
+  },
+  setVdu(change: Partial<VduInputs>) {
+    publish({ ...plant, vdu: { ...plant.vdu, ...change } })
+  },
+  setFcc(change: Partial<FccInputs>) {
+    publish({ ...plant, fcc: { ...plant.fcc, ...change } })
+  },
+  resetConversion() {
+    publish({ ...plant, vdu: VDU_START, fcc: FCC_START })
   },
   setSpeed(speed: number) {
     publish({ ...plant, speed })

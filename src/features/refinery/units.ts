@@ -3,6 +3,9 @@
 // from refining references (Gary and Handwerk's Petroleum Refining, and
 // licensors' published descriptions); individual plants vary.
 
+/** The stages built so far: units at or below this one can be run. */
+export const LIVE_STAGE = 2
+
 export type UnitId =
   | 'desalter'
   | 'cdu'
@@ -24,7 +27,7 @@ export interface RefineryUnit {
   id: UnitId
   name: string
   short: string
-  /** Which stage of the Atlas's refinery lets you run it: 1 is now. */
+  /** Which stage of the Atlas's refinery lets you run it (see LIVE_STAGE). */
   stage: number
   does: string
   conditions: string[]

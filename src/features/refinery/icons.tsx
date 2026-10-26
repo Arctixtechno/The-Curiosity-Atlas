@@ -40,3 +40,13 @@ export const RefineryIcon = ({ size }: { size?: number }) => (
     <path d="M18 3.2c.9.8.9 1.6 0 2.3-.9-.7-.9-1.5 0-2.3z" />
   </Icon>
 )
+
+/** A cat cracker: the regenerator, the riser and the reactor on top. */
+export const CatCrackerIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <rect x="3" y="11" width="8" height="9" rx="3" />
+    <rect x="12.5" y="2.5" width="7" height="5" rx="2" />
+    <path d="M16 7.5V20M11 17.5h5M14 7.5v3H7V11" />
+    <path d="M7 11V8.5M7 6.5v-1" />
+  </Icon>
+)

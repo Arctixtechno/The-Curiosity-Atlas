@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
-import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
+import { openOverlay } from '../../world/overlay.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY } from './overlayIds.ts'
+import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import './Refinery.css'
 
 const W = 960
 const H = 520
 const OUT_X = 812
+
+/** The operator screen each runnable unit opens. */
+const SCREENS: Partial<Record<UnitId, string>> = { cdu: CDU_OVERLAY, vdu: CONVERSION_OVERLAY, fcc: CONVERSION_OVERLAY }
 
 function box(id: UnitId) {
   const [x, y] = BOARD_LAYOUT[id]
@@ -61,6 +66,7 @@ function route(from: UnitId | 'crude', to: UnitId | ProductOut, index: number): 
 export function OverviewPanel() {
   const [selected, setSelected] = useState<UnitId>('cdu')
   const unit = UNITS[selected]
+  const screen = unit.stage <= LIVE_STAGE ? SCREENS[unit.id] : undefined
   return (
     <Panel title="How a refinery works" subtitle="The site board at Marshgate: follow a barrel of crude from tank to tanker" icon={<RefineryIcon />} wide>
       <div className="board">
@@ -96,7 +102,7 @@ export function OverviewPanel() {
             return (
               <g
                 key={id}
-                className={`board-unit${selected === id ? ' board-unit-selected' : ''}${u.stage === 1 ? ' board-unit-live' : ''}`}
+                className={`board-unit${selected === id ? ' board-unit-selected' : ''}${u.stage <= LIVE_STAGE ? ' board-unit-live' : ''}`}
                 role="button"
                 tabIndex={0}
                 aria-label={u.name}
@@ -122,9 +128,15 @@ export function OverviewPanel() {
         <article className="board-card" aria-live="polite">
           <div className="board-card-head">
             <h3>{unit.name}</h3>
-            <span className={`board-stage${unit.stage === 1 ? ' board-stage-live' : ''}`}>
-              {unit.stage === 1 ? (unit.id === 'cdu' ? 'Run it here' : 'Part of the crude unit') : `Opens in stage ${unit.stage}`}
-            </span>
+            {screen ? (
+              <button className="button button-primary board-open" onClick={() => openOverlay(screen)}>
+                Run it
+              </button>
+            ) : (
+              <span className={`board-stage${unit.stage <= LIVE_STAGE ? ' board-stage-live' : ''}`}>
+                {unit.stage <= LIVE_STAGE ? 'Part of the crude unit' : `Opens in stage ${unit.stage}`}
+              </span>
+            )}
           </div>
           <p>{unit.does}</p>
           <h4>Runs at</h4>
@@ -145,8 +157,8 @@ export function OverviewPanel() {
       </div>
       <p className="muted">
         Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. The crude
-        unit is the one you can run today, from its column in the middle of the site or from the control room. The cat cracker and
-        vacuum unit come next, then the reformer and its hydrotreater.
+        unit, the vacuum unit and the cat cracker can be run today: pick one and press Run it, or walk to it on site. The reformer
+        and its hydrotreater come next.
       </p>
     </Panel>
   )

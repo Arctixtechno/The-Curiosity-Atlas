@@ -13,7 +13,7 @@ import {
   Vector3,
 } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
-import { CDU_OVERLAY, OVERVIEW_OVERLAY } from '../features/refinery/overlayIds.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY } from '../features/refinery/overlayIds.ts'
 import { usePlant } from '../features/refinery/plant.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
@@ -591,12 +591,13 @@ function SiteBoard() {
   )
 }
 
-/** A unit still to come: a sign that says so. */
-function ComingSign({ at, text, prompt, height = 2.4 }: { at: [number, number]; text: string; prompt: string; height?: number }) {
+/** A unit's name board: opens its operator screen, or says when it's coming. */
+function UnitSign({ at, text, prompt, overlay, height = 2.4 }: { at: [number, number]; text: string; prompt: string; overlay?: string; height?: number }) {
   useInteractable({
     position: useMemo(() => new Vector3(at[0], 1.2, at[1]), [at]),
     radius: 3,
     prompt,
+    onInteract: overlay ? () => openOverlay(overlay) : undefined,
   })
   return <Label3D text={text} position={[at[0], height, at[1]]} scale={2.2} />
 }
@@ -610,10 +611,11 @@ function VacuumUnit({ m }: { m: Materials }) {
       <Vessel x={at[0]} z={at[1]} radius={radius} height={height - 10} base={6} material={m.cladding} />
       <Vessel x={at[0]} z={at[1]} radius={radius * 0.5} height={6} base={height - 4} material={m.cladding} />
       <Platforms x={at[0]} z={at[1]} radius={radius} heights={[8, 14]} m={m} />
-      <ComingSign
+      <UnitSign
         at={[at[0], at[1] + radius + 1.4]}
-        text="Vacuum unit · stage 2"
-        prompt="The vacuum distillation unit opens in stage 2: it distils the residue again under vacuum"
+        text="Unit 200 · Vacuum distillation"
+        prompt="Press E to run the vacuum unit and cat cracker"
+        overlay={CONVERSION_OVERLAY}
       />
     </group>
   )
@@ -653,10 +655,11 @@ function CatCracker({ m }: { m: Materials }) {
           <sphereGeometry args={[0.13, 8, 8]} />
         </mesh>
       ))}
-      <ComingSign
+      <UnitSign
         at={[size / 2 + 1, size / 2 + 1.6]}
-        text="Cat cracker · stage 2"
-        prompt="The fluid catalytic cracker opens in stage 2: it cracks heavy oil into petrol on a hot catalyst"
+        text="Unit 300 · Cat cracker"
+        prompt="Press E to run the cat cracker and vacuum unit"
+        overlay={CONVERSION_OVERLAY}
       />
     </group>
   )
@@ -679,7 +682,7 @@ function Reformer({ m }: { m: Materials }) {
           <cylinderGeometry args={[0.4, 0.45, 10, 12]} />
         </mesh>
       ))}
-      <ComingSign
+      <UnitSign
         at={[0, size[1] / 2 + 1.2]}
         text="Reformer · stage 3"
         prompt="The catalytic reformer opens in stage 3: it turns naphtha into high-octane petrol and hydrogen"
