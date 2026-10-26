@@ -419,3 +419,66 @@
     opacity: 0;
   }
 }
+
+/* "How it works": a panel's explanation, folded away under the experiment. */
+.how-it-works {
+  margin-top: 18px;
+  border-top: 1px solid rgba(244, 234, 216, 0.1);
+}
+
+.how-it-works-toggle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 12px 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.how-it-works-toggle:hover,
+.how-it-works-toggle:focus-visible {
+  color: var(--ink);
+}
+
+.how-it-works-chevron {
+  transition: transform 0.35s ease;
+}
+
+.how-it-works.open .how-it-works-chevron {
+  transform: rotate(180deg);
+}
+
+.how-it-works-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease;
+}
+
+.how-it-works-drawer > div {
+  overflow: hidden;
+}
+
+.how-it-works.open .how-it-works-drawer {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-it-works-drawer,
+  .how-it-works-chevron {
+    transition: none;
+  }
+}
+
+.how-it-works-drawer p:first-child {
+  margin-top: 8px;
+}

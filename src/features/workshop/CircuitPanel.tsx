@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { HowItWorks } from '../../components/HowItWorks.tsx'
 import { SparkIcon } from '../../components/icons.tsx'
 import { brightness, CELLS, PARTS, solve, type Arrangement, type CircuitResult, type Part } from './circuit.ts'
 import './Workshop.css'
@@ -253,17 +254,18 @@ export function CircuitPanel() {
           {overloaded && <p className="shop-warn">That's well over the bulb's rating: a real bulb would soon burn out.</p>}
         </div>
       </div>
-      <h3>What's happening</h3>
-      <p>
-        Ohm's law says the current through a part is the voltage across it divided by its resistance (I = V / R). In series,
-        resistances add up and every part carries the same current, so each bulb gets a share of the voltage and glows dimmer. In
-        parallel, every branch gets the full voltage, so each bulb glows fully, and the cell has to supply the current for all of
-        them.
-      </p>
-      <p className="muted">
-        Calculated with Ohm's law for an ideal cell. The bulb is treated as a fixed 12 Ω, rated for 3 V; a real filament's
-        resistance rises as it heats up.
-      </p>
+      <HowItWorks>
+        <p>
+          Ohm's law says the current through a part is the voltage across it divided by its resistance (I = V / R). In series,
+          resistances add up and every part carries the same current, so each bulb gets a share of the voltage and glows dimmer.
+          In parallel, every branch gets the full voltage, so each bulb glows fully, and the cell has to supply the current for
+          all of them.
+        </p>
+        <p className="muted">
+          Calculated with Ohm's law for an ideal cell. The bulb is treated as a fixed 12 Ω, rated for 3 V; a real filament's
+          resistance rises as it heats up.
+        </p>
+      </HowItWorks>
     </Panel>
   )
 }
