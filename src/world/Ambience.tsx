@@ -39,6 +39,7 @@ const ALL: AmbienceName[] = ['fire', 'rain', 'fountain', 'city', 'birds', 'wind'
 /** What the floor underfoot is made of in each room, for footsteps. */
 const FLOORS: Record<string, Floor> = {
   theatre: 'carpet',
+  library: 'wood',
   courtyard: 'stone',
   terrace: 'stone',
   museum: 'stone',

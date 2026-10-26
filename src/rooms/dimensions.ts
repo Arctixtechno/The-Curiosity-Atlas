@@ -180,6 +180,23 @@ export const MUSEUM = {
   bench: [0, 2.4] as [number, number],
 }
 
+/**
+ * The Library: a tall reading room off the north end of the hall, lined with
+ * books. Its door is the +z wall; the reading desk with your own saved
+ * discoveries stands against the far wall.
+ */
+export const LIBRARY = {
+  width: 9,
+  length: 12,
+  height: 4.4,
+  /** The side walls' bookcases: centre along z, and length. */
+  sideCases: { z: -0.6, length: 9.6 },
+  /** The far wall's two bookcases either side of the desk: centre x (each side), and length. */
+  backCases: { x: 2.75, length: 2.9 },
+  table: { at: [0, -0.4] as [number, number], width: 1.2, length: 3.6 },
+  desk: [0, -5.35] as [number, number],
+}
+
 /** Half the width of the roped-off square round the museum's open plinth. */
 export const MUSEUM_ROPE = 0.85
 

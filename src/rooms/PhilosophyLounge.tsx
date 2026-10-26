@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
   AdditiveBlending,
   CanvasTexture,
-  Color,
   DoubleSide,
   Object3D,
   ShaderMaterial,
@@ -12,6 +11,7 @@ import {
   type InstancedMesh,
   type PointLight,
 } from 'three'
+import { Bookcase } from '../components/Bookcase.tsx'
 import { Mouldings } from '../components/Mouldings.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { LoungeInteraction } from '../features/philosophy/LoungeInteraction.tsx'
@@ -34,18 +34,8 @@ const OAK = '#5a3a22'
 const DARK_OAK = '#3a2414'
 const BRASS = { color: '#c9a25a', metalness: 0.8, roughness: 0.3 }
 const LEATHER = '#6e2a1c'
-const BOOK_COLOURS = [
-  '#6b2a22',
-  '#2f4a3a',
-  '#1f3350',
-  '#7a5a2a',
-  '#4a2a44',
-  '#8a7a5a',
-  '#2a2a2a',
-  '#5a1e1a',
-  '#33402a',
-  '#8a6a3a',
-]
+/** Shelf heights in the bookcases. */
+const SHELVES = [0.42, 0.88, 1.34, 1.8, 2.26]
 
 const LEG: [number, number][] = [
   [0.001, 0],
@@ -397,164 +387,43 @@ function Fireplace() {
   )
 }
 
-/** Painted spines: gilt bands near the top and bottom, the rest left for the book's colour. */
-function useSpineTexture() {
-  const texture = useMemo(() => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 32
-    canvas.height = 128
-    const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, 32, 128)
-    ctx.fillStyle = '#e8c070'
-    for (const y of [10, 16, 104, 112]) ctx.fillRect(0, y, 32, 2)
-    ctx.fillRect(8, 30, 16, 6)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
-    ctx.fillRect(0, 0, 3, 128)
-    ctx.fillRect(29, 0, 3, 128)
-    const tex = new CanvasTexture(canvas)
-    tex.colorSpace = SRGBColorSpace
-    return tex
-  }, [])
-  useEffect(() => () => texture.dispose(), [texture])
-  return texture
-}
-
-/** A built-in oak bookcase: every book is one instance of a single mesh, so a full case is one draw. */
-function Bookcase({ side }: { side: -1 | 1 }) {
-  const wood = useTiledTexture('wood', 1, 2)
-  const spines = useSpineTexture()
-  const books = useRef<InstancedMesh>(null)
+/** A built-in oak bookcase along a side wall, with a few objects among the books. */
+function LoungeBookcase({ side }: { side: -1 | 1 }) {
   const length = LOUNGE.bookcaseLength
-  const shelves = [0.42, 0.88, 1.34, 1.8, 2.26]
-  const layout = useMemo(() => {
-    let seed = side > 0 ? 7 : 3
-    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-    const out: { x: number; y: number; w: number; h: number; d: number; lean: number; flat: boolean; colour: string }[] = []
-    shelves.forEach((y) => {
-      let x = -length / 2 + 0.06
-      while (x < length / 2 - 0.1) {
-        // Now and then a gap, a stack lying flat, or a book leaning on its neighbour.
-        const roll = rand()
-        if (roll < 0.06) {
-          x += 0.12 + rand() * 0.15
-          continue
-        }
-        if (roll < 0.12) {
-          for (let k = 0; k < 3 + Math.floor(rand() * 3); k++) {
-            const h = 0.035 + rand() * 0.02
-            out.push({
-              x: x + 0.12,
-              y: y + 0.02 + k * 0.045,
-              w: 0.24,
-              h,
-              d: 0.17 + rand() * 0.04,
-              lean: 0,
-              flat: true,
-              colour: BOOK_COLOURS[Math.floor(rand() * BOOK_COLOURS.length)],
-            })
-          }
-          x += 0.28
-          continue
-        }
-        const w = 0.025 + rand() * 0.035
-        const h = 0.24 + rand() * 0.12
-        const lean = roll > 0.95 ? 0.25 : 0
-        out.push({
-          x: x + w / 2,
-          y: y + 0.02,
-          w,
-          h,
-          d: 0.18 + rand() * 0.05,
-          lean,
-          flat: false,
-          colour: BOOK_COLOURS[Math.floor(rand() * BOOK_COLOURS.length)],
-        })
-        x += w + 0.003 + (lean ? 0.06 : 0)
-      }
-    })
-    return out
-  }, [side, length])
-
-  useLayoutEffect(() => {
-    const mesh = books.current!
-    const o = new Object3D()
-    const colour = new Color()
-    layout.forEach((b, i) => {
-      o.position.set(b.x, b.flat ? b.y : b.y + (b.h / 2) * Math.cos(b.lean), 0.04 + b.d / 2)
-      o.rotation.set(0, 0, b.flat ? Math.PI / 2 : b.lean)
-      if (b.lean) o.position.x += (b.h / 2) * Math.sin(b.lean)
-      o.scale.set(b.w, b.h, b.d)
-      if (b.flat) o.scale.set(b.h, b.w, b.d)
-      o.updateMatrix()
-      mesh.setMatrixAt(i, o.matrix)
-      mesh.setColorAt(i, colour.set(b.colour).offsetHSL(0, 0, (Math.sin(i * 12.9) - 0.5) * 0.04))
-    })
-    mesh.instanceMatrix.needsUpdate = true
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [layout])
-
   const x = side * (W / 2 - 0.02)
   return (
     <group position={[x, 0, LOUNGE.bookcaseZ]} rotation={[0, (-side * Math.PI) / 2, 0]}>
-      {/* Back, sides, a plinth and a cornice. */}
-      <mesh position={[0, 1.22, 0.01]} receiveShadow>
-        <boxGeometry args={[length, 2.44, 0.02]} />
-        <meshStandardMaterial color={DARK_OAK} map={wood} roughness={0.7} />
-      </mesh>
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[(s * length) / 2, 1.22, 0.17]} castShadow>
-          <boxGeometry args={[0.05, 2.44, 0.34]} />
-          <meshStandardMaterial color={OAK} map={wood} roughness={0.6} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.17, 0.18]}>
-        <boxGeometry args={[length + 0.06, 0.34, 0.36]} />
-        <meshStandardMaterial color={OAK} map={wood} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 2.5, 0.2]}>
-        <boxGeometry args={[length + 0.14, 0.12, 0.42]} />
-        <meshStandardMaterial color={OAK} map={wood} roughness={0.6} />
-      </mesh>
-      {shelves.map((y) => (
-        <mesh key={y} position={[0, y, 0.17]} receiveShadow>
-          <boxGeometry args={[length, 0.03, 0.32]} />
-          <meshStandardMaterial color={OAK} map={wood} roughness={0.6} />
-        </mesh>
-      ))}
-      <instancedMesh ref={books} args={[undefined, undefined, layout.length]} castShadow>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial map={spines} roughness={0.8} />
-      </instancedMesh>
-      {/* A few objects among the books: a small brass globe, a bust and a pair of bookends. */}
-      <group position={[length / 2 - 0.35, 1.36, 0.17]}>
-        <mesh position={[0, 0.03, 0]}>
-          <cylinderGeometry args={[0.05, 0.06, 0.06, 16]} />
-          <meshStandardMaterial {...BRASS} />
-        </mesh>
-        <mesh position={[0, 0.16, 0]}>
-          <sphereGeometry args={[0.1, 16, 12]} />
-          <meshStandardMaterial color="#5a7a8a" roughness={0.5} />
-        </mesh>
-        <mesh position={[0, 0.16, 0]} rotation={[0, 0, 0.4]}>
-          <torusGeometry args={[0.115, 0.006, 6, 32]} />
-          <meshStandardMaterial {...BRASS} />
-        </mesh>
-      </group>
-      <group position={[-length / 2 + 0.4, 1.82, 0.17]}>
-        <mesh position={[0, 0.06, 0]}>
-          <boxGeometry args={[0.12, 0.12, 0.12]} />
-          <meshStandardMaterial color="#e8e2d6" roughness={0.4} />
-        </mesh>
-        <mesh position={[0, 0.2, 0]}>
-          <sphereGeometry args={[0.07, 16, 12]} />
-          <meshStandardMaterial color="#e8e2d6" roughness={0.4} />
-        </mesh>
-        <mesh position={[0, 0.15, 0]}>
-          <cylinderGeometry args={[0.045, 0.08, 0.1, 16]} />
-          <meshStandardMaterial color="#e8e2d6" roughness={0.4} />
-        </mesh>
-      </group>
+      <Bookcase length={length} height={2.44} shelves={SHELVES} seed={side > 0 ? 7 : 3} wood={OAK} back={DARK_OAK}>
+        {/* A few objects among the books: a small brass globe, a bust and a pair of bookends. */}
+        <group position={[length / 2 - 0.35, 1.36, 0.17]}>
+          <mesh position={[0, 0.03, 0]}>
+            <cylinderGeometry args={[0.05, 0.06, 0.06, 16]} />
+            <meshStandardMaterial {...BRASS} />
+          </mesh>
+          <mesh position={[0, 0.16, 0]}>
+            <sphereGeometry args={[0.1, 16, 12]} />
+            <meshStandardMaterial color="#5a7a8a" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.16, 0]} rotation={[0, 0, 0.4]}>
+            <torusGeometry args={[0.115, 0.006, 6, 32]} />
+            <meshStandardMaterial {...BRASS} />
+          </mesh>
+        </group>
+        <group position={[-length / 2 + 0.4, 1.82, 0.17]}>
+          <mesh position={[0, 0.06, 0]}>
+            <boxGeometry args={[0.12, 0.12, 0.12]} />
+            <meshStandardMaterial color="#e8e2d6" roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 0.2, 0]}>
+            <sphereGeometry args={[0.07, 16, 12]} />
+            <meshStandardMaterial color="#e8e2d6" roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 0.15, 0]}>
+            <cylinderGeometry args={[0.045, 0.08, 0.1, 16]} />
+            <meshStandardMaterial color="#e8e2d6" roughness={0.4} />
+          </mesh>
+        </group>
+      </Bookcase>
     </group>
   )
 }
@@ -1038,8 +907,8 @@ export default function PhilosophyLounge() {
       <WingbackChair {...visitor} />
       <WingbackChair {...companion} />
       <SideTable />
-      <Bookcase side={-1} />
-      <Bookcase side={1} />
+      <LoungeBookcase side={-1} />
+      <LoungeBookcase side={1} />
       <Window />
       <Painting name="hills" position={[W / 2 - 0.01, 1.85, LOUNGE.windowZ]} rotationY={-Math.PI / 2} width={1} />
       <ChessTable />

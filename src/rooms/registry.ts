@@ -18,6 +18,7 @@ import {
   LOUNGE,
   MAIN_HALL,
   MAP_TABLE,
+  LIBRARY,
   MUSEUM,
   MUSEUM_ROPE,
   OBSERVATORY,
@@ -75,7 +76,13 @@ const mainHallDoors: DoorDefinition[] = [
     rotationY: Math.PI / 2,
     target: { roomId: 'museum', doorId: 'hall' },
   },
-  { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
+  {
+    id: 'library',
+    label: 'Library',
+    position: [0, 0, -hallL],
+    rotationY: 0,
+    target: { roomId: 'library', doorId: 'hall' },
+  },
   {
     id: 'laboratory',
     label: 'Laboratory',
@@ -251,6 +258,32 @@ export const rooms: Record<string, RoomDefinition> = {
       },
     ],
     load: () => import('./PhilosophyLounge.tsx'),
+  },
+  library: {
+    id: 'library',
+    displayName: 'Library',
+    colliders: [
+      ...wallColliders(LIBRARY.width, LIBRARY.length),
+      // The bookcases down each side and on the far wall, and the ladder's feet.
+      boxCollider(-LIBRARY.width / 2 + 0.2, LIBRARY.sideCases.z, 0.4, LIBRARY.sideCases.length),
+      boxCollider(LIBRARY.width / 2 - 0.2, LIBRARY.sideCases.z, 0.4, LIBRARY.sideCases.length),
+      boxCollider(-LIBRARY.backCases.x, -LIBRARY.length / 2 + 0.2, LIBRARY.backCases.length, 0.4),
+      boxCollider(LIBRARY.backCases.x, -LIBRARY.length / 2 + 0.2, LIBRARY.backCases.length, 0.4),
+      boxCollider(-LIBRARY.width / 2 + 0.7, 1.4, 0.7, 0.6),
+      // The reading table with its chairs, and the desk.
+      boxCollider(...LIBRARY.table.at, LIBRARY.table.width + 1.1, LIBRARY.table.length + 0.2),
+      boxCollider(...LIBRARY.desk, 1.9, 0.8),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, LIBRARY.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'library' },
+      },
+    ],
+    load: () => import('./Library.tsx'),
   },
   workshop: {
     id: 'workshop',
