@@ -18,11 +18,13 @@ import { getPainting } from '../components/paintings.ts'
 import { findPlanet, position, type PlanetId } from '../features/solar/planets.ts'
 import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { minutesUntilNight, phaseAt, useDayPhase, useHour } from '../world/clock.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
+import { DaySky } from './DaySky.tsx'
 import { NightSky } from './NightSky.tsx'
 
 const { radius: R, wallHeight: WALL_H } = OBSERVATORY
@@ -30,7 +32,13 @@ const { radius: R, wallHeight: WALL_H } = OBSERVATORY
 const BRASS = { color: '#d4b064', metalness: 0.55, roughness: 0.28 }
 const IRON = { color: '#23262c', metalness: 0.6, roughness: 0.45 }
 /** The dome opens towards -z; the telescope points through the opening at the moon. */
-const MOON: [number, number, number] = [0, 52, -44]
+const MOON: [number, number, number] = [0, 61, -52]
+/** Where the sun is, seen through the opening: high by day, low on the horizon at dawn and dusk. */
+const SUN: Record<'day' | 'dusk' | 'dawn', [number, number, number]> = {
+  day: [10, 60, -50],
+  dusk: [-40, 8, -60],
+  dawn: [40, 8, -60],
+}
 const TELESCOPE_ELEVATION = (50 * Math.PI) / 180
 
 /** Paints a canvas once into a texture, disposed when the room unloads. */
@@ -308,12 +316,17 @@ function Shell() {
 /** A large brass refractor on an iron equatorial mount, pointing out through the opening. */
 function Telescope() {
   const [x, z] = OBSERVATORY.telescope
+  const hour = useHour()
+  const dark = phaseAt(hour) === 'night'
+  const wait = minutesUntilNight(hour)
   useInteractable({
     position: useMemo(() => new Vector3(x, 1.2, z), [x, z]),
     radius: 2.4,
-    prompt: 'Press E to look through the telescope',
+    prompt: dark
+      ? 'Press E to look through the telescope'
+      : `Too light to see the stars. Come back after dark, in about ${wait} minute${wait === 1 ? '' : 's'}`,
     // Deferred so the same key press doesn't also count as stepping back.
-    onInteract: () => setTimeout(() => gameStore.set({ viewing: TELESCOPE_VIEW })),
+    onInteract: dark ? () => setTimeout(() => gameStore.set({ viewing: TELESCOPE_VIEW })) : undefined,
   })
   return (
     <group position={[x, 0, z]}>
@@ -375,7 +388,7 @@ function Telescope() {
 export const TELESCOPE_VIEW = 'telescope'
 /** Where the eye goes when looking through the telescope: high up the tube, clear of the dome. */
 const EYEPIECE = new Vector3(0, 3.4, -2.1)
-const VIEW_FOV = { start: 7, min: 1.5, max: 24 }
+const VIEW_FOV = { start: 4, min: 0.4, max: 24 }
 
 /**
  * Looking through the telescope: the camera moves up to the tube, narrows
@@ -396,7 +409,7 @@ function TelescopeView() {
       if (e.code === 'KeyE' && !e.repeat) gameStore.set({ viewing: null })
     }
     const onWheel = (e: WheelEvent) => {
-      fov.current = Math.min(VIEW_FOV.max, Math.max(VIEW_FOV.min, (fov.current ?? VIEW_FOV.start) * Math.exp(e.deltaY * 0.001)))
+      fov.current = Math.min(VIEW_FOV.max, Math.max(VIEW_FOV.min, (fov.current ?? VIEW_FOV.start) * Math.exp(e.deltaY * 0.0015)))
     }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('wheel', onWheel)
@@ -743,15 +756,30 @@ function WallLight({ angle }: { angle: number }) {
 
 /** Round observatory: domed roof with one gore open to the night sky, a big telescope, an orrery and a celestial globe. */
 export default function Observatory() {
+  const phase = useDayPhase()
   return (
     <group>
-      <Atmosphere background="#03040c" />
-      <hemisphereLight args={['#8a9ed8', '#3a2c20', 1.0]} />
+      <Atmosphere background={phase === 'night' ? '#03040c' : '#8aa8d0'} />
+      <hemisphereLight args={phase === 'day' ? ['#cfe0ff', '#4a3a2a', 1.6] : ['#8a9ed8', '#3a2c20', 1.0]} />
       <ambientLight intensity={0.18} color="#c0c8ff" />
-      {/* Moonlight falling through the opening. */}
-      <directionalLight position={MOON} intensity={0.6} color="#b8c8ff" />
+      {phase === 'night' ? (
+        <>
+          {/* Moonlight falling through the opening. */}
+          <directionalLight position={MOON} intensity={0.6} color="#b8c8ff" />
+          <NightSky moon={MOON} />
+        </>
+      ) : (
+        <>
+          {/* Daylight, or the low warm light of dawn and dusk, through the opening. */}
+          <directionalLight
+            position={SUN[phase]}
+            intensity={phase === 'day' ? 1.6 : 0.8}
+            color={phase === 'day' ? '#fff4e0' : '#ffb080'}
+          />
+          <DaySky phase={phase} sun={SUN[phase]} />
+        </>
+      )}
       <pointLight position={[0, 2.6, 1.5]} color="#ffcf90" intensity={6} distance={9} decay={1.6} />
-      <NightSky moon={MOON} />
 
       <Floor />
       <Shell />

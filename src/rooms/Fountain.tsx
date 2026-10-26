@@ -15,7 +15,7 @@ import {
 import { useLathe } from '../hooks/useLathe.ts'
 import { useTiledTexture } from '../hooks/useTiledTexture.ts'
 
-// The Discovery Fountain in the middle of the main hall: a carved stone
+// The Discovery Fountain in the middle of the courtyard: a carved stone
 // fountain in three tiers. Water rises from the top, spills from each bowl in
 // a falling curtain and ripples in the basin, which glows softly from below,
 // with coins on its floor from visitors' wishes. Everything that moves is
@@ -301,7 +301,8 @@ function Plaque() {
   )
 }
 
-export function Fountain() {
+/** `night` turns up the glow under the water, which by day would only look painted on. */
+export function Fountain({ night = false }: { night?: boolean }) {
   const stone = useTiledTexture('marble', 2, 1)
   const basin = useLathe(BASIN_PROFILE, 48)
   const pedestal = useLathe(PEDESTAL_PROFILE, 40)
@@ -342,7 +343,7 @@ export function Fountain() {
       {/* The basin floor, glowing faintly teal under the water, with the wished-for coins. */}
       <mesh position={[0, 0.141, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BASIN.rim, 48]} />
-        <meshStandardMaterial color="#2c5a60" emissive="#0f4a54" emissiveIntensity={0.9} roughness={0.8} />
+        <meshStandardMaterial color="#2c5a60" emissive="#0f4a54" emissiveIntensity={night ? 1.2 : 0.15} roughness={0.8} />
       </mesh>
       <Coins />
 
@@ -369,7 +370,7 @@ export function Fountain() {
 
       <Plaque />
       {/* Light rising off the water. */}
-      <pointLight position={[0, 0.8, 0]} color="#8fd4e0" intensity={2.2} distance={4.5} decay={2} />
+      {night && <pointLight position={[0, 0.8, 0]} color="#8fd4e0" intensity={3} distance={6} decay={2} />}
     </group>
   )
 }

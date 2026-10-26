@@ -200,6 +200,15 @@ kbd {
   pointer-events: none;
 }
 
+.room-name .clock {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(244, 234, 216, 0.3);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
 .fade {
   position: fixed;
   inset: 0;

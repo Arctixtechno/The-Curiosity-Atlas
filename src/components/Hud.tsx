@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
+import { clockText, useHour } from '../world/clock.ts'
 import { useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
 import { MAP_OVERLAY } from './MapPanel.tsx'
@@ -19,6 +20,7 @@ export function Hud() {
   const overlay = useGame((s) => s.overlay)
   const viewing = useGame((s) => s.viewing)
   const [showRoomStates, setShowRoomStates] = useState(false)
+  const hour = useHour()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -31,7 +33,12 @@ export function Hud() {
   return (
     <>
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
-      <div className="room-name">{rooms[activeRoomId].displayName}</div>
+      <div className="room-name">
+        {rooms[activeRoomId].displayName}
+        <span className="clock" title="The house's clock: a day passes in 40 minutes">
+          {clockText(hour)}
+        </span>
+      </div>
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
       {viewing === 'telescope' && <Eyepiece />}

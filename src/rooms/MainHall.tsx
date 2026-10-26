@@ -1,15 +1,59 @@
-import { FountainInteraction } from '../features/discoveries/FountainInteraction.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { Bench, CoatStand, ConsoleTable, Flowers } from '../components/Furnishings.tsx'
 import { Painting } from '../components/Painting.tsx'
 import { MapTable } from '../features/tourism/MapTable.tsx'
 import { Atmosphere } from './Atmosphere.tsx'
 import { HALL_FURNITURE, HALL_PLANTS, MAIN_HALL } from './dimensions.ts'
-import { Fountain } from './Fountain.tsx'
+import { useLathe } from '../hooks/useLathe.ts'
 import { RoomShell } from './RoomShell.tsx'
 
 const SKIRTING_HEIGHT = 0.18
 const BEAM_SPACING = 2.5
+
+const PEDESTAL: [number, number][] = [
+  [0.001, 0],
+  [0.32, 0],
+  [0.34, 0.04],
+  [0.22, 0.1],
+  [0.12, 0.16],
+  [0.09, 0.3],
+  [0.12, 0.42],
+  [0.08, 0.52],
+  [0.07, 0.66],
+  [0.14, 0.72],
+  [0.001, 0.72],
+]
+
+/**
+ * A round mahogany table in the middle of the hall, as grand houses have in
+ * their entrance halls, with a big arrangement of flowers and a few books.
+ */
+function CentreTable() {
+  const wood = useTiledTexture('wood', 1, 1)
+  const pedestal = useLathe(PEDESTAL, 32)
+  const mahogany = <meshStandardMaterial color="#6a3420" map={wood} roughness={0.35} metalness={0.05} />
+  return (
+    <group>
+      <mesh geometry={pedestal} castShadow>
+        {mahogany}
+      </mesh>
+      <mesh position={[0, 0.745, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.72, 0.7, 0.05, 48]} />
+        {mahogany}
+      </mesh>
+      {/* A big arrangement of flowers in a stone urn. */}
+      <group position={[0, 0.77, 0]} scale={2.2}>
+        <Flowers position={[0, 0, 0]} colours={['#f4d6dc', '#fff6e8']} />
+      </group>
+      {[0, 1].map((i) => (
+        <mesh key={i} position={[0.42, 0.79 + i * 0.045, 0.18]} rotation={[0, 0.4 + i * 0.3, 0]}>
+          <boxGeometry args={[0.24, 0.04, 0.17]} />
+          <meshStandardMaterial color={i ? '#1f3a5a' : '#6a2c22'} roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
 
 function CeilingLamp({ z }: { z: number }) {
   return (
@@ -165,8 +209,7 @@ export default function MainHall() {
       ))}
       <CeilingBeams />
       <Runner />
-      <Fountain />
-      <FountainInteraction />
+      <CentreTable />
       <MapTable />
       <CoatStand position={[HALL_FURNITURE.coatStand[0], 0, HALL_FURNITURE.coatStand[1]]} />
       <Bench position={[HALL_FURNITURE.bench[0], 0, HALL_FURNITURE.bench[1]]} rotationY={Math.PI / 2} />
