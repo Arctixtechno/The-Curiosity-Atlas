@@ -23,7 +23,7 @@ import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { Atmosphere } from './Atmosphere.tsx'
-import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
+import { OBSERVATORY, OBSERVATORY_TERRACE_DOOR, observatoryWallPoint } from './dimensions.ts'
 import { DaySky } from './DaySky.tsx'
 import { NightSky } from './NightSky.tsx'
 
@@ -735,19 +735,162 @@ function Bookcase() {
   )
 }
 
-/** Brass wall light: a soft pool of light on the wall, no hard source. */
+/**
+ * The azimuth band round the top of the wall: degrees from north in brass on
+ * mahogany, matching the compass on the floor. Drawn for the inside of a
+ * cylinder, so each label is flipped to read the right way round.
+ */
+function drawAzimuth(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.fillStyle = '#3a2416'
+  ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = '#c9a55c'
+  ctx.fillRect(0, 3, w, 3)
+  ctx.fillRect(0, h - 6, w, 3)
+  const names: Record<number, string> = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }
+  for (let deg = 0; deg < 360; deg++) {
+    // Angle round the room from +z (south), with +x east.
+    const theta = ((180 - deg) * Math.PI) / 180
+    const x = ((((theta / (Math.PI * 2)) % 1) + 1) % 1) * w
+    const long = deg % 10 === 0
+    ctx.fillRect(x - (long ? 1.5 : 0.75), 8, long ? 3 : 1.5, long ? h * 0.32 : h * 0.16)
+    if (deg % 30 === 0) {
+      ctx.save()
+      ctx.translate(x, h * 0.78)
+      ctx.scale(-1, 1)
+      ctx.textAlign = 'center'
+      ctx.font = names[deg] ? `bold ${h * 0.42}px Georgia, serif` : `${h * 0.3}px Georgia, serif`
+      ctx.fillText(names[deg] ?? `${deg}°`, 0, 0)
+      ctx.restore()
+    }
+  }
+}
+
+/** Where the dome's ribs come down the wall, as angles round the room, leaving the doors clear. */
+const WALL_RIBS = RIB_ANGLES.filter((a) => Math.abs(Math.sin((a - OBSERVATORY_TERRACE_DOOR) / 2)) > 0.12)
+
+/**
+ * Mahogany and brass round the wall: a panelled dado with a brass rail, the
+ * dome's brass ribs carried down to it as fluted strips, and the azimuth
+ * band under the dome.
+ */
+function WallDressing() {
+  const wood = useSurfaceTexture('wainscot', 2 * Math.PI * R, 1, 4, 120)
+  const azimuth = useCanvasTexture(8192, 96, drawAzimuth)
+  return (
+    <group>
+      <mesh position={[0, 0.59, 0]}>
+        <cylinderGeometry args={[R - 0.025, R - 0.025, 0.82, 96, 1, true]} />
+        <meshStandardMaterial color="#8a5634" map={wood} side={BackSide} roughness={0.5} />
+      </mesh>
+      {[1.0, 0.2].map((y) => (
+        <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[R - 0.04, y > 0.5 ? 0.025 : 0.015, 8, 120]} />
+          <meshStandardMaterial {...BRASS} />
+        </mesh>
+      ))}
+      <mesh position={[0, WALL_H - 0.24, 0]}>
+        <cylinderGeometry args={[R - 0.03, R - 0.03, 0.26, 128, 1, true]} />
+        <meshStandardMaterial map={azimuth} side={BackSide} roughness={0.45} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, WALL_H - 0.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[R - 0.04, 0.02, 8, 120]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      {WALL_RIBS.map((angle) => (
+        <group key={angle} position={[Math.sin(angle) * (R - 0.04), 0, Math.cos(angle) * (R - 0.04)]} rotation={[0, angle, 0]}>
+          <mesh position={[0, (1.05 + WALL_H - 0.42) / 2, 0]}>
+            <boxGeometry args={[0.07, WALL_H - 0.42 - 1.05, 0.03]} />
+            <meshStandardMaterial {...BRASS} />
+          </mesh>
+          {[1.08, WALL_H - 0.45].map((y) => (
+            <mesh key={y} position={[0, y, -0.01]}>
+              <boxGeometry args={[0.12, 0.06, 0.05]} />
+              <meshStandardMaterial {...BRASS} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  )
+}
+
+/** A brass-cased wall clock keeping the house's time, its hands turning with the day. */
+function WallClock({ angle }: { angle: number }) {
+  const hour = useHour()
+  const face = useCanvasTexture(256, 256, (ctx, w) => {
+    const c = w / 2
+    ctx.fillStyle = '#f4ecd8'
+    ctx.fillRect(0, 0, w, w)
+    ctx.fillStyle = '#2a2018'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = '26px Georgia, serif'
+    const numerals = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI']
+    numerals.forEach((n, i) => {
+      const a = (i / 12) * Math.PI * 2
+      ctx.fillText(n, c + Math.sin(a) * c * 0.74, c - Math.cos(a) * c * 0.74)
+    })
+    for (let i = 0; i < 60; i++) {
+      const a = (i / 60) * Math.PI * 2
+      const r1 = c * (i % 5 ? 0.92 : 0.88)
+      ctx.fillRect(c + Math.sin(a) * r1 - 1, c - Math.cos(a) * r1 - 1, 2, 2)
+    }
+    ctx.font = 'italic 14px Georgia, serif'
+    ctx.fillText('Sidereal', c, c + c * 0.36)
+  })
+  const [x, z] = observatoryWallPoint(angle, 0.06)
+  const minutes = (hour % 1) * 60
+  return (
+    <group position={[x, 2.05, z]} rotation={[0, angle + Math.PI, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.27, 0.29, 0.08, 40]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, 0, 0.041]}>
+        <circleGeometry args={[0.23, 40]} />
+        <meshStandardMaterial map={face} roughness={0.6} />
+      </mesh>
+      <group position={[0, 0, 0.045]} rotation={[0, 0, -(((hour % 12) / 12) * Math.PI * 2)]}>
+        <mesh position={[0, 0.06, 0]}>
+          <boxGeometry args={[0.018, 0.13, 0.005]} />
+          <meshStandardMaterial color="#1a1410" />
+        </mesh>
+      </group>
+      <group position={[0, 0, 0.05]} rotation={[0, 0, -((minutes / 60) * Math.PI * 2)]}>
+        <mesh position={[0, 0.09, 0]}>
+          <boxGeometry args={[0.012, 0.18, 0.005]} />
+          <meshStandardMaterial color="#1a1410" />
+        </mesh>
+      </group>
+      <mesh position={[0, 0, 0.055]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.01, 12]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Brass wall light: a backplate, a curved arm and a glass shade, with a soft pool of light on the wall. */
 function WallLight({ angle }: { angle: number }) {
   const x = Math.sin(angle) * (R - 0.06)
   const z = Math.cos(angle) * (R - 0.06)
   return (
     <group position={[x, 2.2, z]} rotation={[0, angle + Math.PI, 0]}>
-      <mesh position={[0, 0, 0.05]}>
+      <mesh position={[0, -0.12, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.07, 0.07, 0.02, 20]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, -0.04, 0.06]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.09, 0.012, 8, 16, Math.PI / 2]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, -0.05, 0.15]}>
+        <cylinderGeometry args={[0.035, 0.025, 0.05, 12]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, 0.06, 0.15]}>
         <cylinderGeometry args={[0.06, 0.09, 0.18, 16, 1, true]} />
         <meshStandardMaterial color="#fff0d8" emissive="#ffc890" emissiveIntensity={0.9} side={2} />
-      </mesh>
-      <mesh position={[0, -0.1, 0.03]}>
-        <boxGeometry args={[0.04, 0.12, 0.06]} />
-        <meshStandardMaterial {...BRASS} />
       </mesh>
       <Glow position={[0, 0.3, 0]} size={[1.2, 1.6]} color="#ffb070" opacity={0.3} />
     </group>
@@ -783,6 +926,8 @@ export default function Observatory() {
 
       <Floor />
       <Shell />
+      <WallDressing />
+      <WallClock angle={-0.45} />
       <Telescope />
       <TelescopeView />
       <Orrery />
