@@ -5,10 +5,11 @@ import { BoxGeometry, Float32BufferAttribute, Object3D, type InstancedMesh } fro
 import { BoxBallPot, Bench } from '../components/Furnishings.tsx'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { FountainInteraction } from '../features/discoveries/FountainInteraction.tsx'
+import { QuestionCard } from '../features/discoveries/QuestionCard.tsx'
 import { useDayPhase, type DayPhase } from '../world/clock.ts'
 import { Atmosphere } from './Atmosphere.tsx'
 import { Skyline } from './Skyline.tsx'
-import { COURTYARD, COURTYARD_BENCHES, COURTYARD_FOUNTAIN, COURTYARD_PLANTERS, DOOR_POTS } from './dimensions.ts'
+import { COURTYARD, COURTYARD_BENCHES, COURTYARD_FOUNTAIN, COURTYARD_PLANTERS, DOOR_POTS, QUESTION_STAND } from './dimensions.ts'
 import { Fountain } from './Fountain.tsx'
 import { NightSky } from './NightSky.tsx'
 import { Portico, SashWindows, TerraceWall, type WindowProps } from './Townhouse.tsx'
@@ -419,6 +420,8 @@ export default function Courtyard() {
       <StaticShadows phase={phase} />
       <CourtyardScenery phase={phase} />
       <FountainInteraction x={fx} z={fz} radius={1.3 * COURTYARD_FOUNTAIN.scale + 1.6} />
+      {/* Today's question on a stand on the house side of the fountain, facing you as you come out. */}
+      <QuestionCard position={[QUESTION_STAND[0], 0, QUESTION_STAND[1]]} rotationY={Math.PI} />
       <Skyline radii={COURTYARD_SKYLINE} rotationY={Math.PI / 2} night={night} />
     </group>
   )

@@ -115,6 +115,11 @@ export function loungeChair(side: -1 | 1) {
 export const COURTYARD = { width: 20, length: 26, hedgeHeight: 1.2 }
 /** The Discovery Fountain in the middle of the courtyard: where it stands, as [x, z], and how much bigger than life-size model it's built. */
 export const COURTYARD_FOUNTAIN = { at: [0, -1.5] as [number, number], scale: 1.75 }
+/** The stand with today's question, on the house side of the fountain, as [x, z]. */
+export const QUESTION_STAND: [number, number] = [
+  COURTYARD_FOUNTAIN.at[0] + 1.2,
+  COURTYARD_FOUNTAIN.at[1] - (1.3 * COURTYARD_FOUNTAIN.scale + 2.2),
+]
 /** Stone planters with clipped trees, round the fountain, as [x, z]. */
 export const COURTYARD_PLANTERS: [number, number][] = [
   [-7, -7],

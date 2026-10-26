@@ -14,12 +14,14 @@ import {
 } from 'three'
 import { useLathe } from '../hooks/useLathe.ts'
 import { useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { useLibrary } from '../services/library.ts'
 
 // The Discovery Fountain in the middle of the courtyard: a carved stone
 // fountain in three tiers. Water rises from the top, spills from each bowl in
 // a falling curtain and ripples in the basin, which glows softly from below,
-// with coins on its floor from visitors' wishes. Everything that moves is
-// drawn by shaders from one clock, so it costs almost nothing per frame.
+// with coins on its floor, one for each discovery you've saved. Everything
+// that moves is drawn by shaders from one clock, so it costs almost nothing
+// per frame.
 
 /** Heights of the three water surfaces, and the radius of each bowl's rim. */
 const BASIN = { water: 0.42, rim: 1.0 }
@@ -235,10 +237,19 @@ function useJet(count = 160) {
   return { geometry, material }
 }
 
-/** Coins wished into the basin, scattered over its floor. */
+/** Most coins the basin shows. */
+const MAX_COINS = 90
+/** Coins already there before you've saved anything. */
+const STARTING_COINS = 8
+
+/**
+ * Coins wished into the basin, scattered over its floor: one more for every
+ * discovery you've saved to your library, so the basin fills as you go.
+ */
 function Coins() {
   const ref = useRef<InstancedMesh>(null)
-  const count = 22
+  const saved = useLibrary().filter((i) => i.kind === 'discovery').length
+  const count = Math.min(MAX_COINS, STARTING_COINS + saved)
   useLayoutEffect(() => {
     const mesh = ref.current
     if (!mesh) return
@@ -246,7 +257,7 @@ function Coins() {
     const colours = [new Color('#d6a640'), new Color('#b87333'), new Color('#c9c3b6')]
     let seed = 7
     const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < MAX_COINS; i++) {
       const r = 0.42 + random() * 0.5
       const a = random() * Math.PI * 2
       dummy.position.set(Math.cos(a) * r, 0.145 + i * 0.0002, Math.sin(a) * r)
@@ -257,8 +268,11 @@ function Coins() {
     }
     mesh.instanceMatrix.needsUpdate = true
   }, [])
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.count = count
+  }, [count])
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, count]}>
+    <instancedMesh ref={ref} args={[undefined, undefined, MAX_COINS]}>
       <cylinderGeometry args={[0.022, 0.022, 0.004, 12]} />
       <meshStandardMaterial metalness={0.8} roughness={0.35} />
     </instancedMesh>

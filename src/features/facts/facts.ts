@@ -8,15 +8,24 @@ export interface Fact {
 }
 
 export const FACTS: Fact[] = [
-  { topic: 'Animals', text: 'An octopus has three hearts, and its blood is blue: it carries oxygen with copper rather than iron.' },
+  {
+    topic: 'Animals',
+    text: 'An octopus has three hearts, and its blood is blue: it carries oxygen with copper rather than iron.',
+  },
   { topic: 'Space', text: 'A day on Venus, one turn on its axis, takes 243 Earth days. Its year is only 225.' },
   { topic: 'Plants', text: 'To a botanist a banana is a berry, and a strawberry is not.' },
-  { topic: 'Engineering', text: "The Eiffel Tower grows by up to 15 cm in summer, as its iron expands in the heat." },
-  { topic: 'Life', text: 'Sharks are older than trees: they swam the seas some 450 million years ago, well before the first forests.' },
-  { topic: 'Animals', text: "Wombats leave cube-shaped droppings, the only animal known to do so." },
+  { topic: 'Engineering', text: 'The Eiffel Tower grows by up to 15 cm in summer, as its iron expands in the heat.' },
+  {
+    topic: 'Life',
+    text: 'Sharks are older than trees: they swam the seas some 450 million years ago, well before the first forests.',
+  },
+  { topic: 'Animals', text: 'Wombats leave cube-shaped droppings, the only animal known to do so.' },
   { topic: 'Maths', text: 'There are more possible games of chess than there are atoms in the observable universe.' },
   { topic: 'Space', text: 'Sunlight takes about 8 minutes 20 seconds to reach us. You always see the Sun as it was.' },
-  { topic: 'History', text: 'The University of Oxford was teaching by 1096, more than two centuries before the Aztecs founded Tenochtitlan.' },
+  {
+    topic: 'History',
+    text: 'The University of Oxford was teaching by 1096, more than two centuries before the Aztecs founded Tenochtitlan.',
+  },
   {
     topic: 'History',
     text: 'Cleopatra lived nearer in time to the Moon landing than to the building of the Great Pyramid of Giza.',
@@ -32,7 +41,10 @@ export const FACTS: Fact[] = [
   { topic: 'London', text: 'Big Ben is the great bell. The tower it hangs in has been called the Elizabeth Tower since 2012.' },
   { topic: 'London', text: "The world's first underground railway opened in London in 1863, with steam trains." },
   { topic: 'Body', text: 'Your body holds roughly as many bacteria as human cells: tens of trillions of each.' },
-  { topic: 'Weather', text: 'A lightning bolt heats the air to about 30,000 °C, around five times hotter than the surface of the Sun.' },
+  {
+    topic: 'Weather',
+    text: 'A lightning bolt heats the air to about 30,000 °C, around five times hotter than the surface of the Sun.',
+  },
   { topic: 'Space', text: 'Saturn is less dense than water. In a big enough bath, it would float.' },
   { topic: 'History', text: 'The shortest war on record, between Britain and Zanzibar in 1896, was over in under 45 minutes.' },
   { topic: 'Physics', text: 'Sound travels more than four times faster through water than through air.' },
@@ -58,12 +70,17 @@ export const FACTS: Fact[] = [
     topic: 'In this house',
     text: 'The Rosetta Stone carries one decree in three scripts: hieroglyphs, Demotic and Greek. That is how hieroglyphs were cracked.',
   },
-  { topic: 'In this house', text: 'Ammonites, like the one in the Museum, lived for over 300 million years before dying out with the dinosaurs.' },
+  {
+    topic: 'In this house',
+    text: 'Ammonites, like the one in the Museum, lived for over 300 million years before dying out with the dinosaurs.',
+  },
   { topic: 'Animals', text: 'Hummingbirds are the only birds that can keep flying backwards.' },
   { topic: 'Earth', text: "Earth's spin is slowing. 620 million years ago a day lasted under 22 hours." },
   { topic: 'Food', text: 'Coffee beans are the seeds of a red fruit called the coffee cherry.' },
-  { topic: 'Physics', text: 'If you could fold a sheet of paper in half 42 times, it would be thick enough to reach the Moon.' },
-  { topic: 'Space', text: 'Footprints left on the Moon by the Apollo astronauts should last for millions of years: there is no wind.' },
+  {
+    topic: 'Space',
+    text: 'Footprints left on the Moon by the Apollo astronauts should last for millions of years: there is no wind.',
+  },
 ]
 
 /** The fact for one plaque at one hour of the house's clock. Plaques are offset so neighbours never match. */

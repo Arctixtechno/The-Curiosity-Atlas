@@ -23,6 +23,7 @@ import {
   OBSERVATORY_TERRACE_DOOR,
   observatoryWallPoint,
   PORTICO,
+  QUESTION_STAND,
   TERRACE,
   THEATRE,
   WORKSHOP,
@@ -312,6 +313,7 @@ export const rooms: Record<string, RoomDefinition> = {
       ...COURTYARD_BENCHES.map(([x, z]) => boxCollider(x, z, 0.5, 1.6)),
       // The fountain's basin.
       boxCollider(...COURTYARD_FOUNTAIN.at, 2.3 * COURTYARD_FOUNTAIN.scale, 2.3 * COURTYARD_FOUNTAIN.scale),
+      boxCollider(...QUESTION_STAND, 0.5, 0.5),
       ...DOOR_POTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       // Portico columns either side of the front door.
       boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
