@@ -10,6 +10,7 @@ import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
 import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
+import { studyTabFromOverlay } from '../features/study/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { MAP_OVERLAY, MapPanel } from './MapPanel.tsx'
@@ -36,6 +37,7 @@ const ConversionPanel = lazy(() => import('../features/refinery/ConversionPanel.
 const ReformerPanel = lazy(() => import('../features/refinery/ReformerPanel.tsx').then((m) => ({ default: m.ReformerPanel })))
 const TreatingPanel = lazy(() => import('../features/refinery/TreatingPanel.tsx').then((m) => ({ default: m.TreatingPanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
+const StudyPanel = lazy(() => import('../features/study/StudyPanel.tsx').then((m) => ({ default: m.StudyPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
 /** Keys that open a panel from anywhere: M for the map, O for settings, L for the library, V for your visit. */
@@ -70,6 +72,13 @@ export function Overlays() {
     return (
       <Suspense fallback={<PanelLoading />}>
         <ExhibitPanel key={exhibit} id={exhibit} />
+      </Suspense>
+    )
+  const studyTab = studyTabFromOverlay(overlay)
+  if (studyTab)
+    return (
+      <Suspense fallback={<PanelLoading />}>
+        <StudyPanel key={studyTab} tab={studyTab} />
       </Suspense>
     )
   const Lazy = {

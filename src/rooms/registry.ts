@@ -29,6 +29,7 @@ import {
   PORTICO,
   REFINERY,
   QUESTION_STAND,
+  STUDY,
   TERRACE,
   THEATRE,
   WORKSHOP,
@@ -78,6 +79,13 @@ const mainHallDoors: DoorDefinition[] = [
     position: [-hallW, 0, -3],
     rotationY: Math.PI / 2,
     target: { roomId: 'museum', doorId: 'hall' },
+  },
+  {
+    id: 'study',
+    label: 'Study Room',
+    position: [hallW, 0, 6],
+    rotationY: -Math.PI / 2,
+    target: { roomId: 'study', doorId: 'hall' },
   },
   {
     id: 'library',
@@ -309,6 +317,33 @@ export const rooms: Record<string, RoomDefinition> = {
       },
     ],
     load: () => import('./Workshop.tsx'),
+  },
+  study: {
+    id: 'study',
+    displayName: 'Study Room',
+    colliders: [
+      ...wallColliders(STUDY.width, STUDY.length),
+      // The table with its chairs pulled up either side.
+      boxCollider(...STUDY.table, STUDY.tableSize.length + 0.6, STUDY.tableSize.depth + 1.6),
+      // Bookshelves, the window seat, the reading corner and the tea cabinet.
+      boxCollider(-STUDY.width / 2 + 0.2, STUDY.bookcase.z, 0.4, STUDY.bookcase.length),
+      boxCollider(STUDY.width / 2 - 0.3, STUDY.window.z, 0.6, STUDY.window.width + 0.3),
+      boxCollider(...STUDY.sofa, 0.95, 2.1),
+      boxCollider(...STUDY.coffeeTable, 0.6, 1),
+      boxCollider(-STUDY.width / 2 + 0.45, STUDY.length / 2 - 0.45, 0.5, 0.5),
+      boxCollider(...STUDY.teaCabinet, 1.5, 0.65),
+      ...STUDY.plants.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, STUDY.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'study' },
+      },
+    ],
+    load: () => import('./StudyRoom.tsx'),
   },
   museum: {
     id: 'museum',

@@ -152,9 +152,8 @@ function Paintings() {
       <Painting name="map" position={[-x, 1.85, -6]} rotationY={Math.PI / 2} width={1} />
       <Painting name="botanical" position={[-x, 1.85, 3]} rotationY={Math.PI / 2} width={0.9} />
       <Painting name="stars" position={[x, 1.85, -3]} rotationY={-Math.PI / 2} width={1} />
-      <Painting name="hills" position={[x, 1.85, 3]} rotationY={-Math.PI / 2} />
-      {/* "Did you know?" boards, each showing a new fact every hour of the house's clock. */}
-      <FactPlaque plaque={0} position={[x, 1.75, 6]} rotationY={-Math.PI / 2} width={0.95} />
+      {/* "Did you know?" boards, each showing a new fact every hour of the house's clock: one over the bench. */}
+      <FactPlaque plaque={0} position={[x, 1.75, HALL_FURNITURE.bench[1]]} rotationY={-Math.PI / 2} width={0.95} />
       <FactPlaque plaque={1} position={[x, 1.8, -8.2]} rotationY={-Math.PI / 2} width={0.85} />
       <Painting name="hills" position={[-2.5, 1.85, -z]} rotationY={0} width={0.8} />
       <Painting name="map" position={[2.5, 1.85, -z]} rotationY={0} width={0.8} />

@@ -1,0 +1,48 @@
+.focus-badge {
+  position: fixed;
+  top: 44px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 6px 12px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  /* Solid rather than frosted: a blur behind it would be redrawn with every frame of the world for as long as the timer runs. */
+  background: rgba(22, 16, 10, 0.86);
+  color: var(--ink);
+  font-size: 0.85rem;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.focus-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.focus-badge-short .focus-badge-dot {
+  background: #8fc4a0;
+}
+
+.focus-badge-long .focus-badge-dot {
+  background: #8fb4d8;
+}
+
+.focus-badge-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-badge-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-style: italic;
+  text-overflow: ellipsis;
+}
+
+.focus-badge-label::before {
+  content: '· ';
+}

@@ -4,6 +4,7 @@ import { GraphicsErrorBoundary, GraphicsProblem } from './components/GraphicsPro
 import { Hud } from './components/Hud.tsx'
 import { Overlays } from './components/Overlays.tsx'
 import { Ambience } from './world/Ambience.tsx'
+import { FocusBadge } from './features/study/FocusBadge.tsx'
 import { FrameScheduler } from './world/FrameScheduler.tsx'
 import { followRoomLinks } from './world/roomLinks.ts'
 import { useSavingBattery, useSettings } from './world/settings.ts'
@@ -75,6 +76,7 @@ export default function App() {
       </Canvas>
       <Hud />
       <Ambience />
+      <FocusBadge />
       <Overlays />
       {contextLost && (
         <GraphicsProblem
