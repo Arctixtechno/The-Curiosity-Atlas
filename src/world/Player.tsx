@@ -86,7 +86,9 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     const onKeyDown = (e: KeyboardEvent) => {
       // Q releases the mouse. Escape does too, but in full screen the browser
       // also uses Escape to leave full screen, which can't be prevented.
-      if (e.code === 'KeyQ' && document.pointerLockElement) document.exitPointerLock()
+      // Looking through an instrument, Q steps back from it rather than letting go of the mouse.
+      if (e.code === 'KeyQ' && gameStore.get().viewing && !gameStore.get().overlay) gameStore.set({ viewing: null })
+      else if (e.code === 'KeyQ' && document.pointerLockElement) document.exitPointerLock()
       if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
         const [min, max] = SENSITIVITY_RANGE
         const step = e.code === 'BracketRight' ? SENSITIVITY_STEP : -SENSITIVITY_STEP
@@ -123,7 +125,9 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     }
     if (!isExploring || transitioning) return
     const k = keys.current
-    const dt = Math.min(delta, 0.05)
+    // A slow frame still moves you the full distance (up to a tenth of a second's worth), so walking keeps
+    // its pace on a struggling computer instead of slowing to a crawl; the step is split below so walls hold.
+    const dt = Math.min(delta, 0.1)
     // Through an instrument's narrow view, looking around slows right down.
     const lookScale = viewing ? VIEWING_LOOK_SCALE : 1
 
@@ -174,14 +178,16 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
 
     if (ahead || side) {
       const speed = running ? RUN_SPEED : WALK_SPEED
-      // Cap the step (via dt) so a long frame can't tunnel through walls.
       move
         .copy(forward)
         .multiplyScalar(ahead)
         .addScaledVector(right, side)
         .normalize()
         .multiplyScalar(speed * pace * dt)
-      const [x, z] = moveWithCollisions(camera.position.x, camera.position.z, move.x, move.z, colliders)
+      // In slices of at most 5 cm, so a long frame can't carry you through a thin wall.
+      const slices = Math.max(1, Math.ceil(move.length() / 0.05))
+      let [x, z] = [camera.position.x, camera.position.z]
+      for (let i = 0; i < slices; i++) [x, z] = moveWithCollisions(x, z, move.x / slices, move.z / slices, colliders)
       moved = Math.hypot(x - camera.position.x, z - camera.position.z)
       camera.position.x = x
       camera.position.z = z

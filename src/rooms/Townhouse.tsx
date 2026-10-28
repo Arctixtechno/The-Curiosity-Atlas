@@ -1,6 +1,6 @@
 import { RoundedBox } from '@react-three/drei'
-import { useLayoutEffect, useMemo, useRef } from 'react'
-import { Object3D, type InstancedMesh } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { BoxGeometry, Object3D, type InstancedMesh } from 'three'
 import { useLathe } from '../hooks/useLathe.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { PORTICO } from './dimensions.ts'
@@ -137,13 +137,19 @@ export function Balustrade({
   y = 0,
   z = 0,
   color = TRIM,
+  simple = false,
 }: {
   runs: [number, number][]
   y?: number
   z?: number
   color?: string
+  /** Square-cut balusters, for balustrades only ever seen from a distance: a fraction of the turned ones' cost. */
+  simple?: boolean
 }) {
-  const baluster = useLathe(BALUSTER, 8)
+  const turned = useLathe(BALUSTER, 8)
+  const square = useMemo(() => new BoxGeometry(0.1, 0.74, 0.1).translate(0, 0.37, 0), [])
+  useEffect(() => () => square.dispose(), [square])
+  const baluster = simple ? square : turned
   const marble = useTiledTexture('marble', 4, 0.3)
   const spots = useMemo(
     () =>
@@ -164,11 +170,16 @@ export function Balustrade({
     })
     mesh.current.instanceMatrix.needsUpdate = true
     mesh.current.computeBoundingSphere()
-  }, [spots])
+  }, [spots, simple])
   const stone = <meshStandardMaterial color={color} map={marble} roughness={0.55} />
   return (
     <group position={[0, y, z]}>
-      <instancedMesh ref={mesh} args={[baluster, undefined, spots.length]} castShadow>
+      <instancedMesh
+        key={simple ? 'square' : 'turned'}
+        ref={mesh}
+        args={[baluster, undefined, spots.length]}
+        castShadow={!simple}
+      >
         {stone}
       </instancedMesh>
       {runs.map(([from, to]) => (
@@ -219,6 +230,8 @@ interface TerraceWallProps {
   pilasters?: { spacing: number; offset: number }
   /** A continuous stone balcony along the first floor, broken at x in (-gap, gap) for a porch. */
   balcony?: { gap: number }
+  /** Seen only from afar: simpler balusters on the parapet and balcony. */
+  distant?: { parapet?: boolean; balcony?: boolean }
 }
 
 /**
@@ -226,7 +239,7 @@ interface TerraceWallProps {
  * string course, pilasters up the upper floors, a cornice on dentils and a
  * balustraded parapet along the roofline.
  */
-export function TerraceWall({ width, height, seed = 1, pilasters, balcony }: TerraceWallProps) {
+export function TerraceWall({ width, height, seed = 1, pilasters, balcony, distant }: TerraceWallProps) {
   const stucco = useSurfaceTexture('stucco', width, height, seed, 96)
   const groundFloor = 3.6
   const pilasterXs = useMemo(() => {
@@ -284,7 +297,7 @@ export function TerraceWall({ width, height, seed = 1, pilasters, balcony }: Ter
         <boxGeometry args={[width, 0.12, 0.3]} />
         <meshStandardMaterial color={STUCCO} roughness={0.8} />
       </mesh>
-      <Balustrade runs={[[-half + 0.15, half - 0.15]]} y={height} z={0.05} />
+      <Balustrade runs={[[-half + 0.15, half - 0.15]]} y={height} z={0.05} simple={distant?.parapet} />
       {balcony && (
         <group position={[0, groundFloor + 0.2, 0]}>
           {[
@@ -303,6 +316,7 @@ export function TerraceWall({ width, height, seed = 1, pilasters, balcony }: Ter
             ]}
             y={0.08}
             z={0.55}
+            simple={distant?.balcony}
           />
         </group>
       )}
