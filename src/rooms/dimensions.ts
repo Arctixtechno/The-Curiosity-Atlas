@@ -267,3 +267,53 @@ export const TERRACE = {
 }
 /** Where the observatory's door onto the terrace is, by angle round the room (see observatoryWallPoint). */
 export const OBSERVATORY_TERRACE_DOOR = 1.55
+
+/** A parked car standing in for a door, for places you drive to: it sits this far behind the door's position. */
+export const CAR = { length: 4.5, width: 1.8, offset: 1.05 }
+
+/** The car's footprint, for a car door at `position` turned by `rotationY` (a multiple of 90°). */
+export function carCollider(position: [number, number, number], rotationY: number): BoxCollider {
+  const [x, , z] = position
+  const cx = x - Math.sin(rotationY) * CAR.offset
+  const cz = z - Math.cos(rotationY) * CAR.offset
+  const c = Math.abs(Math.cos(rotationY))
+  const s = Math.abs(Math.sin(rotationY))
+  return boxCollider(cx, cz, c * CAR.length + s * CAR.width + 0.2, s * CAR.length + c * CAR.width + 0.2)
+}
+
+/** Where the car is parked in the courtyard, by the east hedge. */
+export const COURTYARD_CAR = { position: [7.2, 0, 1.5] as [number, number, number], rotationY: -Math.PI / 2 }
+
+/**
+ * Marshgate Refinery, out on the Thames estuary: an open site inside a fence,
+ * reached by car. The gate and car park are at the south (+z) end; the crude
+ * unit stands in the middle, with the units still to come around it.
+ * Positions are [x, z] on the ground.
+ */
+export const REFINERY = {
+  width: 64,
+  length: 56,
+  car: { position: [-7, 0, 21] as [number, number, number], rotationY: Math.PI },
+  board: [-1, 16] as [number, number],
+  controlRoom: { at: [-17, 14] as [number, number], size: [12, 7] as [number, number], height: 4.2 },
+  furnace: { at: [-4, -3] as [number, number], size: [7, 4.5] as [number, number], height: 8 },
+  column: { at: [6, -4] as [number, number], radius: 2.2, height: 30 },
+  strippers: [
+    [10.2, -7],
+    [10.2, -4.4],
+    [10.2, -1.8],
+  ] as [number, number][],
+  refluxDrum: [12, 2.6] as [number, number],
+  rack: { z: 6, x: [-26, 18] as [number, number], width: 3, height: 6.5, bay: 6.5 },
+  vacuum: { at: [17, -13] as [number, number], radius: 3.2, height: 22 },
+  fcc: { at: [-20, -14] as [number, number], size: 9 },
+  reformer: { at: [-3, -19] as [number, number], size: [13, 7] as [number, number] },
+  treating: { at: [-23, -1] as [number, number], size: [8, 6] as [number, number] },
+  tanks: [
+    { at: [25, 19] as [number, number], label: 'Crude oil' },
+    { at: [25, 7] as [number, number], label: 'Diesel' },
+    { at: [14, 19] as [number, number], label: 'Kerosene' },
+  ],
+  tankRadius: 4.4,
+  flare: [27, -23] as [number, number],
+}

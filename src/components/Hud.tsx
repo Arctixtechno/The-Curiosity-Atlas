@@ -4,6 +4,7 @@ import { computeRoomStates } from '../world/navigation.ts'
 import { clockText, useHour } from '../world/clock.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { openOverlay } from '../world/overlay.ts'
+import { DriveScreen } from './DriveScreen.tsx'
 import { isTouchMode, useTouchMode } from '../world/touch.ts'
 import { MAP_OVERLAY } from './MapPanel.tsx'
 import { SETTINGS_OVERLAY } from './SettingsPanel.tsx'
@@ -21,6 +22,7 @@ export function Hud() {
   const toast = useGame((s) => s.toast)
   const overlay = useGame((s) => s.overlay)
   const viewing = useGame((s) => s.viewing)
+  const journey = useGame((s) => s.journey)
   const [showRoomStates, setShowRoomStates] = useState(false)
   const [photo, setPhoto] = useState(false)
   const hour = useHour()
@@ -41,6 +43,7 @@ export function Hud() {
   return (
     <>
       <div className={`fade${transitioning ? ' fade-active' : ''}`} aria-hidden="true" />
+      {journey && <DriveScreen journey={journey} />}
       {isExploring && !viewing && <Welcome />}
       <div className="room-name">
         {rooms[activeRoomId].displayName}

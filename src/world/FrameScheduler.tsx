@@ -60,8 +60,9 @@ export function useMotion(rate: number = RATES.idle, active = true) {
 
 /** The frame rate the world wants right now, or 0 when nothing needs drawing. */
 export function targetRate(now: number): number {
-  const { overlay, isExploring, transitioning, viewing } = gameStore.get()
-  if (transitioning) return RATES.active
+  const { overlay, isExploring, transitioning, viewing, journey } = gameStore.get()
+  // The drive covers the screen, so the room behind it only needs enough frames to warm up.
+  if (transitioning) return journey ? RATES.background : RATES.active
   if (overlay) return 0
   const cap = savingBattery() ? RATES.saver : RATES.active
   if (!document.hasFocus()) return Math.min(RATES.background, motionRate())

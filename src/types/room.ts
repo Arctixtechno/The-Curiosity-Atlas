@@ -36,8 +36,11 @@ export interface DoorDefinition {
   color?: string
   /** Height of the sign above the floor. */
   signHeight?: number
-  /** 'front' adds raised panels and brass furniture, for the house's front door. */
-  variant?: 'front'
+  /**
+   * 'front' adds raised panels and brass furniture, for the house's front door.
+   * 'car' is a parked car instead of a door, for rooms you drive to.
+   */
+  variant?: 'front' | 'car'
 }
 
 /** Standard room configuration (spec section 8.3). */
@@ -55,6 +58,18 @@ export interface RoomDefinition {
   visibleExteriors?: string[]
   /** Height of the floor at a point, for rooms with steps. Flat (0) when omitted. */
   floorHeight?: (x: number, z: number) => number
+  /** A place far from the house: getting there or back is a drive, shown while the room loads. */
+  journey?: Journey
+}
+
+/** The drive between the house and a faraway place. */
+export interface Journey {
+  /** Where you are driving to, as it reads in "Driving to …". */
+  place: string
+  miles: number
+  minutes: number
+  /** The way there, in a few words. */
+  route: string
 }
 
 export interface Placement {
