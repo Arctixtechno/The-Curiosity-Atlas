@@ -1,6 +1,7 @@
 import { RoundedBox } from '@react-three/drei'
-import { useLayoutEffect, useMemo, useRef } from 'react'
-import { Object3D, type InstancedMesh } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { BoxGeometry, Object3D, type InstancedMesh } from 'three'
+import { useLathe } from '../hooks/useLathe.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
 import { PORTICO } from './dimensions.ts'
 
@@ -8,7 +9,7 @@ import { PORTICO } from './dimensions.ts'
 // Kensington: rusticated ground floor, tall sash windows, a cornice and a
 // columned portico around the front door. All groups face +z.
 
-const STUCCO = '#f3eee4'
+const STUCCO = '#fffaf1'
 const TRIM = '#fbf8f2'
 
 export interface WindowProps {
@@ -19,24 +20,36 @@ export interface WindowProps {
   /** Warm light behind some windows so the house feels lived in. */
   lit?: boolean
   balconette?: boolean
+  /** A triangular pediment over the window instead of a flat hood, as on the first floor of a Kensington terrace. */
+  pediment?: boolean
 }
 
-/** One box in a window's trim or ironwork: centre and size, in the facade's space. */
-type Piece = [x: number, y: number, z: number, w: number, h: number, d: number]
+/** One box in a window's trim or ironwork: centre and size, in the facade's space, and an optional tilt about z. */
+type Piece = [x: number, y: number, z: number, w: number, h: number, d: number, tilt?: number]
 
 /** Breaks each window into simple boxes, sorted by material. */
 function windowPieces(windows: WindowProps[]) {
   const trim: Piece[] = []
   const iron: Piece[] = []
   const glass: { lit: Piece[]; dark: Piece[] } = { lit: [], dark: [] }
-  for (const { x, y, width, height, lit, balconette } of windows) {
+  for (const { x, y, width, height, lit, balconette, pediment } of windows) {
     trim.push([x, y, 0.04, width + 0.3, height + 0.3, 0.08])
     ;(lit ? glass.lit : glass.dark).push([x, y, 0.085, width, height, 1])
     // Glazing bars: two sashes of three by two panes.
     for (const bx of [-width / 6, width / 6]) trim.push([x + bx, y, 0.095, 0.03, height, 0.02])
     for (const by of [-height / 4, 0, height / 4]) trim.push([x, y + by, 0.095, width, by === 0 ? 0.06 : 0.03, 0.02])
-    // Cornice hood above the window.
+    // Cornice hood above the window, and on the grandest floor a pediment over it, on two little brackets.
     trim.push([x, y + height / 2 + 0.24, 0.1, width + 0.5, 0.12, 0.2])
+    if (pediment) {
+      const half = width / 2 + 0.3
+      const rise = 0.36
+      const slope = Math.atan2(rise, half)
+      const run = Math.hypot(half, rise)
+      for (const side of [-1, 1]) {
+        trim.push([x + (side * half) / 2, y + height / 2 + 0.3 + rise / 2, 0.1, run, 0.1, 0.22, -side * slope])
+        trim.push([x + side * (width / 2 + 0.2), y + height / 2 + 0.05, 0.08, 0.1, 0.3, 0.16])
+      }
+    }
     if (balconette) {
       const by = y - height / 2 + 0.25
       iron.push([x, by + 0.5, 0.3, width + 0.4, 0.04, 0.04])
@@ -53,8 +66,9 @@ function Pieces({ pieces, plane, children }: { pieces: Piece[]; plane?: boolean;
   useLayoutEffect(() => {
     if (!mesh.current) return
     const dummy = new Object3D()
-    pieces.forEach(([x, y, z, w, h, d], i) => {
+    pieces.forEach(([x, y, z, w, h, d, tilt = 0], i) => {
       dummy.position.set(x, y, z)
+      dummy.rotation.set(0, 0, tilt)
       dummy.scale.set(w, h, d)
       dummy.updateMatrix()
       mesh.current!.setMatrixAt(i, dummy.matrix)
@@ -96,10 +110,155 @@ export function SashWindows({ windows }: { windows: WindowProps[] }) {
   )
 }
 
-/** Flat stucco front wall of a terrace, with rustication grooves, string course and cornice. */
-export function TerraceWall({ width, height, seed = 1 }: { width: number; height: number; seed?: number }) {
+/** A turned stone baluster: a vase shape between a square foot and head, 0.74 m tall. */
+export const BALUSTER: [number, number][] = [
+  [0.001, 0],
+  [0.06, 0],
+  [0.06, 0.06],
+  [0.045, 0.09],
+  [0.05, 0.14],
+  [0.075, 0.3],
+  [0.07, 0.42],
+  [0.04, 0.55],
+  [0.032, 0.62],
+  [0.045, 0.66],
+  [0.06, 0.7],
+  [0.06, 0.74],
+  [0.001, 0.74],
+]
+
+/**
+ * Straight runs of stone balustrade along x, each [from, to] at height y and
+ * depth z: a plinth, turned balusters every 26 cm and a moulded rail. Every
+ * run's balusters are one instanced mesh.
+ */
+export function Balustrade({
+  runs,
+  y = 0,
+  z = 0,
+  color = TRIM,
+  simple = false,
+}: {
+  runs: [number, number][]
+  y?: number
+  z?: number
+  color?: string
+  /** Square-cut balusters, for balustrades only ever seen from a distance: a fraction of the turned ones' cost. */
+  simple?: boolean
+}) {
+  const turned = useLathe(BALUSTER, 8)
+  const square = useMemo(() => new BoxGeometry(0.1, 0.74, 0.1).translate(0, 0.37, 0), [])
+  useEffect(() => () => square.dispose(), [square])
+  const baluster = simple ? square : turned
+  const marble = useTiledTexture('marble', 4, 0.3)
+  const spots = useMemo(
+    () =>
+      runs.flatMap(([from, to]) => {
+        const n = Math.max(2, Math.floor(Math.abs(to - from) / 0.26))
+        return Array.from({ length: n - 1 }, (_, i) => from + ((to - from) * (i + 1)) / n)
+      }),
+    [runs],
+  )
+  const mesh = useRef<InstancedMesh>(null)
+  useLayoutEffect(() => {
+    if (!mesh.current) return
+    const dummy = new Object3D()
+    spots.forEach((x, i) => {
+      dummy.position.set(x, 0.12, 0)
+      dummy.updateMatrix()
+      mesh.current!.setMatrixAt(i, dummy.matrix)
+    })
+    mesh.current.instanceMatrix.needsUpdate = true
+    mesh.current.computeBoundingSphere()
+  }, [spots, simple])
+  const stone = <meshStandardMaterial color={color} map={marble} roughness={0.55} />
+  return (
+    <group position={[0, y, z]}>
+      <instancedMesh
+        key={simple ? 'square' : 'turned'}
+        ref={mesh}
+        args={[baluster, undefined, spots.length]}
+        castShadow={!simple}
+      >
+        {stone}
+      </instancedMesh>
+      {runs.map(([from, to]) => (
+        <group key={from} position={[(from + to) / 2, 0, 0]}>
+          <mesh position={[0, 0.06, 0]} receiveShadow>
+            <boxGeometry args={[Math.abs(to - from), 0.12, 0.3]} />
+            {stone}
+          </mesh>
+          <mesh position={[0, 0.9, 0]} castShadow>
+            <boxGeometry args={[Math.abs(to - from), 0.08, 0.28]} />
+            {stone}
+          </mesh>
+          <mesh position={[0, 0.96, 0]}>
+            <boxGeometry args={[Math.abs(to - from) + 0.04, 0.04, 0.32]} />
+            {stone}
+          </mesh>
+          {[from, to].map((x) => (
+            <mesh key={x} position={[x - (from + to) / 2, 0.5, 0]} castShadow>
+              <boxGeometry args={[0.3, 1, 0.32]} />
+              {stone}
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  )
+}
+
+/** Small square blocks in a row under a cornice, as one instanced mesh. */
+function Dentils({ width, y, z }: { width: number; y: number; z: number }) {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: Math.floor(width / 0.22) }, (_, i): Piece => [-width / 2 + 0.11 + i * 0.22, y, z, 0.11, 0.13, 0.12]),
+    [width, y, z],
+  )
+  return (
+    <Pieces pieces={pieces}>
+      <meshStandardMaterial color={TRIM} roughness={0.7} />
+    </Pieces>
+  )
+}
+
+interface TerraceWallProps {
+  width: number
+  height: number
+  seed?: number
+  /** Flat pilasters up the upper floors, every `spacing` metres from `offset`. */
+  pilasters?: { spacing: number; offset: number }
+  /** A continuous stone balcony along the first floor, broken at x in (-gap, gap) for a porch. */
+  balcony?: { gap: number }
+  /** Seen only from afar: simpler balusters on the parapet and balcony. */
+  distant?: { parapet?: boolean; balcony?: boolean }
+}
+
+/**
+ * The stucco front of a Kensington terrace: a rusticated ground floor, a
+ * string course, pilasters up the upper floors, a cornice on dentils and a
+ * balustraded parapet along the roofline.
+ */
+export function TerraceWall({ width, height, seed = 1, pilasters, balcony, distant }: TerraceWallProps) {
   const stucco = useSurfaceTexture('stucco', width, height, seed, 96)
   const groundFloor = 3.6
+  const pilasterXs = useMemo(() => {
+    if (!pilasters) return []
+    const xs: number[] = []
+    for (let x = pilasters.offset; x < width / 2 - 0.4; x += pilasters.spacing) xs.push(x)
+    for (let x = pilasters.offset - pilasters.spacing; x > -width / 2 + 0.4; x -= pilasters.spacing) xs.push(x)
+    return xs
+  }, [pilasters, width])
+  const pilasterPieces = useMemo(() => {
+    const top = height - 0.75
+    const bottom = groundFloor + 0.2
+    return pilasterXs.flatMap((x): Piece[] => [
+      [x, (top + bottom) / 2, 0.05, 0.42, top - bottom, 0.1],
+      [x, bottom + 0.1, 0.07, 0.52, 0.2, 0.14],
+      [x, top - 0.12, 0.08, 0.54, 0.24, 0.16],
+    ])
+  }, [pilasterXs, height])
+  const half = width / 2
   return (
     <group>
       <mesh position={[0, height / 2, -0.2]} receiveShadow castShadow>
@@ -117,14 +276,50 @@ export function TerraceWall({ width, height, seed = 1 }: { width: number; height
         <boxGeometry args={[width, 0.2, 0.14]} />
         <meshStandardMaterial color={TRIM} roughness={0.7} />
       </mesh>
-      <mesh position={[0, height - 0.5, 0.15]} castShadow>
-        <boxGeometry args={[width, 0.3, 0.32]} />
+      <Pieces pieces={pilasterPieces}>
+        <meshStandardMaterial color={TRIM} roughness={0.75} />
+      </Pieces>
+      {/* Frieze, dentils and the main cornice. */}
+      <mesh position={[0, height - 0.62, 0.03]}>
+        <boxGeometry args={[width, 0.26, 0.06]} />
+        <meshStandardMaterial color={TRIM} roughness={0.75} />
+      </mesh>
+      <Dentils width={width} y={height - 0.43} z={0.1} />
+      <mesh position={[0, height - 0.3, 0.17]} castShadow>
+        <boxGeometry args={[width, 0.14, 0.36]} />
         <meshStandardMaterial color={TRIM} roughness={0.7} />
       </mesh>
-      <mesh position={[0, height - 0.18, 0.02]}>
-        <boxGeometry args={[width, 0.36, 0.1]} />
+      <mesh position={[0, height - 0.17, 0.2]} castShadow>
+        <boxGeometry args={[width, 0.12, 0.42]} />
+        <meshStandardMaterial color={TRIM} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, height - 0.06, 0.02]}>
+        <boxGeometry args={[width, 0.12, 0.3]} />
         <meshStandardMaterial color={STUCCO} roughness={0.8} />
       </mesh>
+      <Balustrade runs={[[-half + 0.15, half - 0.15]]} y={height} z={0.05} simple={distant?.parapet} />
+      {balcony && (
+        <group position={[0, groundFloor + 0.2, 0]}>
+          {[
+            [-half, -balcony.gap],
+            [balcony.gap, half],
+          ].map(([from, to]) => (
+            <mesh key={from} position={[(from + to) / 2, 0, 0.35]} castShadow receiveShadow>
+              <boxGeometry args={[to - from, 0.16, 0.7]} />
+              <meshStandardMaterial color={TRIM} roughness={0.7} />
+            </mesh>
+          ))}
+          <Balustrade
+            runs={[
+              [-half + 0.2, -balcony.gap - 0.1],
+              [balcony.gap + 0.1, half - 0.2],
+            ]}
+            y={0.08}
+            z={0.55}
+            simple={distant?.balcony}
+          />
+        </group>
+      )}
     </group>
   )
 }

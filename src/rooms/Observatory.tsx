@@ -18,19 +18,28 @@ import { getPainting } from '../components/paintings.ts'
 import { findPlanet, position, type PlanetId } from '../features/solar/planets.ts'
 import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
 import { useSurfaceTexture, useTiledTexture } from '../hooks/useTiledTexture.ts'
+import { minutesUntilNight, phaseAt, useDayPhase, useHour } from '../world/clock.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { gameStore, useGame } from '../world/store.ts'
 import { Atmosphere } from './Atmosphere.tsx'
-import { OBSERVATORY, observatoryWallPoint } from './dimensions.ts'
+import { OBSERVATORY, OBSERVATORY_TERRACE_DOOR, observatoryWallPoint } from './dimensions.ts'
+import { DaySky } from './DaySky.tsx'
 import { NightSky } from './NightSky.tsx'
+import { requestFrame, useMotion } from '../world/FrameScheduler.tsx'
 
 const { radius: R, wallHeight: WALL_H } = OBSERVATORY
 // Moderate metalness: with no environment map, fully metallic brass renders almost black.
 const BRASS = { color: '#d4b064', metalness: 0.55, roughness: 0.28 }
 const IRON = { color: '#23262c', metalness: 0.6, roughness: 0.45 }
 /** The dome opens towards -z; the telescope points through the opening at the moon. */
-const MOON: [number, number, number] = [0, 52, -44]
+const MOON: [number, number, number] = [0, 61, -52]
+/** Where the sun is, seen through the opening: high by day, low on the horizon at dawn and dusk. */
+const SUN: Record<'day' | 'dusk' | 'dawn', [number, number, number]> = {
+  day: [10, 60, -50],
+  dusk: [-40, 8, -60],
+  dawn: [40, 8, -60],
+}
 const TELESCOPE_ELEVATION = (50 * Math.PI) / 180
 
 /** Paints a canvas once into a texture, disposed when the room unloads. */
@@ -244,6 +253,7 @@ function Shutter() {
     clock.current += delta
     const t = Math.min(1, Math.max(0, (clock.current - SHUTTER.delay) / SHUTTER.seconds))
     g.rotation.y = -GORE * t * t * (3 - 2 * t)
+    requestFrame()
   })
   return (
     <group ref={group} position={[0, WALL_H, 0]}>
@@ -283,7 +293,7 @@ function Shell() {
         <meshStandardMaterial {...BRASS} />
       </mesh>
       <mesh position={[0, WALL_H, 0]}>
-        <sphereGeometry args={[R, 120, 48, domeStart, domeLength, 0, Math.PI / 2]} />
+        <sphereGeometry args={[R, 72, 24, domeStart, domeLength, 0, Math.PI / 2]} />
         <meshStandardMaterial
           map={chart}
           emissiveMap={chart}
@@ -308,12 +318,17 @@ function Shell() {
 /** A large brass refractor on an iron equatorial mount, pointing out through the opening. */
 function Telescope() {
   const [x, z] = OBSERVATORY.telescope
+  const hour = useHour()
+  const dark = phaseAt(hour) === 'night'
+  const wait = minutesUntilNight(hour)
   useInteractable({
     position: useMemo(() => new Vector3(x, 1.2, z), [x, z]),
     radius: 2.4,
-    prompt: 'Press E to look through the telescope',
+    prompt: dark
+      ? 'Press E to look through the telescope'
+      : `Too light to see the stars. Come back after dark, in about ${wait} minute${wait === 1 ? '' : 's'}`,
     // Deferred so the same key press doesn't also count as stepping back.
-    onInteract: () => setTimeout(() => gameStore.set({ viewing: TELESCOPE_VIEW })),
+    onInteract: dark ? () => setTimeout(() => gameStore.set({ viewing: TELESCOPE_VIEW })) : undefined,
   })
   return (
     <group position={[x, 0, z]}>
@@ -375,7 +390,7 @@ function Telescope() {
 export const TELESCOPE_VIEW = 'telescope'
 /** Where the eye goes when looking through the telescope: high up the tube, clear of the dome. */
 const EYEPIECE = new Vector3(0, 3.4, -2.1)
-const VIEW_FOV = { start: 7, min: 1.5, max: 24 }
+const VIEW_FOV = { start: 4, min: 0.4, max: 24 }
 
 /**
  * Looking through the telescope: the camera moves up to the tube, narrows
@@ -396,7 +411,7 @@ function TelescopeView() {
       if (e.code === 'KeyE' && !e.repeat) gameStore.set({ viewing: null })
     }
     const onWheel = (e: WheelEvent) => {
-      fov.current = Math.min(VIEW_FOV.max, Math.max(VIEW_FOV.min, (fov.current ?? VIEW_FOV.start) * Math.exp(e.deltaY * 0.001)))
+      fov.current = Math.min(VIEW_FOV.max, Math.max(VIEW_FOV.min, (fov.current ?? VIEW_FOV.start) * Math.exp(e.deltaY * 0.0015)))
     }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('wheel', onWheel)
@@ -439,6 +454,8 @@ function Orrery() {
     [],
   )
   const start = useMemo(() => ({ real: Date.now(), clock: performance.now() }), [])
+  // The planets and the globe beside them turn slowly: a modest frame rate keeps them smooth.
+  useMotion(15)
   useFrame(() => {
     const date = new Date(start.real + ((performance.now() - start.clock) / 1000) * 2 * 86400000)
     arms.current.forEach((arm, i) => {
@@ -469,7 +486,7 @@ function Orrery() {
         <meshStandardMaterial {...BRASS} />
       </mesh>
       <mesh position={[0, 1.1, 0]}>
-        <sphereGeometry args={[0.07, 24, 16]} />
+        <sphereGeometry args={[0.07, 16, 12]} />
         <meshStandardMaterial color="#ffd27a" emissive="#ffb030" emissiveIntensity={1.5} />
       </mesh>
       {planets.map((p, i) => (
@@ -512,7 +529,7 @@ function CelestialGlobe() {
       <group position={[0, 1.05, 0]} rotation={[0, 0, 0.41]}>
         <group ref={globe}>
           <mesh castShadow>
-            <sphereGeometry args={[0.3, 32, 20]} />
+            <sphereGeometry args={[0.3, 24, 16]} />
             <meshStandardMaterial map={map} roughness={0.5} />
           </mesh>
         </group>
@@ -722,19 +739,162 @@ function Bookcase() {
   )
 }
 
-/** Brass wall light: a soft pool of light on the wall, no hard source. */
+/**
+ * The azimuth band round the top of the wall: degrees from north in brass on
+ * mahogany, matching the compass on the floor. Drawn for the inside of a
+ * cylinder, so each label is flipped to read the right way round.
+ */
+function drawAzimuth(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.fillStyle = '#3a2416'
+  ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = '#c9a55c'
+  ctx.fillRect(0, 3, w, 3)
+  ctx.fillRect(0, h - 6, w, 3)
+  const names: Record<number, string> = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }
+  for (let deg = 0; deg < 360; deg++) {
+    // Angle round the room from +z (south), with +x east.
+    const theta = ((180 - deg) * Math.PI) / 180
+    const x = ((((theta / (Math.PI * 2)) % 1) + 1) % 1) * w
+    const long = deg % 10 === 0
+    ctx.fillRect(x - (long ? 1.5 : 0.75), 8, long ? 3 : 1.5, long ? h * 0.32 : h * 0.16)
+    if (deg % 30 === 0) {
+      ctx.save()
+      ctx.translate(x, h * 0.78)
+      ctx.scale(-1, 1)
+      ctx.textAlign = 'center'
+      ctx.font = names[deg] ? `bold ${h * 0.42}px Georgia, serif` : `${h * 0.3}px Georgia, serif`
+      ctx.fillText(names[deg] ?? `${deg}°`, 0, 0)
+      ctx.restore()
+    }
+  }
+}
+
+/** Where the dome's ribs come down the wall, as angles round the room, leaving the doors clear. */
+const WALL_RIBS = RIB_ANGLES.filter((a) => Math.abs(Math.sin((a - OBSERVATORY_TERRACE_DOOR) / 2)) > 0.12)
+
+/**
+ * Mahogany and brass round the wall: a panelled dado with a brass rail, the
+ * dome's brass ribs carried down to it as fluted strips, and the azimuth
+ * band under the dome.
+ */
+function WallDressing() {
+  const wood = useSurfaceTexture('wainscot', 2 * Math.PI * R, 1, 4, 120)
+  const azimuth = useCanvasTexture(8192, 96, drawAzimuth)
+  return (
+    <group>
+      <mesh position={[0, 0.59, 0]}>
+        <cylinderGeometry args={[R - 0.025, R - 0.025, 0.82, 96, 1, true]} />
+        <meshStandardMaterial color="#8a5634" map={wood} side={BackSide} roughness={0.5} />
+      </mesh>
+      {[1.0, 0.2].map((y) => (
+        <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[R - 0.04, y > 0.5 ? 0.025 : 0.015, 8, 120]} />
+          <meshStandardMaterial {...BRASS} />
+        </mesh>
+      ))}
+      <mesh position={[0, WALL_H - 0.24, 0]}>
+        <cylinderGeometry args={[R - 0.03, R - 0.03, 0.26, 128, 1, true]} />
+        <meshStandardMaterial map={azimuth} side={BackSide} roughness={0.45} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, WALL_H - 0.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[R - 0.04, 0.02, 8, 120]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      {WALL_RIBS.map((angle) => (
+        <group key={angle} position={[Math.sin(angle) * (R - 0.04), 0, Math.cos(angle) * (R - 0.04)]} rotation={[0, angle, 0]}>
+          <mesh position={[0, (1.05 + WALL_H - 0.42) / 2, 0]}>
+            <boxGeometry args={[0.07, WALL_H - 0.42 - 1.05, 0.03]} />
+            <meshStandardMaterial {...BRASS} />
+          </mesh>
+          {[1.08, WALL_H - 0.45].map((y) => (
+            <mesh key={y} position={[0, y, -0.01]}>
+              <boxGeometry args={[0.12, 0.06, 0.05]} />
+              <meshStandardMaterial {...BRASS} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  )
+}
+
+/** A brass-cased wall clock keeping the house's time, its hands turning with the day. */
+function WallClock({ angle }: { angle: number }) {
+  const hour = useHour()
+  const face = useCanvasTexture(256, 256, (ctx, w) => {
+    const c = w / 2
+    ctx.fillStyle = '#f4ecd8'
+    ctx.fillRect(0, 0, w, w)
+    ctx.fillStyle = '#2a2018'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = '26px Georgia, serif'
+    const numerals = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI']
+    numerals.forEach((n, i) => {
+      const a = (i / 12) * Math.PI * 2
+      ctx.fillText(n, c + Math.sin(a) * c * 0.74, c - Math.cos(a) * c * 0.74)
+    })
+    for (let i = 0; i < 60; i++) {
+      const a = (i / 60) * Math.PI * 2
+      const r1 = c * (i % 5 ? 0.92 : 0.88)
+      ctx.fillRect(c + Math.sin(a) * r1 - 1, c - Math.cos(a) * r1 - 1, 2, 2)
+    }
+    ctx.font = 'italic 14px Georgia, serif'
+    ctx.fillText('Sidereal', c, c + c * 0.36)
+  })
+  const [x, z] = observatoryWallPoint(angle, 0.06)
+  const minutes = (hour % 1) * 60
+  return (
+    <group position={[x, 2.05, z]} rotation={[0, angle + Math.PI, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.27, 0.29, 0.08, 40]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, 0, 0.041]}>
+        <circleGeometry args={[0.23, 40]} />
+        <meshStandardMaterial map={face} roughness={0.6} />
+      </mesh>
+      <group position={[0, 0, 0.045]} rotation={[0, 0, -(((hour % 12) / 12) * Math.PI * 2)]}>
+        <mesh position={[0, 0.06, 0]}>
+          <boxGeometry args={[0.018, 0.13, 0.005]} />
+          <meshStandardMaterial color="#1a1410" />
+        </mesh>
+      </group>
+      <group position={[0, 0, 0.05]} rotation={[0, 0, -((minutes / 60) * Math.PI * 2)]}>
+        <mesh position={[0, 0.09, 0]}>
+          <boxGeometry args={[0.012, 0.18, 0.005]} />
+          <meshStandardMaterial color="#1a1410" />
+        </mesh>
+      </group>
+      <mesh position={[0, 0, 0.055]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.01, 12]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Brass wall light: a backplate, a curved arm and a glass shade, with a soft pool of light on the wall. */
 function WallLight({ angle }: { angle: number }) {
   const x = Math.sin(angle) * (R - 0.06)
   const z = Math.cos(angle) * (R - 0.06)
   return (
     <group position={[x, 2.2, z]} rotation={[0, angle + Math.PI, 0]}>
-      <mesh position={[0, 0, 0.05]}>
+      <mesh position={[0, -0.12, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.07, 0.07, 0.02, 20]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, -0.04, 0.06]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.09, 0.012, 8, 16, Math.PI / 2]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, -0.05, 0.15]}>
+        <cylinderGeometry args={[0.035, 0.025, 0.05, 12]} />
+        <meshStandardMaterial {...BRASS} />
+      </mesh>
+      <mesh position={[0, 0.06, 0.15]}>
         <cylinderGeometry args={[0.06, 0.09, 0.18, 16, 1, true]} />
         <meshStandardMaterial color="#fff0d8" emissive="#ffc890" emissiveIntensity={0.9} side={2} />
-      </mesh>
-      <mesh position={[0, -0.1, 0.03]}>
-        <boxGeometry args={[0.04, 0.12, 0.06]} />
-        <meshStandardMaterial {...BRASS} />
       </mesh>
       <Glow position={[0, 0.3, 0]} size={[1.2, 1.6]} color="#ffb070" opacity={0.3} />
     </group>
@@ -743,18 +903,35 @@ function WallLight({ angle }: { angle: number }) {
 
 /** Round observatory: domed roof with one gore open to the night sky, a big telescope, an orrery and a celestial globe. */
 export default function Observatory() {
+  const phase = useDayPhase()
   return (
     <group>
-      <Atmosphere background="#03040c" />
-      <hemisphereLight args={['#8a9ed8', '#3a2c20', 1.0]} />
+      <Atmosphere background={phase === 'night' ? '#03040c' : '#8aa8d0'} />
+      <hemisphereLight args={phase === 'day' ? ['#cfe0ff', '#4a3a2a', 1.6] : ['#8a9ed8', '#3a2c20', 1.0]} />
       <ambientLight intensity={0.18} color="#c0c8ff" />
-      {/* Moonlight falling through the opening. */}
-      <directionalLight position={MOON} intensity={0.6} color="#b8c8ff" />
+      {phase === 'night' ? (
+        <>
+          {/* Moonlight falling through the opening. */}
+          <directionalLight position={MOON} intensity={0.6} color="#b8c8ff" />
+          <NightSky moon={MOON} />
+        </>
+      ) : (
+        <>
+          {/* Daylight, or the low warm light of dawn and dusk, through the opening. */}
+          <directionalLight
+            position={SUN[phase]}
+            intensity={phase === 'day' ? 1.6 : 0.8}
+            color={phase === 'day' ? '#fff4e0' : '#ffb080'}
+          />
+          <DaySky phase={phase} sun={SUN[phase]} />
+        </>
+      )}
       <pointLight position={[0, 2.6, 1.5]} color="#ffcf90" intensity={6} distance={9} decay={1.6} />
-      <NightSky moon={MOON} />
 
       <Floor />
       <Shell />
+      <WallDressing />
+      <WallClock angle={-0.45} />
       <Telescope />
       <TelescopeView />
       <Orrery />

@@ -6,6 +6,18 @@
   inset: 0;
   overflow: hidden;
   font-family: var(--serif);
+  /* Drag the room to glance round it. */
+  cursor: grab;
+  touch-action: none;
+}
+
+.lounge-scene:active {
+  cursor: grabbing;
+}
+
+.lounge-column {
+  cursor: auto;
+  touch-action: auto;
 }
 
 /* Firelight, centred on the grate, keeps the still room alive. Only opacity animates, which costs next to nothing. */
@@ -442,8 +454,6 @@
   gap: 18px;
   padding: 20px 22px 12px;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(244, 234, 216, 0.15) transparent;
   /* Lines fade out as they scroll under the header. */
   mask-image: linear-gradient(180deg, transparent, #000 18px);
 }
@@ -799,5 +809,47 @@
   .lounge-firelight,
   .companion-sparks {
     display: none;
+  }
+}
+
+/* The Library count in the header, which a saved insight flies into. */
+.lounge-shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.lounge-shelf-count {
+  display: inline-block;
+  min-width: 1ch;
+  color: var(--accent);
+  animation: shelf-bump 0.5s ease 0.7s both;
+}
+
+@keyframes shelf-bump {
+  40% {
+    transform: scale(1.6);
+  }
+}
+
+.lounge-flying-bookmark {
+  position: fixed;
+  z-index: 100;
+  width: 12px;
+  height: 18px;
+  pointer-events: none;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  filter: drop-shadow(0 0 6px rgba(224, 164, 88, 0.8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lounge-shelf-count {
+    animation: none;
   }
 }

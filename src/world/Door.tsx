@@ -4,13 +4,18 @@ import { Vector3, type Group } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
 import { useSurfaceTexture } from '../hooks/useTiledTexture.ts'
 import type { DoorDefinition } from '../types/room.ts'
+import { CarDoor } from './CarDoor.tsx'
 import { useInteractable } from './InteractionSystem.tsx'
 import { preloadRoom, travelThrough } from './travel.ts'
+import { requestFrame } from './FrameScheduler.tsx'
+import { prefersReducedMotion } from './settings.ts'
 import { gameStore } from './store.ts'
 
 const DOOR_WIDTH = 1.3
 const DOOR_HEIGHT = 2.3
 const OPEN_ANGLE = -1.4
+/** How long the door swings before the fade to the next room starts. */
+const SWING_MS = 260
 /** Start loading the room behind a door once the player is this close. */
 const PRELOAD_RADIUS = 5
 /** Deep London front-door navy. */
@@ -18,32 +23,17 @@ const FRONT_DOOR_COLOR = '#1d3157'
 
 /** A door on a room's wall. Open doors lead to another room; the rest are locked for now. */
 export function Door({ door }: { door: DoorDefinition }) {
-  const hinge = useRef<Group>(null)
-  const opening = useRef(false)
+  return door.variant === 'car' ? <CarDoor door={door} /> : <HingedDoor door={door} />
+}
+
+/**
+ * Starts loading the room behind a door when the player comes within reach
+ * of `center`, and tells the Room Manager they're nearby.
+ */
+export function usePreloadNear(door: DoorDefinition, center: Vector3) {
   const near = useRef(false)
   const { target } = door
-  const front = door.variant === 'front'
-  const wood = useSurfaceTexture('door', DOOR_WIDTH, DOOR_HEIGHT, 1, 400)
-
-  const center = useMemo(() => new Vector3(door.position[0], 1.2, door.position[2]), [door.position])
-
-  useInteractable({
-    position: center,
-    radius: 2.2,
-    prompt: target ? (door.prompt ?? `Press E to enter the ${door.label}`) : `${door.label}: opens in a later version`,
-    onInteract: target
-      ? () => {
-          opening.current = true
-          void travelThrough(door)
-        }
-      : undefined,
-  })
-
-  useFrame(({ camera }, delta) => {
-    if (hinge.current && opening.current) {
-      const r = hinge.current.rotation
-      r.y += (OPEN_ANGLE - r.y) * Math.min(1, delta * 8)
-    }
+  useFrame(({ camera }) => {
     if (!target) return
     const dx = camera.position.x - center.x
     const dz = camera.position.z - center.z
@@ -58,6 +48,40 @@ export function Door({ door }: { door: DoorDefinition }) {
       nearby.delete(target.roomId)
     }
     gameStore.set({ nearbyRoomIds: nearby })
+  })
+}
+
+function HingedDoor({ door }: { door: DoorDefinition }) {
+  const hinge = useRef<Group>(null)
+  const opening = useRef(false)
+  const { target } = door
+  const front = door.variant === 'front'
+  const wood = useSurfaceTexture('door', DOOR_WIDTH, DOOR_HEIGHT, 1, 400)
+
+  const center = useMemo(() => new Vector3(door.position[0], 1.2, door.position[2]), [door.position])
+
+  useInteractable({
+    position: center,
+    radius: 2.2,
+    prompt: target ? (door.prompt ?? `Press E to enter the ${door.label}`) : `${door.label}: opens in a later version`,
+    onInteract: target
+      ? () => {
+          if (opening.current) return
+          opening.current = true
+          requestFrame()
+          // Let the door be seen swinging open before the screen fades.
+          setTimeout(() => void travelThrough(door), prefersReducedMotion ? 0 : SWING_MS)
+        }
+      : undefined,
+  })
+
+  usePreloadNear(door, center)
+  useFrame((_, delta) => {
+    if (hinge.current && opening.current) {
+      const r = hinge.current.rotation
+      r.y += (OPEN_ANGLE - r.y) * Math.min(1, delta * 7)
+      requestFrame()
+    }
   })
 
   return (

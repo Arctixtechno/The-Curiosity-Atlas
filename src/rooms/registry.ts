@@ -5,22 +5,30 @@ import {
   CAFE,
   CAFE_ROOM,
   CAFE_TABLES,
+  carCollider,
+  COURTYARD_CAR,
   COURTYARD,
   EYE_HEIGHT,
   HALL_FURNITURE,
   HALL_PLANTS,
   LAB_COAT_STAND,
-  COURTYARD_BENCH,
+  COURTYARD_BENCHES,
+  COURTYARD_FOUNTAIN,
+  COURTYARD_PLANTERS,
   DOOR_POTS,
   LABORATORY,
   LOUNGE,
   MAIN_HALL,
   MAP_TABLE,
+  LIBRARY,
   MUSEUM,
+  MUSEUM_ROPE,
   OBSERVATORY,
   OBSERVATORY_TERRACE_DOOR,
   observatoryWallPoint,
   PORTICO,
+  REFINERY,
+  QUESTION_STAND,
   STUDY,
   TERRACE,
   THEATRE,
@@ -79,7 +87,13 @@ const mainHallDoors: DoorDefinition[] = [
     rotationY: -Math.PI / 2,
     target: { roomId: 'study', doorId: 'hall' },
   },
-  { id: 'library', label: 'Library', position: [0, 0, -hallL], rotationY: 0 },
+  {
+    id: 'library',
+    label: 'Library',
+    position: [0, 0, -hallL],
+    rotationY: 0,
+    target: { roomId: 'library', doorId: 'hall' },
+  },
   {
     id: 'laboratory',
     label: 'Laboratory',
@@ -102,7 +116,8 @@ export const rooms: Record<string, RoomDefinition> = {
     displayName: 'Main Hall',
     colliders: [
       ...wallColliders(MAIN_HALL.width, MAIN_HALL.length),
-      boxCollider(0, 0, 2.2, 2.2),
+      // The round table in the middle of the hall.
+      boxCollider(0, 0, 1.5, 1.5),
       ...HALL_PLANTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       boxCollider(...MAP_TABLE, 1.1, 1.6),
       boxCollider(...HALL_FURNITURE.coatStand, 0.5, 0.5),
@@ -255,6 +270,32 @@ export const rooms: Record<string, RoomDefinition> = {
     ],
     load: () => import('./PhilosophyLounge.tsx'),
   },
+  library: {
+    id: 'library',
+    displayName: 'Library',
+    colliders: [
+      ...wallColliders(LIBRARY.width, LIBRARY.length),
+      // The bookcases down each side and on the far wall, and the ladder's feet.
+      boxCollider(-LIBRARY.width / 2 + 0.2, LIBRARY.sideCases.z, 0.4, LIBRARY.sideCases.length),
+      boxCollider(LIBRARY.width / 2 - 0.2, LIBRARY.sideCases.z, 0.4, LIBRARY.sideCases.length),
+      boxCollider(-LIBRARY.backCases.x, -LIBRARY.length / 2 + 0.2, LIBRARY.backCases.length, 0.4),
+      boxCollider(LIBRARY.backCases.x, -LIBRARY.length / 2 + 0.2, LIBRARY.backCases.length, 0.4),
+      boxCollider(-LIBRARY.width / 2 + 0.7, 1.4, 0.7, 0.6),
+      // The reading table with its chairs, and the desk.
+      boxCollider(...LIBRARY.table.at, LIBRARY.table.width + 1.1, LIBRARY.table.length + 0.2),
+      boxCollider(...LIBRARY.desk, 1.9, 0.8),
+    ],
+    doors: [
+      {
+        id: 'hall',
+        label: 'Main Hall',
+        position: [0, 0, LIBRARY.length / 2 - 0.05],
+        rotationY: Math.PI,
+        target: { roomId: 'mainHall', doorId: 'library' },
+      },
+    ],
+    load: () => import('./Library.tsx'),
+  },
   workshop: {
     id: 'workshop',
     displayName: 'Workshop',
@@ -313,7 +354,7 @@ export const rooms: Record<string, RoomDefinition> = {
         kind === 'tall'
           ? boxCollider(...at, 1.4, 0.9)
           : kind === 'open'
-            ? boxCollider(...at, 1.0, 1.0)
+            ? boxCollider(...at, MUSEUM_ROPE * 2 + 0.2, MUSEUM_ROPE * 2 + 0.2)
             : boxCollider(...at, 1.1, 0.9),
       ),
       // The open plinth's label stand.
@@ -340,13 +381,16 @@ export const rooms: Record<string, RoomDefinition> = {
       // Café tables and the chalkboard outside it.
       ...CAFE_TABLES.map(([x, z]) => boxCollider(x, z, 1.6, 0.9)),
       boxCollider(1.3, CAFE.frontZ - 0.75, 0.6, 0.5),
-      boxCollider(-4.5, -2, 0.8, 0.8),
-      boxCollider(4.5, -2, 0.8, 0.8),
-      boxCollider(...COURTYARD_BENCH, 0.5, 1.6),
+      ...COURTYARD_PLANTERS.map(([x, z]) => boxCollider(x, z, 0.8, 0.8)),
+      ...COURTYARD_BENCHES.map(([x, z]) => boxCollider(x, z, 0.5, 1.6)),
+      // The fountain's basin.
+      boxCollider(...COURTYARD_FOUNTAIN.at, 2.3 * COURTYARD_FOUNTAIN.scale, 2.3 * COURTYARD_FOUNTAIN.scale),
+      boxCollider(...QUESTION_STAND, 0.5, 0.5),
       ...DOOR_POTS.map(([x, z]) => boxCollider(x, z, 0.6, 0.6)),
       // Portico columns either side of the front door.
       boxCollider(-PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
       boxCollider(PORTICO.columnX, -COURTYARD.length / 2 + PORTICO.columnZ, 0.52, 0.52),
+      carCollider(COURTYARD_CAR.position, COURTYARD_CAR.rotationY),
     ],
     doors: [
       {
@@ -367,6 +411,14 @@ export const rooms: Record<string, RoomDefinition> = {
         color: '#5f9a7c',
         signHeight: 2.52,
         target: { roomId: 'cafe', doorId: 'courtyard' },
+      },
+      {
+        id: 'refinery',
+        label: 'Drive to the refinery',
+        prompt: 'Press E to drive to Marshgate Refinery',
+        ...COURTYARD_CAR,
+        variant: 'car',
+        target: { roomId: 'refinery', doorId: 'car' },
       },
     ],
     load: () => import('./Courtyard.tsx'),
@@ -410,6 +462,46 @@ export const rooms: Record<string, RoomDefinition> = {
     ],
     load: () => import('./Cafe.tsx'),
     exterior: CafeExterior,
+  },
+  refinery: {
+    id: 'refinery',
+    displayName: 'Marshgate Refinery',
+    colliders: [
+      ...wallColliders(REFINERY.width - 0.6, REFINERY.length - 0.6),
+      carCollider(REFINERY.car.position, REFINERY.car.rotationY),
+      boxCollider(...REFINERY.board, 2.6, 0.4),
+      boxCollider(...REFINERY.controlRoom.at, REFINERY.controlRoom.size[0] + 0.2, REFINERY.controlRoom.size[1] + 0.2),
+      boxCollider(...REFINERY.furnace.at, REFINERY.furnace.size[0] + 0.4, REFINERY.furnace.size[1] + 0.4),
+      // The column with its skirt and platforms, its field panel, the strippers and the reflux drum.
+      boxCollider(...REFINERY.column.at, REFINERY.column.radius * 2 + 1.2, REFINERY.column.radius * 2 + 1.2),
+      boxCollider(REFINERY.column.at[0], REFINERY.column.at[1] + REFINERY.column.radius + 1.6, 1, 0.4),
+      boxCollider(REFINERY.strippers[1][0], REFINERY.strippers[1][1], 1.6, 7.6),
+      boxCollider(...REFINERY.refluxDrum, 5.4, 2.2),
+      // Pipe rack legs, every bay along both sides.
+      ...Array.from({ length: Math.floor((REFINERY.rack.x[1] - REFINERY.rack.x[0]) / REFINERY.rack.bay) + 1 }, (_, i) =>
+        [-1, 1].map((s) =>
+          boxCollider(REFINERY.rack.x[0] + i * REFINERY.rack.bay, REFINERY.rack.z + (s * REFINERY.rack.width) / 2, 0.5, 0.5),
+        ),
+      ).flat(),
+      boxCollider(...REFINERY.vacuum.at, REFINERY.vacuum.radius * 2 + 2.4, REFINERY.vacuum.radius * 2 + 2.4),
+      boxCollider(REFINERY.fcc.at[0] + 1.6, REFINERY.fcc.at[1], REFINERY.fcc.size + 4, REFINERY.fcc.size + 0.6),
+      boxCollider(...REFINERY.reformer.at, REFINERY.reformer.size[0], REFINERY.reformer.size[1] - 1.5),
+      boxCollider(...REFINERY.treating.at, REFINERY.treating.size[0], REFINERY.treating.size[1] - 1.5),
+      ...REFINERY.tanks.map(({ at }) => boxCollider(...at, REFINERY.tankRadius * 2 + 0.4, REFINERY.tankRadius * 2 + 0.4)),
+      boxCollider(...REFINERY.flare, 2, 2),
+    ],
+    doors: [
+      {
+        id: 'car',
+        label: 'Drive home',
+        prompt: 'Press E to drive back to the house',
+        ...REFINERY.car,
+        variant: 'car',
+        target: { roomId: 'courtyard', doorId: 'refinery' },
+      },
+    ],
+    load: () => import('./Refinery.tsx'),
+    journey: { place: 'Marshgate Refinery', miles: 34, minutes: 50, route: 'out along the Thames estuary' },
   },
 }
 

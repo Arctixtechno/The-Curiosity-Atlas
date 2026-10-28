@@ -1,3 +1,4 @@
+import { CornerShading } from '../components/Mouldings.tsx'
 import type { TextureName } from '../components/textures.ts'
 import { useSurfaceTexture } from '../hooks/useTiledTexture.ts'
 import type { BoxCollider } from '../types/room.ts'
@@ -17,6 +18,8 @@ interface RoomShellProps {
   /** Omit for a room with its own ceiling (or none). */
   ceiling?: Surface
   wallThickness?: number
+  /** Soft shading along the corners; off for rooms whose mouldings already shade them. */
+  cornerShade?: boolean
 }
 
 function Wall({ collider, height, surface, seed }: { collider: BoxCollider; height: number; surface: Surface; seed: number }) {
@@ -32,7 +35,7 @@ function Wall({ collider, height, surface, seed }: { collider: BoxCollider; heig
 }
 
 /** Floor, four walls and an optional flat ceiling, matching `wallColliders`. Each surface gets its own texture. */
-export function RoomShell({ width, length, height, floor, walls, ceiling, wallThickness }: RoomShellProps) {
+export function RoomShell({ width, length, height, floor, walls, ceiling, wallThickness, cornerShade = true }: RoomShellProps) {
   const floorMap = useSurfaceTexture(floor.texture, width, length, 1)
   const ceilingMap = useSurfaceTexture(ceiling?.texture, width, length, 2, 64)
 
@@ -51,6 +54,7 @@ export function RoomShell({ width, length, height, floor, walls, ceiling, wallTh
       {wallColliders(width, length, wallThickness).map((c, i) => (
         <Wall key={i} collider={c} height={height} surface={walls} seed={10 + i} />
       ))}
+      {cornerShade && <CornerShading width={width} length={length} height={height} ceiling={!!ceiling} />}
     </group>
   )
 }

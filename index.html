@@ -4,8 +4,71 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Curiosity Atlas</title>
+    <style>
+      /* The loading screen, shown before any code arrives and taken away once the first room has drawn. */
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(ellipse at center, #2a1d12, #0c0805);
+        color: #f4ead8;
+        font-family: Georgia, 'Times New Roman', serif;
+        transition: opacity 0.6s ease;
+      }
+      #boot.boot-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #boot .boot-card {
+        width: min(320px, calc(100% - 32px));
+        text-align: center;
+      }
+      #boot p {
+        margin: 0;
+      }
+      #boot .boot-kicker {
+        color: #e0a458;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+      #boot h1 {
+        margin: 6px 0 22px;
+        font-size: 2rem;
+        font-weight: normal;
+      }
+      #boot .boot-bar {
+        height: 3px;
+        overflow: hidden;
+        border-radius: 3px;
+        background: rgba(244, 234, 216, 0.12);
+      }
+      #boot .boot-fill {
+        width: 15%;
+        height: 100%;
+        border-radius: inherit;
+        background: #e0a458;
+        transition: width 0.8s ease;
+      }
+      #boot .boot-step {
+        margin-top: 12px;
+        color: #c9b99c;
+        font-size: 0.85rem;
+        font-style: italic;
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" role="status">
+      <div class="boot-card">
+        <p class="boot-kicker">Welcome to</p>
+        <h1>The Curiosity Atlas</h1>
+        <div class="boot-bar"><div class="boot-fill"></div></div>
+        <p class="boot-step">Opening the front door…</p>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

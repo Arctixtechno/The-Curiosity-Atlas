@@ -1,7 +1,8 @@
 import { MAIN_HALL } from '../rooms/dimensions.ts'
 import { rooms } from '../rooms/registry.ts'
 import type { DoorDefinition } from '../types/room.ts'
-import { closeOverlay } from '../world/overlay.ts'
+import { VISIT_OVERLAY } from '../features/visit/overlayId.ts'
+import { closeOverlay, openOverlay } from '../world/overlay.ts'
 import { playerPose, useGame } from '../world/store.ts'
 import { travelTo } from '../world/travel.ts'
 import { useVisited } from '../world/visited.ts'
@@ -139,6 +140,9 @@ export function MapPanel() {
         Press <kbd>M</kbd> to open or close the map. Click a room you've been in to go straight back. Rooms marked "coming later"
         open in later versions.
       </p>
+      <button className="button button-quiet" onClick={() => openOverlay(VISIT_OVERLAY)}>
+        Your visit: rooms seen and things tried (<kbd>V</kbd>)
+      </button>
     </Panel>
   )
 }

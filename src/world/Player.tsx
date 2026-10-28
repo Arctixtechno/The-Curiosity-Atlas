@@ -6,9 +6,12 @@ import { useKeyboard } from '../hooks/useKeyboard.ts'
 import { EYE_HEIGHT } from '../rooms/dimensions.ts'
 import type { Collider } from '../types/room.ts'
 import { moveWithCollisions } from './collision.ts'
+import { floorIn } from './Ambience.tsx'
 import { headBobOffset, RUN_STRIDE, WALK_STRIDE } from './headBob.ts'
-import { getSettings } from './settings.ts'
-import { gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
+import { footstep } from './sound.ts'
+import { getSettings, prefersReducedMotion, updateSettings } from './settings.ts'
+import { DEFAULT_SENSITIVITY, gameStore, playerPose, saveSensitivity, useGame } from './store.ts'
+import { touchInput } from './touch.ts'
 
 const WALK_SPEED = 2.2
 const RUN_SPEED = 4
@@ -21,6 +24,15 @@ const SENSITIVITY_STEP = 0.2
 /** Look speed while viewing through an instrument with a narrow field of view. */
 const VIEWING_LOOK_SCALE = 0.08
 const SENSITIVITY_RANGE = [0.4, 6] as const
+/** Look speed for a finger dragged across a touch screen, in radians per pixel at the default sensitivity. */
+const TOUCH_LOOK = 0.004
+/** How far the thumb stick must lean before you move, and how far for walking faster. */
+const STICK_DEAD = 0.15
+const STICK_RUN = 0.95
+/** On the start screen the view sways gently from side to side: how far (radians) and how slowly (radians per second). */
+const DRIFT_YAW = 0.07
+const DRIFT_PITCH = 0.015
+const DRIFT_SPEED = 0.22
 
 interface PlayerProps {
   colliders: Collider[]
@@ -58,7 +70,11 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
   const viewing = useGame((s) => s.viewing)
   const look = useRef({ yaw: 0, pitch: 0 })
   const bob = useRef({ phase: 0, amount: 0, side: 0 })
+  // Distance walked since the last footstep.
+  const stride = useRef(0)
   const floorY = useRef(0)
+  // The start screen's sway: its clock, and the offset currently applied to the view.
+  const drift = useRef({ t: 0, yaw: 0, pitch: 0 })
 
   // Arriving in a room puts the eye straight at that spot's floor height.
   useEffect(() => {
@@ -70,7 +86,9 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     const onKeyDown = (e: KeyboardEvent) => {
       // Q releases the mouse. Escape does too, but in full screen the browser
       // also uses Escape to leave full screen, which can't be prevented.
-      if (e.code === 'KeyQ' && document.pointerLockElement) document.exitPointerLock()
+      // Looking through an instrument, Q steps back from it rather than letting go of the mouse.
+      if (e.code === 'KeyQ' && gameStore.get().viewing && !gameStore.get().overlay) gameStore.set({ viewing: null })
+      else if (e.code === 'KeyQ' && document.pointerLockElement) document.exitPointerLock()
       if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
         const [min, max] = SENSITIVITY_RANGE
         const step = e.code === 'BracketRight' ? SENSITIVITY_STEP : -SENSITIVITY_STEP
@@ -79,16 +97,37 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
         saveSensitivity(next)
         showToast(`Mouse sensitivity ${next.toFixed(1)}`)
       }
+      if (e.code === 'KeyN' && !e.repeat) {
+        const muted = !getSettings().muted
+        updateSettings({ muted })
+        showToast(muted ? 'Sound off (N to turn it back on)' : 'Sound on')
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   useFrame(({ camera }, delta) => {
-    const { isExploring, transitioning, viewing } = gameStore.get()
+    const { isExploring, transitioning, viewing, overlay } = gameStore.get()
+    if (!isExploring && !transitioning && !overlay && !viewing && !prefersReducedMotion) {
+      // Behind the start screen the room isn't frozen: the view drifts slowly, as if someone were looking round.
+      // Only the change since last frame is applied, so starting to explore picks up wherever the sway has got to.
+      const d = drift.current
+      d.t += Math.min(delta, 0.1) * DRIFT_SPEED
+      const yaw = Math.sin(d.t) * DRIFT_YAW
+      const pitch = Math.sin(d.t * 0.7) * DRIFT_PITCH
+      euler.setFromQuaternion(camera.quaternion)
+      euler.y += yaw - d.yaw
+      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + pitch - d.pitch))
+      camera.quaternion.setFromEuler(euler)
+      d.yaw = yaw
+      d.pitch = pitch
+    }
     if (!isExploring || transitioning) return
     const k = keys.current
-    const dt = Math.min(delta, 0.05)
+    // A slow frame still moves you the full distance (up to a tenth of a second's worth), so walking keeps
+    // its pace on a struggling computer instead of slowing to a crawl; the step is split below so walls hold.
+    const dt = Math.min(delta, 0.1)
     // Through an instrument's narrow view, looking around slows right down.
     const lookScale = viewing ? VIEWING_LOOK_SCALE : 1
 
@@ -102,6 +141,16 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
       euler.y += l.yaw * dt * lookScale
       euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x + l.pitch * dt * lookScale))
       camera.quaternion.setFromEuler(euler)
+    }
+    // A finger dragged across a touch screen looks around, like the mouse.
+    const drag = touchInput.look
+    if (drag.x || drag.y) {
+      const scale = ((TOUCH_LOOK * gameStore.get().mouseSensitivity) / DEFAULT_SENSITIVITY) * lookScale
+      euler.setFromQuaternion(camera.quaternion)
+      euler.y -= drag.x * scale
+      euler.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.x - drag.y * scale))
+      camera.quaternion.setFromEuler(euler)
+      drag.x = drag.y = 0
     }
     // The instrument holds the camera in place.
     if (viewing) return
@@ -117,21 +166,28 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     const b = bob.current
     camera.position.addScaledVector(right, -b.side)
 
-    const ahead = held(k, 'KeyW') - held(k, 'KeyS')
-    const side = held(k, 'KeyD') - held(k, 'KeyA')
-    const running = k.has('ShiftLeft') || k.has('ShiftRight')
+    // Keys, or else the touch screen's thumb stick, which walks slower the less it leans.
+    const stick = touchInput.move
+    const lean = Math.min(1, Math.hypot(stick.x, stick.y))
+    const onStick = lean > STICK_DEAD
+    const ahead = held(k, 'KeyW') - held(k, 'KeyS') || (onStick ? -stick.y : 0)
+    const side = held(k, 'KeyD') - held(k, 'KeyA') || (onStick ? stick.x : 0)
+    const running = k.has('ShiftLeft') || k.has('ShiftRight') || lean > STICK_RUN
+    const pace = onStick && !running ? Math.min(1, (lean - STICK_DEAD) / (STICK_RUN - STICK_DEAD) + 0.3) : 1
     let moved = 0
 
     if (ahead || side) {
       const speed = running ? RUN_SPEED : WALK_SPEED
-      // Cap the step (via dt) so a long frame can't tunnel through walls.
       move
         .copy(forward)
         .multiplyScalar(ahead)
         .addScaledVector(right, side)
         .normalize()
-        .multiplyScalar(speed * dt)
-      const [x, z] = moveWithCollisions(camera.position.x, camera.position.z, move.x, move.z, colliders)
+        .multiplyScalar(speed * pace * dt)
+      // In slices of at most 5 cm, so a long frame can't carry you through a thin wall.
+      const slices = Math.max(1, Math.ceil(move.length() / 0.05))
+      let [x, z] = [camera.position.x, camera.position.z]
+      for (let i = 0; i < slices; i++) [x, z] = moveWithCollisions(x, z, move.x / slices, move.z / slices, colliders)
       moved = Math.hypot(x - camera.position.x, z - camera.position.z)
       camera.position.x = x
       camera.position.z = z
@@ -141,6 +197,12 @@ export function Player({ colliders, floorHeight = flat }: PlayerProps) {
     const targetFloor = floorHeight(camera.position.x, camera.position.z)
     floorY.current += (targetFloor - floorY.current) * Math.min(1, dt * STEP_FOLLOW)
     const eye = floorY.current + EYE_HEIGHT
+
+    stride.current += moved
+    if (stride.current >= (running ? RUN_STRIDE : WALK_STRIDE)) {
+      stride.current = 0
+      footstep(floorIn(gameStore.get().activeRoomId), running)
+    }
 
     if (!getSettings().headBob) {
       b.side = 0

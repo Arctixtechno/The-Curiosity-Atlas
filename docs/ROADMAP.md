@@ -88,6 +88,7 @@ First functional versions of the observatory, museum, experimental laboratory, w
 - ✅ Museum of Everything: a top-lit gallery off the main hall with six exhibits, each with a model to turn over and sourced facts
 - ✅ Workshop, off the laboratory: a gear-train bench and a DC circuit bench, both calculated exactly and unit-tested
 - ✅ Study room, off the main hall: a focus timer, a to-do list, notes and spaced-repetition flashcards (Leitner boxes, unit-tested), all kept in the browser
+- 🚧 Marshgate Refinery, a drive away from the house: a process plant to learn on, built in stages (see [REFINERY.md](./REFINERY.md)). Stage 1 is done: the drive, the site, a guide to every unit, and a crude distillation unit you can run, with a furnace temperature controller, product specs, economics, alarms and shift tasks. Stage 2 adds the vacuum unit and the fluid catalytic cracker, run against its heat balance and equipment limits. Stage 3 adds the naphtha hydrotreater and the catalytic reformer, with its three-reactor temperature profile and a whole catalyst cycle to run. Stage 4 adds the diesel hydrotreater, the hydrogen header and the sulphur plant
 
 ## Phase 5 — Private Beta 🟡
 

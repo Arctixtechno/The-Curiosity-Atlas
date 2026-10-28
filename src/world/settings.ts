@@ -15,13 +15,24 @@ export interface Settings {
   /** Vertical field of view in degrees. */
   fov: number
   batterySaver: BatterySaver
+  /** Loudness of the house's own sounds (rooms and footsteps), 0 to 1. Films have their own volume. */
+  soundVolume: number
+  /** All the house's sounds off, from the N key or the settings. */
+  muted: boolean
 }
 
 const KEY = 'atlas.settings'
 /** The system asks for less movement on screen. */
 export const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export const DEFAULT_SETTINGS: Settings = { quality: 'auto', headBob: !prefersReducedMotion, fov: 70, batterySaver: 'auto' }
+export const DEFAULT_SETTINGS: Settings = {
+  quality: 'auto',
+  headBob: !prefersReducedMotion,
+  fov: 70,
+  batterySaver: 'auto',
+  soundVolume: 0.6,
+  muted: false,
+}
 export const FOV_RANGE = [55, 90] as const
 
 function load(): Settings {

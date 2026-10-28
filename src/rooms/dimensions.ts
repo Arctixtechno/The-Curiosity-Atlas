@@ -112,7 +112,21 @@ export function loungeChair(side: -1 | 1) {
     rotationY: -side * (Math.PI / 2 + LOUNGE.chairTurn),
   }
 }
-export const COURTYARD = { width: 14, length: 18, hedgeHeight: 1.2 }
+export const COURTYARD = { width: 20, length: 26, hedgeHeight: 1.2 }
+/** The Discovery Fountain in the middle of the courtyard: where it stands, as [x, z], and how much bigger than life-size model it's built. */
+export const COURTYARD_FOUNTAIN = { at: [0, -1.5] as [number, number], scale: 1.75 }
+/** The stand with today's question, on the house side of the fountain, as [x, z]. */
+export const QUESTION_STAND: [number, number] = [
+  COURTYARD_FOUNTAIN.at[0] + 1.2,
+  COURTYARD_FOUNTAIN.at[1] - (1.3 * COURTYARD_FOUNTAIN.scale + 2.2),
+]
+/** Stone planters with clipped trees, round the fountain, as [x, z]. */
+export const COURTYARD_PLANTERS: [number, number][] = [
+  [-7, -7],
+  [7, -7],
+  [-7, 4.5],
+  [7, 4.5],
+]
 /** The café building sits against the far end of the courtyard. */
 export const CAFE = { width: 8, depth: 4, height: 3.2, frontZ: COURTYARD.length / 2 - 4 }
 /** Bistro tables outside the café, as [x, z]. */
@@ -166,6 +180,26 @@ export const MUSEUM = {
   bench: [0, 2.4] as [number, number],
 }
 
+/**
+ * The Library: a tall reading room off the north end of the hall, lined with
+ * books. Its door is the +z wall; the reading desk with your own saved
+ * discoveries stands against the far wall.
+ */
+export const LIBRARY = {
+  width: 9,
+  length: 12,
+  height: 4.4,
+  /** The side walls' bookcases: centre along z, and length. */
+  sideCases: { z: -0.6, length: 9.6 },
+  /** The far wall's two bookcases either side of the desk: centre x (each side), and length. */
+  backCases: { x: 2.75, length: 2.9 },
+  table: { at: [0, -0.4] as [number, number], width: 1.2, length: 3.6 },
+  desk: [0, -5.35] as [number, number],
+}
+
+/** Half the width of the roped-off square round the museum's open plinth. */
+export const MUSEUM_ROPE = 0.85
+
 /** The workshop, off the laboratory's west wall. Its door is the +z wall; the benches stand along the back. */
 export const WORKSHOP = {
   width: 9,
@@ -180,11 +214,14 @@ export const WORKSHOP = {
   chest: [3.95, 2.6] as [number, number],
 }
 
-/** A garden bench against the west hedge, and the pots either side of the front porch, as [x, z]. */
-export const COURTYARD_BENCH: [number, number] = [-6.65, 3]
+/** Garden benches against the side hedges, facing the fountain, and the pots either side of the front porch, as [x, z]. */
+export const COURTYARD_BENCHES: [number, number][] = [
+  [-9.65, -1.5],
+  [9.65, -1.5],
+]
 export const DOOR_POTS: [number, number][] = [
-  [-2.1, -8.5],
-  [2.1, -8.5],
+  [-2.1, -COURTYARD.length / 2 + 0.5],
+  [2.1, -COURTYARD.length / 2 + 0.5],
 ]
 
 /** Columned porch around the house's front door, relative to the house wall. */
@@ -257,3 +294,53 @@ export const STUDY = {
 
 /** Where the observatory's door onto the terrace is, by angle round the room (see observatoryWallPoint). */
 export const OBSERVATORY_TERRACE_DOOR = 1.55
+
+/** A parked car standing in for a door, for places you drive to: it sits this far behind the door's position. */
+export const CAR = { length: 4.5, width: 1.8, offset: 1.05 }
+
+/** The car's footprint, for a car door at `position` turned by `rotationY` (a multiple of 90°). */
+export function carCollider(position: [number, number, number], rotationY: number): BoxCollider {
+  const [x, , z] = position
+  const cx = x - Math.sin(rotationY) * CAR.offset
+  const cz = z - Math.cos(rotationY) * CAR.offset
+  const c = Math.abs(Math.cos(rotationY))
+  const s = Math.abs(Math.sin(rotationY))
+  return boxCollider(cx, cz, c * CAR.length + s * CAR.width + 0.2, s * CAR.length + c * CAR.width + 0.2)
+}
+
+/** Where the car is parked in the courtyard, by the east hedge. */
+export const COURTYARD_CAR = { position: [7.2, 0, 1.5] as [number, number, number], rotationY: -Math.PI / 2 }
+
+/**
+ * Marshgate Refinery, out on the Thames estuary: an open site inside a fence,
+ * reached by car. The gate and car park are at the south (+z) end; the crude
+ * unit stands in the middle, with the units still to come around it.
+ * Positions are [x, z] on the ground.
+ */
+export const REFINERY = {
+  width: 64,
+  length: 56,
+  car: { position: [-7, 0, 21] as [number, number, number], rotationY: Math.PI },
+  board: [-1, 16] as [number, number],
+  controlRoom: { at: [-17, 14] as [number, number], size: [12, 7] as [number, number], height: 4.2 },
+  furnace: { at: [-4, -3] as [number, number], size: [7, 4.5] as [number, number], height: 8 },
+  column: { at: [6, -4] as [number, number], radius: 2.2, height: 30 },
+  strippers: [
+    [10.2, -7],
+    [10.2, -4.4],
+    [10.2, -1.8],
+  ] as [number, number][],
+  refluxDrum: [12, 2.6] as [number, number],
+  rack: { z: 6, x: [-26, 18] as [number, number], width: 3, height: 6.5, bay: 6.5 },
+  vacuum: { at: [17, -13] as [number, number], radius: 3.2, height: 22 },
+  fcc: { at: [-20, -14] as [number, number], size: 9 },
+  reformer: { at: [-3, -19] as [number, number], size: [13, 7] as [number, number] },
+  treating: { at: [-23, -1] as [number, number], size: [8, 6] as [number, number] },
+  tanks: [
+    { at: [25, 19] as [number, number], label: 'Crude oil' },
+    { at: [25, 7] as [number, number], label: 'Diesel' },
+    { at: [14, 19] as [number, number], label: 'Kerosene' },
+  ],
+  tankRadius: 4.4,
+  flare: [27, -23] as [number, number],
+}

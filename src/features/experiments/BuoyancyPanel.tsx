@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
+import { HowItWorks } from '../../components/HowItWorks.tsx'
 import { DropIcon } from '../../components/icons.tsx'
 import { acceleration, BLOCK_SIDE, BLOCKS, LIQUIDS, settle, type Substance } from './buoyancy.ts'
 import './Experiments.css'
@@ -178,16 +179,17 @@ export function BuoyancyPanel() {
           </button>
         </div>
       </div>
-      <h3>What's happening</h3>
-      <p>
-        A block in a liquid is pushed up by a force equal to the weight of the liquid it moves aside (Archimedes' principle). If
-        the block is less dense than the liquid, it sinks only until the liquid it displaces weighs as much as the block, then
-        floats. That's why ice floats with most of it hidden, and why steel floats on mercury.
-      </p>
-      <p className="muted">
-        Forces are calculated from Archimedes' principle with g = 9.81 m/s². Densities are typical values near 20 °C; real samples
-        vary a little. The way the block bobs before settling uses a simple drag model.
-      </p>
+      <HowItWorks>
+        <p>
+          A block in a liquid is pushed up by a force equal to the weight of the liquid it moves aside (Archimedes' principle). If
+          the block is less dense than the liquid, it sinks only until the liquid it displaces weighs as much as the block, then
+          floats. That's why ice floats with most of it hidden, and why steel floats on mercury.
+        </p>
+        <p className="muted">
+          Forces are calculated from Archimedes' principle with g = 9.81 m/s². Densities are typical values near 20 °C; real
+          samples vary a little. The way the block bobs before settling uses a simple drag model.
+        </p>
+      </HowItWorks>
     </Panel>
   )
 }

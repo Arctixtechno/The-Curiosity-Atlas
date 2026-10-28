@@ -25,6 +25,7 @@ import {
   type MeshBasicMaterial,
 } from 'three'
 import { useGame } from '../world/store.ts'
+import { requestFrame, useMotion } from '../world/FrameScheduler.tsx'
 
 // A night sky generated afresh on every visit: a Milky Way band, coloured
 // stars, faint nebulae, a cratered moon and the odd shooting star. Directions
@@ -33,6 +34,11 @@ import { useGame } from '../world/store.ts'
 // in radians above the horizon.
 
 const SKY_RADIUS = 85
+/**
+ * The moon's radius at about 80 m away: half a degree across, as it really looks, so a small bright disc by eye
+ * whose seas and craters only show through the telescope.
+ */
+const MOON_RADIUS = 0.36
 const STAR_RADIUS = 80
 /** Azimuth of -z, the way the observatory's opening faces. The Milky Way passes overhead there. */
 const OPENING_U = 0.75
@@ -334,6 +340,8 @@ function starMaterial() {
 /** Twinkles the stars, with points sized for the screen's pixel density. */
 function Stars({ geometry, material }: { geometry: BufferGeometry; material: ShaderMaterial }) {
   const pixelRatio = useThree((s) => s.viewport.dpr)
+  // Twinkling is slow enough to look smooth at a modest frame rate.
+  useMotion(15)
   useFrame(({ clock }) => {
     material.uniforms.time.value = clock.elapsedTime
     material.uniforms.pixelRatio.value = pixelRatio
@@ -586,6 +594,8 @@ function ShootingStar({ rand }: { rand: Rand }) {
     m.quaternion.setFromRotationMatrix(basis)
     m.position.copy(s.head).addScaledVector(xAxis, -METEOR.length / 2)
     material.opacity = Math.sin(s.t * Math.PI)
+    // A meteor is over in a moment, so it's drawn at full speed while it lasts.
+    requestFrame()
   })
 
   return (
@@ -615,7 +625,7 @@ const BAKED_SKY_SIZE = 1024
 function bakeSky(gl: WebGLRenderer, material: ShaderMaterial) {
   const target = new WebGLCubeRenderTarget(BAKED_SKY_SIZE)
   const scene = new Scene()
-  const geometry = new SphereGeometry(SKY_RADIUS, 64, 32)
+  const geometry = new SphereGeometry(SKY_RADIUS, 48, 24)
   scene.add(new ThreeMesh(geometry, material))
   new CubeCamera(1, SKY_RADIUS * 2, target).update(gl, scene)
   geometry.dispose()
@@ -687,16 +697,16 @@ export function NightSky({ moon }: { moon: [number, number, number] }) {
     <group>
       {/* Drawn after the room, so its costly shading only runs where the dome's opening leaves sky showing. */}
       <mesh material={looking || !baked ? sky.material : baked.material} renderOrder={1}>
-        <sphereGeometry args={[SKY_RADIUS, 64, 32]} />
+        <sphereGeometry args={[SKY_RADIUS, 48, 24]} />
       </mesh>
       <Stars geometry={stars} material={starShading} />
       {/* Tilted so its poles sit side-on to the room, where the map is least stretched. */}
       <mesh position={moon} rotation={[0.86, 2.2, 0]} material={moonShading}>
-        <sphereGeometry args={[2, 96, 48]} />
+        <sphereGeometry args={[MOON_RADIUS, 48, 24]} />
       </mesh>
       {/* A faint glow of moonlight in the air round it. */}
       <mesh position={moon} renderOrder={1} visible={!looking} onUpdate={(m) => m.lookAt(0, 0, 0)}>
-        <planeGeometry args={[18, 18]} />
+        <planeGeometry args={[MOON_RADIUS * 12, MOON_RADIUS * 12]} />
         <meshBasicMaterial
           map={halo}
           color="#dfe6ff"

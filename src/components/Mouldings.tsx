@@ -223,3 +223,58 @@ export function Mouldings({ width, length, height, trim, cornice = '#efe6d4', da
     </group>
   )
 }
+
+/**
+ * Just the soft shading along a plain room's corners, for rooms without
+ * mouldings: up the wall and across the floor where they meet, along the
+ * ceiling's edge, and down each upright corner where two walls meet.
+ */
+export function CornerShading({
+  width,
+  length,
+  height,
+  ceiling = true,
+}: {
+  width: number
+  length: number
+  height: number
+  ceiling?: boolean
+}) {
+  const walls: { position: [number, number, number]; rotationY: number; length: number }[] = [
+    { position: [-width / 2, 0, -length / 2], rotationY: 0, length: width },
+    { position: [width / 2, 0, length / 2], rotationY: Math.PI, length: width },
+    { position: [-width / 2, 0, length / 2], rotationY: Math.PI / 2, length },
+    { position: [width / 2, 0, -length / 2], rotationY: -Math.PI / 2, length },
+  ]
+  return (
+    <group>
+      {walls.map((wall, i) => (
+        <group key={i} position={wall.position} rotation={[0, wall.rotationY, 0]}>
+          <group position={[0, 0, 0.004]}>
+            <CornerShade length={wall.length} size={0.6} strength={0.26} />
+          </group>
+          <group position={[0, 0.004, 0.004]} rotation={[-Math.PI / 2, 0, 0]} scale={[1, -1, 1]}>
+            <CornerShade length={wall.length} size={0.6} strength={0.26} />
+          </group>
+          {ceiling && (
+            <>
+              <group position={[0, height, 0.004]} rotation={[0, 0, Math.PI]} scale={[-1, 1, 1]}>
+                <CornerShade length={wall.length} size={0.6} strength={0.2} />
+              </group>
+              <group position={[0, height - 0.004, 0.004]} rotation={[Math.PI / 2, 0, 0]}>
+                <CornerShade length={wall.length} size={0.5} strength={0.18} />
+              </group>
+            </>
+          )}
+          {/* The upright corner at this wall's left-hand end, shading along the wall from it. */}
+          <group position={[0, 0, 0.004]} rotation={[0, 0, Math.PI / 2]} scale={[1, -1, 1]}>
+            <CornerShade length={height} size={0.45} strength={0.18} />
+          </group>
+          <group position={[wall.length, 0, 0.004]} rotation={[0, 0, Math.PI / 2]}>
+            <CornerShade length={height} size={0.45} strength={0.18} />
+          </group>
+        </group>
+      ))}
+    </group>
+  )
+}

@@ -1,36 +1,229 @@
+/* The City Explorer: a big warm-toned map with filters floating over it,
+   a side card that lists places or tells you about one, and two small cards
+   underneath for planning a walk and the passport. */
+
+.panel-city {
+  width: min(1080px, 100%);
+}
+
+/* Neighbourhoods: one row of tabs that scrolls sideways, with an underline on the chosen one. */
 .city-areas {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 2px;
+  margin: -4px -24px 16px;
+  padding: 0 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(244, 234, 216, 0.08);
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+
+.city-areas::-webkit-scrollbar {
+  display: none;
+}
+
+.city-area {
+  position: relative;
+  flex: none;
+  padding: 10px 12px 12px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.city-area::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  bottom: -1px;
+  left: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.city-area:hover {
+  color: var(--ink);
+}
+
+.city-area[aria-selected='true'] {
+  color: #fff3df;
+}
+
+.city-area[aria-selected='true']::after {
+  transform: scaleX(1);
 }
 
 .city-layout {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
   gap: 16px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .city-layout {
     grid-template-columns: 1fr;
   }
 }
 
-.city-map {
-  height: 360px;
-  border: 1px solid rgba(224, 164, 88, 0.25);
-  border-radius: 8px;
-  /* Shown while tiles load, or if they can't. */
-  background: #d9cdb4;
+.city-map-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(244, 234, 216, 0.1);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
+.city-map {
+  height: min(52vh, 440px);
+  min-height: 280px;
+  /* Shown while tiles load, or if they can't. */
+  background: #2a2119;
+}
+
+/* Warm the map's tiles a little so they sit with the room's colours. */
+.city-map .leaflet-tile-pane {
+  filter: sepia(0.28) saturate(0.85) brightness(0.92) contrast(1.04);
+}
+
+.city-map .leaflet-control-zoom {
+  overflow: hidden;
+  border: 1px solid rgba(244, 234, 216, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.city-map .leaflet-control-zoom a {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: rgba(24, 18, 12, 0.85);
+  color: var(--ink);
+  line-height: 32px;
+}
+
+.city-map .leaflet-control-zoom a:hover {
+  background: rgba(60, 44, 28, 0.95);
+}
+
+.city-map .leaflet-control-attribution {
+  border-top-left-radius: 8px;
+  background: rgba(24, 18, 12, 0.7);
+  color: var(--ink-muted);
+}
+
+.city-map .leaflet-control-attribution a {
+  color: var(--accent);
+}
+
+/* Filters float over the top of the map. */
+.city-groups {
+  position: absolute;
+  z-index: 500;
+  top: 10px;
+  right: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.city-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.16);
+  border-radius: 999px;
+  background: rgba(22, 16, 10, 0.78);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.city-chip > span:last-child {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+.city-chip:hover {
+  border-color: rgba(224, 164, 88, 0.5);
+}
+
+.city-chip.active {
+  border-color: var(--accent);
+  background: rgba(70, 48, 24, 0.9);
+}
+
+.city-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
+/* The side card: the area's places, or one place in detail. */
 .city-side {
-  max-height: 360px;
+  display: flex;
+  flex-direction: column;
+  max-height: min(52vh, 440px);
+  min-height: 280px;
   overflow-y: auto;
+  padding: 16px 16px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.08);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.city-area-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.city-area-head h4,
+.city-details h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: normal;
+}
+
+.city-progress {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(224, 164, 88, 0.14);
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+.city-blurb {
+  margin: 6px 0 12px;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .city-places {
+  display: grid;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -38,28 +231,39 @@
 
 .city-place {
   display: grid;
-  grid-template-columns: 12px 1fr auto;
-  gap: 10px;
+  grid-template-columns: 10px 1fr auto;
+  gap: 12px;
   align-items: center;
   width: 100%;
-  padding: 7px 6px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(244, 234, 216, 0.03);
   color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
 }
 
 .city-place:hover {
-  background: rgba(224, 164, 88, 0.12);
+  border-color: rgba(224, 164, 88, 0.3);
+  background: rgba(224, 164, 88, 0.09);
+  transform: translateX(2px);
 }
 
-.city-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.city-place-text {
+  min-width: 0;
+}
+
+.city-kind {
+  display: block;
+  margin-top: 1px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
 }
 
 .city-tag {
@@ -67,18 +271,67 @@
 }
 
 .city-stamps {
+  display: flex;
+  gap: 4px;
   color: var(--accent);
 }
 
-.city-details h4 {
-  margin: 8px 0 2px;
-  font-size: 1.15rem;
-  font-weight: normal;
+.city-details {
+  animation: city-details-in 0.25s ease both;
 }
 
-.city-details a,
-.city-credit a {
-  color: var(--accent);
+@keyframes city-details-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+.city-details-kind {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 4px;
+  color: var(--place-colour);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.city-details > p:not([class]) {
+  line-height: 1.55;
+}
+
+.city-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+
+.city-toggle {
+  padding: 6px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.16);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.city-toggle:hover {
+  border-color: rgba(224, 164, 88, 0.5);
+}
+
+.city-toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgba(224, 164, 88, 0.22);
+  color: #fff3df;
 }
 
 .city-link {
@@ -87,70 +340,105 @@
   background: none;
   color: var(--accent);
   font: inherit;
+  font-size: 0.88rem;
   cursor: pointer;
+}
+
+.city-link:hover {
+  text-decoration: underline;
 }
 
 .city-note {
   box-sizing: border-box;
   width: 100%;
-  min-height: 64px;
-  margin-top: 8px;
-  padding: 8px;
-  border: 1px solid rgba(224, 164, 88, 0.4);
-  border-radius: 6px;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.14);
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.25);
   color: var(--ink);
   font: inherit;
+  font-size: 0.9rem;
   resize: vertical;
 }
 
+.city-note:focus {
+  border-color: rgba(224, 164, 88, 0.6);
+  outline: none;
+}
+
+/* Walk planner and passport, side by side under the map. */
+.city-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 760px) {
+  .city-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.city-card {
+  padding: 16px;
+  border: 1px solid rgba(244, 234, 216, 0.08);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.panel-body .city-card h3 {
+  margin-top: 0;
+}
+
+.city-card p {
+  margin: 10px 0 0;
+}
+
 .city-walk {
-  margin: 8px 0;
+  margin: 12px 0 0;
   padding-left: 22px;
-  line-height: 1.6;
+  line-height: 1.7;
+}
+
+.city-fine {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.city-meter {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(244, 234, 216, 0.08);
+}
+
+.city-meter > span {
+  display: block;
+  height: 100%;
+  min-width: 6px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c98a3e, var(--accent));
+  transition: width 0.4s ease;
 }
 
 .city-credit {
-  margin-top: 18px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(224, 164, 88, 0.2);
-}
-
-.city-groups {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.city-groups .button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.city-groups .button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.city-groups .city-dot {
-  width: 9px;
-  height: 9px;
-}
-
-.city-kind {
-  display: block;
+  margin-top: 16px;
   color: var(--ink-muted);
   font-size: 0.75rem;
+}
+
+.city-credit a {
+  color: var(--accent);
 }
 
 /* Leaflet's place-name tooltip, in the panel's colours. */
 .leaflet-tooltip.city-tooltip {
   border: 1px solid rgba(224, 164, 88, 0.45);
-  border-radius: 6px;
+  border-radius: 8px;
   background: rgba(24, 18, 12, 0.92);
-  box-shadow: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   color: var(--ink);
   font-family: inherit;
 }

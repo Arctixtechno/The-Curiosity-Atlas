@@ -47,6 +47,7 @@ export function Panel({
   icon,
   children,
   wide,
+  className,
 }: {
   title: string
   /** One line under the title saying what the panel is for. */
@@ -55,6 +56,8 @@ export function Panel({
   icon?: ReactNode
   children: ReactNode
   wide?: boolean
+  /** An extra class on the panel, for one that needs its own size or layout. */
+  className?: string
 }) {
   const dialog = useRef<HTMLElement>(null)
   useModal(dialog)
@@ -62,7 +65,7 @@ export function Panel({
     <div className="panel-backdrop" onClick={(e) => e.stopPropagation()}>
       <section
         ref={dialog}
-        className={`panel${wide ? ' panel-wide' : ''}`}
+        className={`panel${wide ? ' panel-wide' : ''}${className ? ` ${className}` : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { startingPlacement, startingRoomId } from '../rooms/registry.ts'
-import type { Placement } from '../types/room.ts'
+import type { Journey, Placement } from '../types/room.ts'
 
 // Small shared state for the 3D world and the HTML overlay. Kept dependency
 // free; swap for a library if it grows.
@@ -25,6 +25,10 @@ export interface GameState {
   overlay: string | null
   /** Looking through an instrument (the telescope) instead of walking about. */
   viewing: string | null
+  /** A drive in progress, shown in place of the fade, and whether it is heading out or coming home. */
+  journey: (Journey & { homeward: boolean }) | null
+  /** What the instrument is pointed at, when that's something to name (a landmark through the spyglass). */
+  viewingTarget: string | null
 }
 
 const SENSITIVITY_KEY = 'atlas.mouseSensitivity'
@@ -58,6 +62,8 @@ let state: GameState = {
   toast: null,
   overlay: null,
   viewing: null,
+  journey: null,
+  viewingTarget: null,
 }
 
 const listeners = new Set<() => void>()

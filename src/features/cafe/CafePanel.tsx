@@ -15,6 +15,7 @@ import {
   type Drink,
   type ShotKind,
 } from './drinks.ts'
+import { noteDrink } from '../../world/visitLog.ts'
 import './CafePanel.css'
 
 const W = 300
@@ -151,6 +152,10 @@ export function CafePanel() {
   const add = (part: Partial<Cup>) => setCup((c) => ({ ...c, ...part }))
   const pull = (s: ShotKind) => add({ shots: [...cup.shots, s] })
   const made = identify(cup)
+  // Each new drink made is ticked off on the "Your visit" page.
+  useEffect(() => {
+    if (made) noteDrink(made.id)
+  }, [made])
   const misses = order ? differences(cup, order) : []
   const nothing = totalMl(cup) === 0
 

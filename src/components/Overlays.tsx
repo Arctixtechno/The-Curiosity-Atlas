@@ -7,6 +7,7 @@ import { CAFE_OVERLAY } from '../features/cafe/overlayId.ts'
 import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
 import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.ts'
 import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
+import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { studyTabFromOverlay } from '../features/study/overlayId.ts'
@@ -15,6 +16,8 @@ import { gameStore, useGame } from '../world/store.ts'
 import { MAP_OVERLAY, MapPanel } from './MapPanel.tsx'
 import { PanelLoading } from './Panel.tsx'
 import { SETTINGS_OVERLAY, SettingsPanel } from './SettingsPanel.tsx'
+import { VISIT_OVERLAY } from '../features/visit/overlayId.ts'
+import { VisitPanel } from '../features/visit/VisitPanel.tsx'
 
 // Panels that only some rooms use load when first opened: the London map pulls in Leaflet.
 const CityExplorerPanel = lazy(() =>
@@ -29,11 +32,16 @@ const CircuitPanel = lazy(() => import('../features/workshop/CircuitPanel.tsx').
 const SolarSystemPanel = lazy(() =>
   import('../features/solar/SolarSystemPanel.tsx').then((m) => ({ default: m.SolarSystemPanel })),
 )
+const CduPanel = lazy(() => import('../features/refinery/CduPanel.tsx').then((m) => ({ default: m.CduPanel })))
+const ConversionPanel = lazy(() => import('../features/refinery/ConversionPanel.tsx').then((m) => ({ default: m.ConversionPanel })))
+const ReformerPanel = lazy(() => import('../features/refinery/ReformerPanel.tsx').then((m) => ({ default: m.ReformerPanel })))
+const TreatingPanel = lazy(() => import('../features/refinery/TreatingPanel.tsx').then((m) => ({ default: m.TreatingPanel })))
+const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const StudyPanel = lazy(() => import('../features/study/StudyPanel.tsx').then((m) => ({ default: m.StudyPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
-/** Keys that open a panel from anywhere: M for the map, O for settings, L for the library. */
-const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library' }
+/** Keys that open a panel from anywhere: M for the map, O for settings, L for the library, V for your visit. */
+const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library', KeyV: VISIT_OVERLAY }
 
 /** Shows whichever full-screen panel is open, and handles the keys that open them. */
 export function Overlays() {
@@ -58,6 +66,7 @@ export function Overlays() {
   if (overlay === 'lounge') return <LoungePanel />
   if (overlay === MAP_OVERLAY) return <MapPanel />
   if (overlay === SETTINGS_OVERLAY) return <SettingsPanel />
+  if (overlay === VISIT_OVERLAY) return <VisitPanel />
   const exhibit = exhibitFromOverlay(overlay)
   if (exhibit)
     return (
@@ -80,6 +89,11 @@ export function Overlays() {
     [SOLAR_OVERLAY]: SolarSystemPanel,
     [GEARS_OVERLAY]: GearPanel,
     [CIRCUIT_OVERLAY]: CircuitPanel,
+    [CDU_OVERLAY]: CduPanel,
+    [CONVERSION_OVERLAY]: ConversionPanel,
+    [OVERVIEW_OVERLAY]: OverviewPanel,
+    [REFORMER_OVERLAY]: ReformerPanel,
+    [TREATING_OVERLAY]: TreatingPanel,
   }[overlay ?? '']
   if (Lazy)
     return (

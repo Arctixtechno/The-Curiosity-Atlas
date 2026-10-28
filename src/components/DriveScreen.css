@@ -1,0 +1,323 @@
+/* The drive between the house and somewhere far away. Everything moves with
+   transforms, so it costs the browser very little while the room loads. */
+
+.drive {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 10;
+  background: #0d0b12;
+  animation: drive-in 0.4s ease both;
+}
+
+@keyframes drive-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.drive-sky {
+  position: absolute;
+  inset: 0 0 30% 0;
+  background: linear-gradient(180deg, #1a1d3a 0%, #4b3557 38%, #c4615a 72%, #f2a65e 100%);
+}
+
+.drive-sun {
+  position: absolute;
+  bottom: -40px;
+  left: 62%;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe2a8 0%, #ffb36a 45%, rgba(255, 150, 90, 0) 70%);
+}
+
+.drive-home .drive-sun {
+  left: 22%;
+}
+
+/* The scenery strip scrolls past once over the whole drive. */
+.drive-strip {
+  position: absolute;
+  bottom: 30%;
+  left: 0;
+  height: 260px;
+  animation: drive-scroll var(--drive-ms) linear both;
+}
+
+.drive-home .drive-strip {
+  animation-direction: reverse;
+}
+
+@keyframes drive-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(100vw - var(--strip)));
+  }
+}
+
+.drive-scenery {
+  display: block;
+}
+
+.drive-city,
+.drive-marsh,
+.drive-plant {
+  fill: #1c1726;
+}
+
+.drive-marsh {
+  fill: #221c2b;
+}
+
+.drive-window {
+  fill: #ffcf7a;
+  opacity: 0.75;
+}
+
+.drive-river {
+  stroke: #e79a6a;
+  stroke-width: 3;
+  opacity: 0.5;
+}
+
+.drive-lamp {
+  fill: #ffc56e;
+}
+
+.drive-flare {
+  fill: #ffb347;
+  filter: drop-shadow(0 0 6px #ff7a2a);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: drive-flicker 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes drive-flicker {
+  to {
+    transform: scale(0.8, 1.15);
+    opacity: 0.85;
+  }
+}
+
+.drive-verge {
+  position: absolute;
+  bottom: 22%;
+  left: 0;
+  right: 0;
+  height: 8%;
+  background: linear-gradient(180deg, #1e1a22, #15131a);
+}
+
+.drive-road {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 22%;
+  background: linear-gradient(180deg, #2a2730 0%, #17151b 100%);
+}
+
+.drive-lines {
+  position: absolute;
+  top: 38%;
+  left: 0;
+  width: calc(100% + 120px);
+  height: 5px;
+  background: repeating-linear-gradient(90deg, #e8dcc0 0 60px, transparent 60px 120px);
+  opacity: 0.7;
+  animation: drive-dash 0.35s linear infinite;
+}
+
+/* Lamp posts along the verge rush past. */
+.drive-posts {
+  position: absolute;
+  bottom: 26%;
+  left: 0;
+  width: calc(100% + 420px);
+  height: 34%;
+  background:
+    radial-gradient(circle at 404px 6px, #ffdb9a 0 5px, rgba(255, 200, 120, 0.25) 6px 22px, transparent 23px) 0 0 / 420px 100% repeat-x,
+    linear-gradient(90deg, transparent 400px, #0f0d13 400px 406px, transparent 406px) 0 0 / 420px 100% repeat-x;
+  animation: drive-posts 0.9s linear infinite;
+}
+
+@keyframes drive-dash {
+  to {
+    transform: translateX(-120px);
+  }
+}
+
+@keyframes drive-posts {
+  to {
+    transform: translateX(-420px);
+  }
+}
+
+.drive-home .drive-lines,
+.drive-home .drive-posts {
+  animation-direction: reverse;
+}
+
+.drive-car-wrap {
+  position: absolute;
+  bottom: 9%;
+  left: 50%;
+  width: min(420px, 60vw);
+  transform: translateX(-50%);
+  animation: drive-bob 0.6s ease-in-out infinite alternate;
+}
+
+.drive-home .drive-car {
+  transform: scaleX(-1);
+}
+
+@keyframes drive-bob {
+  to {
+    transform: translate(-50%, -2px);
+  }
+}
+
+.drive-car {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.drive-car-body {
+  fill: #23402f;
+  stroke: #0b1410;
+  stroke-width: 1.5;
+}
+
+.drive-car-glass {
+  fill: #9cb7c9;
+  opacity: 0.55;
+}
+
+.drive-headlight {
+  fill: #fff4d0;
+}
+
+.drive-taillight {
+  fill: #ff4a3a;
+}
+
+.drive-beam {
+  fill: rgba(255, 240, 200, 0.12);
+}
+
+.drive-tyre {
+  fill: #121014;
+}
+
+.drive-hub {
+  fill: #9a9aa0;
+}
+
+.drive-spoke {
+  stroke: #3a3a40;
+  stroke-width: 2;
+}
+
+.drive-wheel {
+  animation: drive-spin 0.3s linear infinite;
+}
+
+@keyframes drive-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.drive-card {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  width: min(520px, calc(100% - 32px));
+  padding: 18px 22px 14px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 18px;
+  background: rgba(20, 14, 9, 0.72);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.drive-kicker {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.drive-card h2 {
+  margin: 4px 0 2px;
+  font-size: 1.5rem;
+  font-weight: normal;
+}
+
+.drive-meta {
+  margin: 0 0 12px;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.drive-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(244, 234, 216, 0.15);
+  overflow: hidden;
+}
+
+.drive-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: drive-progress var(--drive-ms) linear both;
+}
+
+@keyframes drive-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.drive-fact {
+  min-height: 2.8em;
+  margin: 12px 0 6px;
+  font-style: italic;
+  line-height: 1.4;
+  animation: drive-in 0.5s ease both;
+}
+
+.drive-skip {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.drive-skip kbd {
+  padding: 1px 6px;
+  border: 1px solid rgba(244, 234, 216, 0.3);
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drive-strip,
+  .drive-lines,
+  .drive-posts,
+  .drive-car-wrap,
+  .drive-wheel,
+  .drive-flare {
+    animation: none;
+  }
+
+  .drive-progress-fill {
+    animation-duration: 2.5s;
+  }
+}

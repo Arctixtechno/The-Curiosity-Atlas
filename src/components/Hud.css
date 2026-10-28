@@ -2,8 +2,10 @@
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
-  padding: 16px;
+  /* Pinned from the top rather than centred, so opening How to play grows the card downwards instead of shifting it. */
+  justify-items: center;
+  align-items: start;
+  padding: max(16px, calc(50vh - 230px)) 16px 16px;
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.65));
   pointer-events: none;
   animation: intro-in 0.6s ease both;
@@ -82,32 +84,63 @@
   text-align: left;
 }
 
-.how-to-play summary {
+.how-to-toggle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   padding: 12px 0 4px;
+  border: 0;
+  background: none;
   color: var(--ink-muted);
+  font: inherit;
   font-size: 0.9rem;
-  text-align: center;
   cursor: pointer;
-  list-style: none;
 }
 
-.how-to-play summary::-webkit-details-marker {
-  display: none;
+.how-to-toggle:hover,
+.how-to-toggle:focus-visible {
+  color: var(--ink);
 }
 
-.how-to-play summary::after {
-  content: ' ▾';
-  font-size: 0.75rem;
+.how-to-chevron {
+  transition: transform 0.35s ease;
 }
 
-.how-to-play[open] summary::after {
-  content: ' ▴';
+.how-to-play.open .how-to-chevron {
+  transform: rotate(180deg);
+}
+
+.how-to-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease;
+}
+
+.how-to-drawer > div {
+  overflow: hidden;
+}
+
+.how-to-play.open .how-to-drawer {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-to-drawer,
+  .how-to-chevron {
+    transition: none;
+  }
 }
 
 .controls {
   display: grid;
   gap: 8px;
-  margin: 10px 0 0;
+  margin: 10px 0 4px;
   padding: 0;
   list-style: none;
   font-size: 0.88rem;
@@ -200,6 +233,15 @@ kbd {
   pointer-events: none;
 }
 
+.room-name .clock {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(244, 234, 216, 0.3);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
 .fade {
   position: fixed;
   inset: 0;
@@ -279,5 +321,94 @@ kbd {
   color: var(--ink-muted);
   font-size: 0.9rem;
   text-align: center;
+  pointer-events: none;
+}
+
+/* The spyglass has a smaller, brass-rimmed field. */
+.eyepiece-spyglass {
+  background: radial-gradient(
+    circle at center,
+    transparent 0,
+    transparent 31vmin,
+    rgba(150, 110, 50, 0.9) 31.5vmin,
+    rgba(70, 50, 20, 0.95) 33vmin,
+    #000 34vmin
+  );
+}
+
+.spy-label {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 236, 200, 0.5);
+  border-radius: 999px;
+  background: rgba(20, 16, 10, 0.6);
+  color: #fff4dc;
+  font:
+    13px Georgia,
+    'Times New Roman',
+    serif;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+}
+
+/* First-visit pointers, bottom left, fading in after a moment and out on their own. */
+.welcome {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: min(300px, calc(100% - 48px));
+  padding: 14px 18px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  background: rgba(20, 14, 9, 0.78);
+  backdrop-filter: blur(12px);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  pointer-events: none;
+  animation: welcome 16s ease both;
+}
+
+.welcome-title {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.welcome ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-muted);
+}
+
+@keyframes welcome {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  10%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* On a touch screen the whole start screen is tappable. */
+.intro.intro-touch {
+  pointer-events: auto;
+}
+
+/* Clear of the thumb stick. */
+.welcome.welcome-touch {
+  top: 64px;
+  bottom: auto;
+  z-index: 3;
   pointer-events: none;
 }
