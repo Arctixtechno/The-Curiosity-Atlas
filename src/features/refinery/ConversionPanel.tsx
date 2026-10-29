@@ -9,12 +9,14 @@ import { CatCrackerIcon } from './icons.tsx'
 import { controls, conversionResult, usePlant, type ConversionResult, type Plant } from './plant.ts'
 import { Gauge, money, Slider } from './ui.tsx'
 import { VDU_LIMITS } from './vdu.ts'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
 
 type Tab = 'operate' | 'shift' | 'learn'
 
 /** The vacuum unit and cat cracker's operator screen: one screen, because what the first makes decides how the second runs. */
 export function ConversionPanel() {
+  usePlantClock()
   const plant = usePlant((p) => p)
   const result = useMemo(() => conversionResult(plant), [plant])
   const [tab, setTab] = useState<Tab>('operate')

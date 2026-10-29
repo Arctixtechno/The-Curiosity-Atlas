@@ -37,11 +37,14 @@ import {
 } from './treating.ts'
 import { ALKY_START, GAS_PLANT_START, ISOM_START, type AlkyInputs, type GasPlantInputs, type IsomInputs } from './lightEnds.ts'
 import type { Season } from './blending.ts'
+import { siteBalance } from './site.ts'
+import { bookShip, freshTankFarm, stepTankFarm, type TankFarm, type TankId } from './tankFarm.ts'
 
-// The live crude unit: the furnace simulation plus the column's settings,
-// shared by the operator's panel and the 3D site (which glows with the
-// furnace's firing). It runs only while the panel is open, so walking round
-// the site costs nothing, and the plant waits where you left it.
+// The live plant: the furnace simulation plus every unit's settings and the
+// tank farm, shared by all the operator screens and the 3D site (which glows
+// with the furnace's firing and shows the tank levels). One clock runs it
+// while you are on site or have a refinery screen open (see clock.ts), and it
+// is saved in the browser, so the plant waits where you left it.
 //
 // The vacuum unit, cat cracker, naphtha hydrotreater and reformer downstream
 // are steady-state models: they answer their settings at once, fed by
@@ -87,6 +90,7 @@ export interface Plant {
   isom: IsomInputs
   alky: AlkyInputs
   blend: BlendSettings
+  tanks: TankFarm
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -137,6 +141,7 @@ function fresh(): Plant {
     isom: ISOM_START,
     alky: ALKY_START,
     blend: BLEND_START,
+    tanks: freshTankFarm(),
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -150,12 +155,52 @@ function fresh(): Plant {
   }
 }
 
-let plant = fresh()
+/** Where the plant is saved in the browser; bump the version when a saved plant can no longer be read. */
+const SAVE_KEY = 'curiosity-atlas:refinery:v1'
+const SAVE_DELAY_MS = 1500
+
+/** The plant as last saved, laid over a fresh one so settings added since then get their defaults. */
+function load(): Plant | null {
+  try {
+    const text = globalThis.localStorage?.getItem(SAVE_KEY)
+    if (!text) return null
+    const saved = JSON.parse(text) as Partial<Plant>
+    const base = fresh()
+    const merged = { ...base, ...saved, tanks: { ...base.tanks, ...saved.tanks } } as Plant
+    for (const key of Object.keys(base) as (keyof Plant)[]) {
+      const b = base[key]
+      if (b && typeof b === 'object' && !Array.isArray(b) && key !== 'tanks') (merged as unknown as Record<string, unknown>)[key] = { ...b, ...(saved[key] as object) }
+    }
+    return merged
+  } catch {
+    return null
+  }
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | undefined
+function scheduleSave() {
+  if (!globalThis.localStorage) return
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    try {
+      globalThis.localStorage.setItem(SAVE_KEY, JSON.stringify(plant))
+      lastSaved = Date.now()
+    } catch {
+      // Storage full or blocked: the plant just won't be there next time.
+    }
+  }, SAVE_DELAY_MS)
+}
+let lastSaved = 0
+/** When the plant was last saved in this browser (ms since 1970), or 0 if it hasn't been. */
+export const savedAt = () => lastSaved
+
+let plant = load() ?? fresh()
 const listeners = new Set<() => void>()
 
 function publish(next: Plant) {
   plant = next
   listeners.forEach((l) => l())
+  scheduleSave()
 }
 
 export const getPlant = () => plant
@@ -286,10 +331,18 @@ export function advancePlant(realSeconds: number) {
       history.push({ time: furnace.time, pv: measured(furnace), sp: furnace.setpoint, op: furnace.valve })
   }
   while (history.length && history[0].time < furnace.time - HISTORY_SECONDS) history.shift()
-  const next = { ...plant, furnace, history }
+  let next = { ...plant, furnace, history }
+  // The tank farm moves slowly, so it is stepped every simulated ten minutes rather than every second.
+  tankSeconds += steps
+  if (tankSeconds >= TANK_STEP) {
+    next = { ...next, tanks: stepTankFarm(next.tanks, siteBalance(next), tankSeconds / 86400) }
+    tankSeconds = 0
+  }
   publish({ ...next, alarms: updateAlarms(next) })
 }
 let carry = 0
+let tankSeconds = 0
+const TANK_STEP = 600
 
 function startPoint(p: Plant): CyclePoint {
   return { days: p.catalyst.days, wait: p.reformer.wait, octane: reformingResult(p).reformer.octane, coke: p.catalyst.coke }
@@ -431,8 +484,23 @@ export const controls = {
   togglePause() {
     publish({ ...plant, paused: !plant.paused })
   },
+  /** Runs the tank farm on by some days with the units held as they are: the planner's fast-forward. */
+  runDays(days: number) {
+    publish({ ...plant, tanks: stepTankFarm(plant.tanks, siteBalance(plant), days) })
+  },
+  bookShip(tank: TankId) {
+    publish({ ...plant, tanks: bookShip(plant.tanks, tank) })
+  },
+  setAutoCrude(autoCrude: boolean) {
+    publish({ ...plant, tanks: { ...plant.tanks, autoCrude } })
+  },
+  resetTanks() {
+    publish({ ...plant, tanks: freshTankFarm() })
+  },
+  /** Starts the whole plant afresh, and forgets the saved one. */
   reset() {
     carry = 0
+    tankSeconds = 0
     publish(fresh())
   },
 }

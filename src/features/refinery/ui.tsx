@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from 'react'
 import { useCompleted } from './challenges.ts'
+import { controls, SPEEDS, type Plant } from './plant.ts'
 
 // Controls and formatting shared by the refinery's operator screens.
 
@@ -267,6 +268,33 @@ export function CurveChart({
         ))}
         {onPick && <li className="muted">Click or drag on the chart to move the setting</li>}
       </ul>
+    </div>
+  )
+}
+
+/** Simulated seconds as h:mm:ss. */
+export function clock(seconds: number) {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+/** The plant clock and its speed buttons, shared by every screen. */
+export function SimClock({ plant }: { plant: Plant }) {
+  return (
+    <div className="cdu-clock">
+      <span className="muted">Plant time</span> <strong>{clock(plant.furnace.time)}</strong>
+      <div className="segmented" aria-label="Simulation speed">
+        {SPEEDS.map((s) => (
+          <button key={s} className="button" aria-pressed={plant.speed === s && !plant.paused} onClick={() => (plant.paused && controls.togglePause(), controls.setSpeed(s))}>
+            {s}×
+          </button>
+        ))}
+        <button className="button" aria-pressed={plant.paused} onClick={controls.togglePause}>
+          {plant.paused ? 'Paused' : 'Pause'}
+        </button>
+      </div>
     </div>
   )
 }

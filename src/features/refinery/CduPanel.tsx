@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { ColumnFlameIcon } from './icons.tsx'
 import { CDU_LIMITS, PRICES, PRODUCTS, productPrice, type CduResult, type SteamLevel } from './cdu.ts'
@@ -6,12 +6,10 @@ import { CHALLENGES, checkChallenges, useCompleted } from './challenges.ts'
 import { CRUDES, temperatureAt, type CrudeId } from './crudes.ts'
 import { DEAD_TIME, DEFAULT_TUNING, firedDuty, measured, RELIGHT_BELOW, TIME_CONSTANT } from './furnace.ts'
 import { Pfd } from './Pfd.tsx'
-import { money, Slider } from './ui.tsx'
-import { advancePlant, controls, currentResult, HISTORY_SECONDS, SPEEDS, usePlant, type Plant } from './plant.ts'
+import { clock, money, SimClock, Slider } from './ui.tsx'
+import { controls, currentResult, HISTORY_SECONDS, usePlant, type Plant } from './plant.ts'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
-
-/** How often the simulation hands the screen a new state, in ms. */
-const TICK_MS = 100
 
 type Tab = 'operate' | 'shift' | 'learn'
 
@@ -22,15 +20,7 @@ export function CduPanel() {
   const [tab, setTab] = useState<Tab>('operate')
   const progress = useMemo(() => checkChallenges(plant, result), [plant, result])
 
-  useEffect(() => {
-    let last = performance.now()
-    const timer = window.setInterval(() => {
-      const now = performance.now()
-      advancePlant(Math.min(1, (now - last) / 1000))
-      last = now
-    }, TICK_MS)
-    return () => window.clearInterval(timer)
-  }, [])
+  usePlantClock()
 
   return (
     <Panel
@@ -62,31 +52,6 @@ export function CduPanel() {
         {tab === 'learn' && <Learn />}
       </div>
     </Panel>
-  )
-}
-
-function clock(seconds: number) {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
-function SimClock({ plant }: { plant: Plant }) {
-  return (
-    <div className="cdu-clock">
-      <span className="muted">Plant time</span> <strong>{clock(plant.furnace.time)}</strong>
-      <div className="segmented" aria-label="Simulation speed">
-        {SPEEDS.map((s) => (
-          <button key={s} className="button" aria-pressed={plant.speed === s && !plant.paused} onClick={() => (plant.paused && controls.togglePause(), controls.setSpeed(s))}>
-            {s}×
-          </button>
-        ))}
-        <button className="button" aria-pressed={plant.paused} onClick={controls.togglePause}>
-          {plant.paused ? 'Paused' : 'Pause'}
-        </button>
-      </div>
-    </div>
   )
 }
 

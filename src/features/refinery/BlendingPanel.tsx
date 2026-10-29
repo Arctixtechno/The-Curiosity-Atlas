@@ -7,12 +7,14 @@ import { lightEndsResult, type Pool } from './lightEndsPlant.ts'
 import { BLENDING_TASKS } from './lightEndsTasks.ts'
 import { controls, usePlant, type Plant } from './plant.ts'
 import { money, ScreenTabs, TaskList, type ScreenTab } from './ui.tsx'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
 
 type PoolId = 'petrol' | 'diesel'
 
 /** The blend headers: every petrol and diesel stream mixed to a recipe, checked against the spec, and sold. */
 export function BlendingPanel() {
+  usePlantClock()
   const plant = usePlant((p) => p)
   const result = useMemo(() => lightEndsResult(plant), [plant])
   const [tab, setTab] = useState<ScreenTab>('operate')

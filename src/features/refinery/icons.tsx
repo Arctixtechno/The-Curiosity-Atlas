@@ -90,3 +90,13 @@ export const BlendIcon = ({ size }: { size?: number }) => (
     <path d="M6 16.5h12" />
   </Icon>
 )
+
+/** The plant manager: a tank with a rising line beside it. */
+export const ManagerIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M2.5 21h19" />
+    <path d="M3.5 21v-7a3 1.2 0 0 1 6 0v7" />
+    <path d="M12 17l3-4 2.5 2 4-6" />
+    <path d="M18.5 9h3v3" />
+  </Icon>
+)

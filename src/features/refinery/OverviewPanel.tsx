@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { openOverlay } from '../../world/overlay.ts'
-import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
 
 const W = 960
@@ -80,6 +81,7 @@ function route(from: UnitId | 'crude', to: UnitId | ProductOut, index: number): 
 
 /** The site board by the gate: the whole refinery as a block diagram, and what every unit does. */
 export function OverviewPanel() {
+  usePlantClock()
   const [selected, setSelected] = useState<UnitId>('cdu')
   const unit = UNITS[selected]
   const screen = SCREENS[unit.id]
@@ -187,6 +189,11 @@ export function OverviewPanel() {
           <h4>Why it matters</h4>
           <p>{unit.why}</p>
         </article>
+      </div>
+      <div className="board-foot">
+        <button className="button button-primary" onClick={() => openOverlay(SITE_OVERLAY)}>
+          Plant manager: margin, tanks and jetty
+        </button>
       </div>
       <p className="muted">
         Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. Every

@@ -14,6 +14,7 @@ import {
   LIGHT_ENDS_OVERLAY,
   OVERVIEW_OVERLAY,
   REFORMER_OVERLAY,
+  SITE_OVERLAY,
   TREATING_OVERLAY,
 } from '../features/refinery/overlayIds.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
@@ -45,6 +46,7 @@ const ReformerPanel = lazy(() => import('../features/refinery/ReformerPanel.tsx'
 const TreatingPanel = lazy(() => import('../features/refinery/TreatingPanel.tsx').then((m) => ({ default: m.TreatingPanel })))
 const LightEndsPanel = lazy(() => import('../features/refinery/LightEndsPanel.tsx').then((m) => ({ default: m.LightEndsPanel })))
 const BlendingPanel = lazy(() => import('../features/refinery/BlendingPanel.tsx').then((m) => ({ default: m.BlendingPanel })))
+const SitePanel = lazy(() => import('../features/refinery/SitePanel.tsx').then((m) => ({ default: m.SitePanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
@@ -97,6 +99,7 @@ export function Overlays() {
     [TREATING_OVERLAY]: TreatingPanel,
     [LIGHT_ENDS_OVERLAY]: LightEndsPanel,
     [BLENDING_OVERLAY]: BlendingPanel,
+    [SITE_OVERLAY]: SitePanel,
   }[overlay ?? '']
   if (Lazy)
     return (

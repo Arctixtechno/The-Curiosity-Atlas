@@ -9,10 +9,12 @@ import { lightEndsResult, lpgTotal, type LightEndsResult } from './lightEndsPlan
 import { LIGHT_ENDS_TASKS } from './lightEndsTasks.ts'
 import { controls, usePlant, type Plant } from './plant.ts'
 import { CurveChart, ScreenTabs, Slider, TaskList, Warnings, type ScreenTab } from './ui.tsx'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
 
 /** The gas plant, isomerisation and alkylation: turning the refinery's gas and lightest naphtha into octane. */
 export function LightEndsPanel() {
+  usePlantClock()
   const plant = usePlant((p) => p)
   const result = useMemo(() => lightEndsResult(plant), [plant])
   const [tab, setTab] = useState<ScreenTab>('operate')

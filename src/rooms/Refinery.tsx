@@ -22,10 +22,13 @@ import {
   LIGHT_ENDS_OVERLAY,
   OVERVIEW_OVERLAY,
   REFORMER_OVERLAY,
+  SITE_OVERLAY,
   TREATING_OVERLAY,
 } from '../features/refinery/overlayIds.ts'
 import { lightEndsResult } from '../features/refinery/lightEndsPlant.ts'
+import { usePlantClock } from '../features/refinery/clock.ts'
 import { getPlant, usePlant } from '../features/refinery/plant.ts'
+import { TANKS } from '../features/refinery/tankFarm.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
@@ -844,29 +847,43 @@ function Blending({ m }: { m: Materials }) {
   )
 }
 
-/** Storage tanks with floating roofs, in the tank farm. */
+/** Storage tanks with floating roofs, in the tank farm. The roof rides on the oil, and a gauge board on the shell shows the level. */
 function Tanks({ m }: { m: Materials }) {
   const r = REFINERY.tankRadius
+  const levels = usePlant((p) => p.tanks.levels)
   return (
     <group>
-      {REFINERY.tanks.map(({ at, label }) => (
-        <group key={label} position={[at[0], 0, at[1]]}>
-          <mesh position={[0, 4.5, 0]} material={m.tank} castShadow receiveShadow>
-            <cylinderGeometry args={[r, r, 9, 40, 1, true]} />
-          </mesh>
-          <mesh position={[0, 7.6, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.darkSteel}>
-            <circleGeometry args={[r - 0.05, 40]} />
-          </mesh>
-          <mesh position={[0, 9.05, 0]} material={m.yellow}>
-            <torusGeometry args={[r, 0.04, 4, 48]} />
-          </mesh>
-          {/* Stairs spiralling up the shell, drawn as a single sloping band. */}
-          <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]} material={m.darkSteel}>
-            <cylinderGeometry args={[r + 0.06, r + 0.06, 0.25, 40, 1, true, 0, 0.6]} />
-          </mesh>
-          <Label3D text={label} position={[0, 5, r + 0.1]} scale={3} />
-        </group>
-      ))}
+      {REFINERY.tanks.map(({ at, label, tank }) => {
+        const share = Math.min(1, levels[tank] / TANKS[tank].capacity)
+        const y = 0.5 + share * 8.2
+        return (
+          <group key={label} position={[at[0], 0, at[1]]}>
+            <mesh position={[0, 4.5, 0]} material={m.tank} castShadow receiveShadow>
+              <cylinderGeometry args={[r, r, 9, 40, 1, true]} />
+            </mesh>
+            <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.darkSteel}>
+              <circleGeometry args={[r - 0.05, 40]} />
+            </mesh>
+            <mesh position={[0, 9.05, 0]} material={m.yellow}>
+              <torusGeometry args={[r, 0.04, 4, 48]} />
+            </mesh>
+            {/* Stairs spiralling up the shell, drawn as a single sloping band. */}
+            <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]} material={m.darkSteel}>
+              <cylinderGeometry args={[r + 0.06, r + 0.06, 0.25, 40, 1, true, 0, 0.6]} />
+            </mesh>
+            {/* Float gauge board: the marker rides up and down with the roof. */}
+            <mesh position={[-1.6, 4.5, r + 0.02]} material={m.darkSteel}>
+              <boxGeometry args={[0.35, 8.6, 0.05]} />
+            </mesh>
+            <mesh position={[-1.6, y, r + 0.07]}>
+              <boxGeometry args={[0.5, 0.18, 0.06]} />
+              <meshBasicMaterial color={share > 0.9 || share < 0.08 ? '#ff5a3a' : '#ffd25a'} toneMapped={false} />
+            </mesh>
+            <Label3D text={`${label} · ${(share * 100).toFixed(0)}%`} position={[0, 5, r + 0.1]} scale={3} />
+          </group>
+        )
+      })}
+      <UnitSign at={REFINERY.tankFarmSign} text="Tank farm · plant manager" prompt="Press E for the plant manager: margin, tanks and the jetty" overlay={SITE_OVERLAY} />
     </group>
   )
 }
@@ -986,6 +1003,8 @@ function StaticShadows() {
 
 export default function Refinery() {
   const m = useMaterials()
+  // The plant runs while you're on site, so the tanks and furnace move as you walk round.
+  usePlantClock()
   return (
     <group>
       <Atmosphere background={HORIZON} fog={[50, 210]} />

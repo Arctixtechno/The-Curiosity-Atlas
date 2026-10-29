@@ -313,10 +313,12 @@ export const REFINERY = {
   /** The blend header and its analyser house, by the tank farm near the gate. */
   blending: { at: [6.5, 19] as [number, number], size: [4, 5] as [number, number] },
   tanks: [
-    { at: [25, 19] as [number, number], label: 'Crude oil' },
-    { at: [25, 7] as [number, number], label: 'Diesel' },
-    { at: [14, 19] as [number, number], label: 'Kerosene' },
+    { at: [25, 19] as [number, number], label: 'Crude oil', tank: 'crude' as const },
+    { at: [25, 7] as [number, number], label: 'Diesel', tank: 'diesel' as const },
+    { at: [14, 19] as [number, number], label: 'Jet fuel', tank: 'jet' as const },
   ],
+  /** The tank farm office's sign, between the tanks and the road: opens the plant manager's screen. */
+  tankFarmSign: [19.5, 14.2] as [number, number],
   tankRadius: 4.4,
   flare: [27, -23] as [number, number],
 }
