@@ -309,6 +309,9 @@ export const REFINERY = {
   fcc: { at: [-20, -14] as [number, number], size: 9 },
   reformer: { at: [-3, -19] as [number, number], size: [13, 7] as [number, number] },
   treating: { at: [-23, -1] as [number, number], size: [8, 6] as [number, number] },
+  lightEnds: { at: [20, -3] as [number, number], size: [8, 6] as [number, number] },
+  /** The blend header and its analyser house, by the tank farm near the gate. */
+  blending: { at: [6.5, 19] as [number, number], size: [4, 5] as [number, number] },
   tanks: [
     { at: [25, 19] as [number, number], label: 'Crude oil' },
     { at: [25, 7] as [number, number], label: 'Diesel' },

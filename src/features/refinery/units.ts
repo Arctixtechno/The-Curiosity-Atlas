@@ -4,7 +4,7 @@
 // licensors' published descriptions); individual plants vary.
 
 /** The stages built so far: units at or below this one can be run. */
-export const LIVE_STAGE = 4
+export const LIVE_STAGE = 5
 
 export type UnitId =
   | 'desalter'

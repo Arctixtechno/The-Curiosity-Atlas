@@ -35,6 +35,8 @@ import {
   type SruInputs,
   type SruResult,
 } from './treating.ts'
+import { ALKY_START, GAS_PLANT_START, ISOM_START, type AlkyInputs, type GasPlantInputs, type IsomInputs } from './lightEnds.ts'
+import type { Season } from './blending.ts'
 
 // The live crude unit: the furnace simulation plus the column's settings,
 // shared by the operator's panel and the 3D site (which glows with the
@@ -81,6 +83,10 @@ export interface Plant {
   cycle: CyclePoint[]
   dht: DhtInputs
   sru: SruInputs
+  gasPlant: GasPlantInputs
+  isom: IsomInputs
+  alky: AlkyInputs
+  blend: BlendSettings
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -95,6 +101,18 @@ export interface CyclePoint {
   octane: number
   coke: number
 }
+
+/** What the blenders are making: a recipe per pool, each component's kb/d (null until first set, which means "everything made"). */
+export interface BlendSettings {
+  grade: 'premium' | 'super'
+  season: Season
+  petrol: Record<string, number> | null
+  diesel: Record<string, number> | null
+  /** Which pools' recipes came straight from the planner, untouched since. */
+  planned: { petrol: boolean; diesel: boolean }
+}
+
+export const BLEND_START: BlendSettings = { grade: 'premium', season: 'summer', petrol: null, diesel: null, planned: { petrol: false, diesel: false } }
 
 export const SPEEDS = [1, 10, 30]
 /** Simulated seconds between trend samples, and how many are kept (30 minutes). */
@@ -115,6 +133,10 @@ function fresh(): Plant {
     cycle: [],
     dht: DHT_START,
     sru: SRU_START,
+    gasPlant: GAS_PLANT_START,
+    isom: ISOM_START,
+    alky: ALKY_START,
+    blend: BLEND_START,
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -372,6 +394,30 @@ export const controls = {
   },
   setSru(change: Partial<SruInputs>) {
     publish({ ...plant, sru: { ...plant.sru, ...change } })
+  },
+  setGasPlant(change: Partial<GasPlantInputs>) {
+    publish({ ...plant, gasPlant: { ...plant.gasPlant, ...change } })
+  },
+  setIsom(change: Partial<IsomInputs>) {
+    publish({ ...plant, isom: { ...plant.isom, ...change } })
+  },
+  setAlky(change: Partial<AlkyInputs>) {
+    publish({ ...plant, alky: { ...plant.alky, ...change } })
+  },
+  resetLightEnds() {
+    publish({ ...plant, gasPlant: GAS_PLANT_START, isom: ISOM_START, alky: ALKY_START })
+  },
+  setBlend(change: Partial<BlendSettings>) {
+    publish({ ...plant, blend: { ...plant.blend, ...change } })
+  },
+  /** Sets one component's volume in a pool's recipe, starting from `base` if the recipe isn't set yet. */
+  setRecipe(pool: 'petrol' | 'diesel', id: string, volume: number, base: Record<string, number>) {
+    const recipe = { ...(plant.blend[pool] ?? base), [id]: Math.max(0, volume) }
+    publish({ ...plant, blend: { ...plant.blend, [pool]: recipe, planned: { ...plant.blend.planned, [pool]: false } } })
+  },
+  /** Replaces a pool's whole recipe, marking whether it came from the planner. */
+  applyRecipe(pool: 'petrol' | 'diesel', recipe: Record<string, number> | null, planned: boolean) {
+    publish({ ...plant, blend: { ...plant.blend, [pool]: recipe, planned: { ...plant.blend.planned, [pool]: planned } } })
   },
   resetTreating() {
     publish({ ...plant, dht: DHT_START, sru: SRU_START })

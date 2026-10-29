@@ -70,3 +70,23 @@ export const SulphurIcon = ({ size }: { size?: number }) => (
     <path d="M12 18.5c-1.2 1.4-1.8 2.2-1.8 2.9a1.8 1.8 0 0 0 3.6 0c0-.7-.6-1.5-1.8-2.9z" />
   </Icon>
 )
+
+/** A gas plant: a column with a bullet tank beside it. */
+export const GasPlantIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M2.5 21h19" />
+    <rect x="4" y="3" width="4.5" height="18" rx="2.25" />
+    <path d="M4 8h4.5M4 12.5h4.5M4 17h4.5" />
+    <rect x="11" y="14" width="10.5" height="4.5" rx="2.25" />
+    <path d="M13 18.5V21M19.5 18.5V21M8.5 5h4v9" />
+  </Icon>
+)
+
+/** Blending: three streams meeting in one tank. */
+export const BlendIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M3 3v5l6 4M12 3v9M21 3v5l-6 4" />
+    <path d="M6 12h12v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20z" />
+    <path d="M6 16.5h12" />
+  </Icon>
+)

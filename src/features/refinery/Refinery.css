@@ -728,6 +728,24 @@
   text-anchor: start;
 }
 
+.board-output-live {
+  cursor: pointer;
+}
+
+.board-output-live rect {
+  fill: rgba(127, 220, 150, 0.08);
+  stroke: #7fdc96;
+}
+
+.board-output-live:hover rect,
+.board-output-live:focus-visible rect {
+  fill: rgba(127, 220, 150, 0.2);
+}
+
+.board-output-live:focus {
+  outline: none;
+}
+
 .board-card {
   padding: 4px 16px 12px;
   border: 1px solid rgba(244, 234, 216, 0.08);
@@ -912,5 +930,93 @@
 @media (max-width: 860px) {
   .rf-cycle {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Charts you can click to move a setting. */
+.ui-curve-pick {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cdu-tbp .ui-curve-axis,
+.cdu-tbp .ui-curve-line {
+  fill: var(--ink-muted);
+  font-size: 9px;
+}
+
+.cdu-tbp .ui-curve-line {
+  fill: #ff8a6a;
+}
+
+.ui-curve-marker {
+  fill: #f4ead8;
+  stroke: #11161c;
+  stroke-width: 2;
+}
+
+/* ---------------- Blending ---------------- */
+
+.bl-component {
+  grid-template-columns: 10rem minmax(0, 1fr) 6.4rem;
+}
+
+.bl-component > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bl-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.bl-spec {
+  grid-template-columns: 8.5rem minmax(0, 1fr) 7.4rem;
+  margin: 6px 0;
+}
+
+.bl-spec output small {
+  display: block;
+  font-size: 0.75rem;
+}
+
+.bl-spec-out {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background: repeating-linear-gradient(135deg, rgba(255, 107, 74, 0.35) 0 4px, rgba(255, 107, 74, 0.12) 4px 8px);
+}
+
+.bl-spec-value {
+  position: absolute;
+  top: -4px;
+  width: 10px;
+  height: 18px;
+  margin-left: -5px;
+  border-radius: 3px;
+  background: #6fd38a;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+  transition: left 0.3s;
+}
+
+.cv-gauge-bad .bl-spec-value {
+  background: #ff6b4a;
+}
+
+@media (max-width: 560px) {
+  .bl-component,
+  .bl-spec {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .bl-component output,
+  .bl-spec output {
+    text-align: left;
   }
 }

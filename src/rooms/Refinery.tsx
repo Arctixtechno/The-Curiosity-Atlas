@@ -4,8 +4,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
   CanvasTexture,
   DoubleSide,
+  type Group,
   type InstancedMesh,
   type Mesh,
+  type MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
   RepeatWrapping,
@@ -13,8 +15,17 @@ import {
   Vector3,
 } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
-import { usePlant } from '../features/refinery/plant.ts'
+import {
+  BLENDING_OVERLAY,
+  CDU_OVERLAY,
+  CONVERSION_OVERLAY,
+  LIGHT_ENDS_OVERLAY,
+  OVERVIEW_OVERLAY,
+  REFORMER_OVERLAY,
+  TREATING_OVERLAY,
+} from '../features/refinery/overlayIds.ts'
+import { lightEndsResult } from '../features/refinery/lightEndsPlant.ts'
+import { getPlant, usePlant } from '../features/refinery/plant.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
@@ -591,15 +602,24 @@ function SiteBoard() {
   )
 }
 
-/** A unit's name board: opens its operator screen, or says when it's coming. */
+/**
+ * A unit's name board: opens its operator screen, or says when it's coming. `at` is in the parent group's
+ * coordinates, so the interaction point is read back from the board's world position once it is placed.
+ */
 function UnitSign({ at, text, prompt, overlay, height = 2.4 }: { at: [number, number]; text: string; prompt: string; overlay?: string; height?: number }) {
-  useInteractable({
-    position: useMemo(() => new Vector3(at[0], 1.2, at[1]), [at]),
-    radius: 3,
-    prompt,
-    onInteract: overlay ? () => openOverlay(overlay) : undefined,
+  const anchor = useRef<Group>(null)
+  const position = useMemo(() => new Vector3(at[0], 1.2, at[1]), [at])
+  useLayoutEffect(() => {
+    if (!anchor.current) return
+    anchor.current.updateWorldMatrix(true, false)
+    anchor.current.getWorldPosition(position)
   })
-  return <Label3D text={text} position={[at[0], height, at[1]]} scale={2.2} />
+  useInteractable({ position, radius: 3, prompt, onInteract: overlay ? () => openOverlay(overlay) : undefined })
+  return (
+    <group ref={anchor} position={[at[0], 1.2, at[1]]}>
+      <Label3D text={text} position={[0, height - 1.2, 0]} scale={2.2} />
+    </group>
+  )
 }
 
 /** The vacuum column: shorter and much fatter than the crude column, because vapour under vacuum takes up so much room. */
@@ -720,6 +740,106 @@ function Treating({ m }: { m: Materials }) {
         prompt="Press E to run the diesel hydrotreater and sulphur plant"
         overlay={TREATING_OVERLAY}
       />
+    </group>
+  )
+}
+
+/** A status lamp that shows whether a product is on spec, checked once a second rather than every frame. */
+function SpecLamp({ position, check }: { position: [number, number, number]; check: () => boolean }) {
+  const lamp = useRef<Mesh>(null)
+  const since = useRef(1)
+  useFrame((_, dt) => {
+    since.current += dt
+    if (since.current < 1 || !lamp.current) return
+    since.current = 0
+    ;(lamp.current.material as MeshBasicMaterial).color.set(check() ? '#6fe08a' : '#ff5a3a')
+  })
+  return (
+    <mesh ref={lamp} position={position}>
+      <sphereGeometry args={[0.16, 12, 12]} />
+      <meshBasicMaterial color="#6fe08a" toneMapped={false} />
+    </mesh>
+  )
+}
+
+/** The gas plant, isomerisation and alkylation: slim columns, LPG spheres on legs, and the alkylation contactors, frosted cold. */
+function LightEnds({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.lightEnds
+  const [x, z] = at
+  const frost = useMemo(() => new MeshStandardMaterial({ color: '#dfe9f2', roughness: 0.35, metalness: 0.1 }), [])
+  useEffect(() => () => frost.dispose(), [frost])
+  return (
+    <group position={[x, 0, z]}>
+      {/* Depropaniser and deisobutaniser. */}
+      <Vessel x={-3} z={-2} radius={0.6} height={16} material={m.cladding} />
+      <Vessel x={-1.3} z={-2} radius={0.9} height={20} material={m.cladding} />
+      <Platforms x={-1.3} z={-2} radius={0.9} heights={[7, 14]} m={m} />
+      {/* Isomerisation reactors, in series. */}
+      <Vessel x={1} z={-2.2} radius={0.6} height={5} base={0.6} material={m.steel} />
+      <Vessel x={2.4} z={-2.2} radius={0.6} height={5} base={0.6} material={m.steel} />
+      {/* Alkylation contactors, lying down, kept a few degrees above freezing. */}
+      {[0.6, 1.9].map((cz) => (
+        <mesh key={cz} position={[-1.2, 1.1, cz]} rotation={[0, 0, Math.PI / 2]} material={frost} castShadow>
+          <cylinderGeometry args={[0.6, 0.6, 3.4, 20]} />
+        </mesh>
+      ))}
+      {/* LPG storage spheres on their legs. */}
+      {[[2.4, 1.4]].map(([sx, sz]) => (
+        <group key={sx} position={[sx, 0, sz]}>
+          <mesh position={[0, 3.2, 0]} material={m.tank} castShadow>
+            <sphereGeometry args={[1.5, 24, 16]} />
+          </mesh>
+          {Array.from({ length: 6 }, (_, i) => {
+            const a = (i / 6) * Math.PI * 2
+            return (
+              <mesh key={i} position={[Math.cos(a) * 1.35, 1.6, Math.sin(a) * 1.35]} material={m.darkSteel}>
+                <cylinderGeometry args={[0.07, 0.07, 3.2, 6]} />
+              </mesh>
+            )
+          })}
+        </group>
+      ))}
+      <SpecLamp position={[-3, 1.5, -1.3]} check={() => lightEndsResult(getPlant()).gasPlant.butaneInPropane <= 2.5} />
+      <UnitSign
+        at={[0, size[1] / 2 + 1.2]}
+        text="Units 800–1000 · Gas plant, isom, alkylation"
+        prompt="Press E to run the gas plant, isomerisation and alkylation"
+        overlay={LIGHT_ENDS_OVERLAY}
+      />
+    </group>
+  )
+}
+
+/** The blend header: a run-down line from every component tank, the in-line analysers in their hut, and lamps for the two pools. */
+function Blending({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.blending
+  const [x, z] = at
+  const colours = ['#9fd0e0', '#b8e08a', '#f0c050', '#e0a458', '#d6e8f0', '#c8a0e0', '#d9733c', '#a8c878']
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.08, 0]} material={m.concrete} receiveShadow>
+        <boxGeometry args={[size[0], 0.16, size[1]]} />
+      </mesh>
+      {/* Component lines rising to the header. */}
+      {colours.map((c, i) => (
+        <mesh key={c} position={[-1.4, 0.9, -2 + i * 0.5]}>
+          <cylinderGeometry args={[0.13, 0.13, 1.6, 8]} />
+          <meshStandardMaterial color={c} roughness={0.5} />
+        </mesh>
+      ))}
+      <mesh position={[-1.4, 1.7, -0.25]} rotation={[Math.PI / 2, 0, 0]} material={m.pipe}>
+        <cylinderGeometry args={[0.16, 0.16, 4, 10]} />
+      </mesh>
+      {/* Analyser house. */}
+      <mesh position={[0.6, 1.1, 0.6]} material={m.tank} castShadow>
+        <boxGeometry args={[1.6, 2.2, 1.8]} />
+      </mesh>
+      <mesh position={[0.6, 2.25, 0.6]} material={m.darkSteel}>
+        <boxGeometry args={[1.8, 0.1, 2]} />
+      </mesh>
+      <SpecLamp position={[1.45, 1.8, 0.2]} check={() => lightEndsResult(getPlant()).petrol.blend.onSpec} />
+      <SpecLamp position={[1.45, 1.8, 1]} check={() => lightEndsResult(getPlant()).diesel.blend.onSpec} />
+      <UnitSign at={[0, size[1] / 2 + 0.8]} text="Blending · petrol and diesel" prompt="Press E to blend petrol and diesel" overlay={BLENDING_OVERLAY} />
     </group>
   )
 }
@@ -898,6 +1018,8 @@ export default function Refinery() {
       <CatCracker m={m} />
       <Reformer m={m} />
       <Treating m={m} />
+      <LightEnds m={m} />
+      <Blending m={m} />
       <Tanks m={m} />
       <Flare m={m} />
       <Distance m={m} />

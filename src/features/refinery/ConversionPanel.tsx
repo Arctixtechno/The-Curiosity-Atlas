@@ -7,7 +7,7 @@ import { CRUDES } from './crudes.ts'
 import { FCC_LIMITS, FCC_PRICES, FCC_PRODUCTS, feedMass, type FccResult } from './fcc.ts'
 import { CatCrackerIcon } from './icons.tsx'
 import { controls, conversionResult, usePlant, type ConversionResult, type Plant } from './plant.ts'
-import { money, Slider } from './ui.tsx'
+import { Gauge, money, Slider } from './ui.tsx'
 import { VDU_LIMITS } from './vdu.ts'
 import './Refinery.css'
 
@@ -251,42 +251,6 @@ function CutBar({ result }: { result: ConversionResult }) {
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
-
-/** A reading against its limit, like the bar graphs on a DCS overview. */
-function Gauge({
-  label,
-  value,
-  min,
-  max,
-  limit,
-  low,
-  unit,
-  digits = 0,
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  limit: number
-  low?: number
-  unit: string
-  digits?: number
-}) {
-  const at = (v: number) => `${Math.min(100, Math.max(0, ((v - min) / (max - min)) * 100))}%`
-  const bad = value > limit || (low !== undefined && value < low)
-  return (
-    <div className={`cv-gauge${bad ? ' cv-gauge-bad' : ''}`}>
-      <span>{label}</span>
-      <div className="cv-gauge-bar">
-        <div className="cv-gauge-fill" style={{ width: at(value) }} />
-        <div className="cv-gauge-limit" style={{ left: at(limit) }} />
-      </div>
-      <output>
-        {value.toFixed(digits)} {unit}
-      </output>
     </div>
   )
 }

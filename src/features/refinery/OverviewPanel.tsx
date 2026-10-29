@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { openOverlay } from '../../world/overlay.ts'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import './Refinery.css'
 
@@ -21,7 +21,13 @@ const SCREENS: Partial<Record<UnitId, string>> = {
   dht: TREATING_OVERLAY,
   amine: TREATING_OVERLAY,
   sru: TREATING_OVERLAY,
+  gasPlant: LIGHT_ENDS_OVERLAY,
+  isom: LIGHT_ENDS_OVERLAY,
+  alky: LIGHT_ENDS_OVERLAY,
 }
+
+/** Products made by blending: their names on the board open the blend headers. */
+const BLENDED: ProductOut[] = ['petrol', 'diesel']
 
 function box(id: UnitId) {
   const [x, y] = BOARD_LAYOUT[id]
@@ -127,13 +133,30 @@ export function OverviewPanel() {
               </g>
             )
           })}
-          {(Object.keys(OUTPUTS) as ProductOut[]).map((id) => (
-            <g key={id} className="board-output">
-              <text x={OUT_X + 8} y={OUTPUTS[id].y + 4}>
-                {OUTPUTS[id].name}
-              </text>
-            </g>
-          ))}
+          {(Object.keys(OUTPUTS) as ProductOut[]).map((id) =>
+            BLENDED.includes(id) ? (
+              <g
+                key={id}
+                className="board-output board-output-live"
+                role="button"
+                tabIndex={0}
+                aria-label={`Blend ${OUTPUTS[id].name.toLowerCase()}`}
+                onClick={() => openOverlay(BLENDING_OVERLAY)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openOverlay(BLENDING_OVERLAY))}
+              >
+                <rect x={OUT_X + 2} y={OUTPUTS[id].y - 12} width={96} height={22} rx={6} />
+                <text x={OUT_X + 8} y={OUTPUTS[id].y + 4}>
+                  {OUTPUTS[id].name} ›
+                </text>
+              </g>
+            ) : (
+              <g key={id} className="board-output">
+                <text x={OUT_X + 8} y={OUTPUTS[id].y + 4}>
+                  {OUTPUTS[id].name}
+                </text>
+              </g>
+            ),
+          )}
         </svg>
         <article className="board-card" aria-live="polite">
           <div className="board-card-head">
@@ -166,9 +189,9 @@ export function OverviewPanel() {
         </article>
       </div>
       <p className="muted">
-        Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. The crude
-        unit, vacuum unit, cat cracker, reformer, hydrotreaters and sulphur plant can be run today: pick one and press Run it, or walk
-        to it on site. Isomerisation, the gas plant, alkylation and product blending come next.
+        Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. Every
+        unit except the hydrocracker and coker can be run today: pick one and press Run it, or walk to it on site. Click Petrol or
+        Diesel to blend them.
       </p>
     </Panel>
   )
