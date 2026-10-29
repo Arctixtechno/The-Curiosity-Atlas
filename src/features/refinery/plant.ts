@@ -38,6 +38,7 @@ import {
 import { ALKY_START, GAS_PLANT_START, ISOM_START, type AlkyInputs, type GasPlantInputs, type IsomInputs } from './lightEnds.ts'
 import type { Season } from './blending.ts'
 import { siteBalance } from './site.ts'
+import { alarmConditions, APC_PERIOD, APC_START, lagTags, runApc, tagTargets, updateDcsAlarms, type ApcSettings, type DcsAlarm, type TagValues } from './dcs.ts'
 import { bookShip, freshTankFarm, stepTankFarm, type TankFarm, type TankId } from './tankFarm.ts'
 
 // The live plant: the furnace simulation plus every unit's settings and the
@@ -91,6 +92,13 @@ export interface Plant {
   alky: AlkyInputs
   blend: BlendSettings
   tanks: TankFarm
+  /** The control room's view: every tag's value (lagged towards where the models say it settles), its trend, and alarms. */
+  tags: TagValues
+  tagHistory: TagSample[]
+  dcsAlarms: DcsAlarm[]
+  apc: ApcSettings
+  /** Feed-forward from crude rate to the furnace's fuel valve. */
+  feedForward: boolean
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -118,7 +126,15 @@ export interface BlendSettings {
 
 export const BLEND_START: BlendSettings = { grade: 'premium', season: 'summer', petrol: null, diesel: null, planned: { petrol: false, diesel: false } }
 
+export interface TagSample {
+  time: number
+  values: TagValues
+}
+
 export const SPEEDS = [1, 10, 30]
+/** Simulated seconds between tag trend samples, and how much trend is kept (two hours). */
+export const TAG_SAMPLE_EVERY = 30
+export const TAG_HISTORY_SECONDS = 7200
 /** Simulated seconds between trend samples, and how many are kept (30 minutes). */
 const SAMPLE_EVERY = 10
 export const HISTORY_SECONDS = 30 * 60
@@ -142,6 +158,11 @@ function fresh(): Plant {
     alky: ALKY_START,
     blend: BLEND_START,
     tanks: freshTankFarm(),
+    tags: {},
+    tagHistory: [],
+    dcsAlarms: [],
+    apc: APC_START,
+    feedForward: false,
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -178,12 +199,14 @@ function load(): Plant | null {
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
+/** Saves a moment after a change, and at most that often while the clock runs. Trends aren't saved: they start again. */
 function scheduleSave() {
-  if (!globalThis.localStorage) return
-  clearTimeout(saveTimer)
+  if (!globalThis.localStorage || saveTimer) return
   saveTimer = setTimeout(() => {
+    saveTimer = undefined
     try {
-      globalThis.localStorage.setItem(SAVE_KEY, JSON.stringify(plant))
+      const { tagHistory: _t, ...rest } = plant
+      globalThis.localStorage.setItem(SAVE_KEY, JSON.stringify({ ...rest, tagHistory: [] }))
       lastSaved = Date.now()
     } catch {
       // Storage full or blocked: the plant just won't be there next time.
@@ -331,18 +354,59 @@ export function advancePlant(realSeconds: number) {
       history.push({ time: furnace.time, pv: measured(furnace), sp: furnace.setpoint, op: furnace.valve })
   }
   while (history.length && history[0].time < furnace.time - HISTORY_SECONDS) history.shift()
-  let next = { ...plant, furnace, history }
+  let next: Plant = { ...plant, furnace, history }
   // The tank farm moves slowly, so it is stepped every simulated ten minutes rather than every second.
   tankSeconds += steps
   if (tankSeconds >= TANK_STEP) {
     next = { ...next, tanks: stepTankFarm(next.tanks, siteBalance(next), tankSeconds / 86400) }
     tankSeconds = 0
   }
+  next = updateDcs(next, steps, plant.furnace.time)
   publish({ ...next, alarms: updateAlarms(next) })
 }
 let carry = 0
 let tankSeconds = 0
 const TANK_STEP = 600
+
+/** Where every tag is heading, worked out from the whole site at most twice a second of real time. */
+let targets: TagValues | null = null
+let targetsAt = 0
+let targetsFrom: Plant | null = null
+const TARGET_REFRESH_MS = 500
+
+/** Parts of the plant that change every step by themselves; anything else changing means the operator moved something. */
+const DYNAMIC: (keyof Plant)[] = ['furnace', 'history', 'alarms', 'tags', 'tagHistory', 'dcsAlarms', 'tanks', 'speed', 'paused']
+
+function settingsChanged(p: Plant, from: Plant | null) {
+  if (!from) return true
+  if (p.furnace.feed !== from.furnace.feed || p.furnace.crude !== from.furnace.crude) return true
+  return (Object.keys(p) as (keyof Plant)[]).some((k) => !DYNAMIC.includes(k) && p[k] !== from[k])
+}
+
+/** Moves the control room's tags on by `steps` simulated seconds, samples their trends, runs APC and raises alarms. */
+function updateDcs(p: Plant, steps: number, before: number): Plant {
+  const now = Date.now()
+  let next = p
+  const crossed = (every: number) => Math.floor(p.furnace.time / every) > Math.floor(before / every)
+  if (next.apc.fcc || next.apc.reformer) if (crossed(APC_PERIOD)) next = runApc(next)
+  const refresh = !targets || now - targetsAt > TARGET_REFRESH_MS || settingsChanged(next, targetsFrom)
+  let balance = null
+  if (refresh) {
+    balance = siteBalance(next)
+    targets = tagTargets(next, balance)
+    targetsAt = now
+    targetsFrom = next
+  }
+  // The furnace outlet is truly dynamic, so its tag reads the thermocouple every step.
+  const tags = { ...lagTags(next.tags, targets!, steps), 'TI-101': measured(next.furnace) }
+  let tagHistory = next.tagHistory
+  if (crossed(TAG_SAMPLE_EVERY) || tagHistory.length === 0) {
+    tagHistory = [...tagHistory, { time: next.furnace.time, values: tags }]
+    while (tagHistory.length && tagHistory[0].time < next.furnace.time - TAG_HISTORY_SECONDS) tagHistory = tagHistory.slice(1)
+  }
+  const dcsAlarms = balance ? updateDcsAlarms(next.dcsAlarms, alarmConditions(tags, next, balance), next.furnace.time) : next.dcsAlarms
+  return { ...next, tags, tagHistory, dcsAlarms }
+}
 
 function startPoint(p: Plant): CyclePoint {
   return { days: p.catalyst.days, wait: p.reformer.wait, octane: reformingResult(p).reformer.octane, coke: p.catalyst.coke }
@@ -386,7 +450,32 @@ export const controls = {
     setFurnace({ crude })
   },
   setFeed(feed: number) {
-    setFurnace({ feed })
+    const f = plant.furnace
+    // Feed-forward: move the fuel valve by what the new rate will need, before the outlet temperature has to tell the controller.
+    if (plant.feedForward && f.mode === 'auto' && !f.tripped) {
+      const valve = f.valve + valveFor(f.crude, feed, f.setpoint, f.disturbances) - valveFor(f.crude, f.feed, f.setpoint, f.disturbances)
+      setFurnace({ feed, valve: Math.min(100, Math.max(0, valve)) })
+    } else setFurnace({ feed })
+  },
+  setFeedForward(feedForward: boolean) {
+    publish({ ...plant, feedForward })
+  },
+  setApc(change: Partial<ApcSettings>) {
+    const apc = { ...plant.apc, ...change }
+    if (change.fcc === false) apc.fccStatus = 'Off'
+    if (change.reformer === false) apc.reformerStatus = 'Off'
+    if (change.fcc) apc.fccStatus = 'Waiting for its first move'
+    if (change.reformer) apc.reformerStatus = 'Waiting for its first move'
+    publish({ ...plant, apc })
+  },
+  ackAlarm(id: string) {
+    publish({ ...plant, dcsAlarms: plant.dcsAlarms.map((a) => (a.id === id ? { ...a, acked: true } : a)).filter((a) => a.active || !a.acked) })
+  },
+  ackAllAlarms() {
+    publish({ ...plant, dcsAlarms: plant.dcsAlarms.map((a) => ({ ...a, acked: true })).filter((a) => a.active) })
+  },
+  shelveAlarm(id: string, seconds: number) {
+    publish({ ...plant, dcsAlarms: plant.dcsAlarms.map((a) => (a.id === id ? { ...a, acked: true, shelvedUntil: plant.furnace.time + seconds } : a)) })
   },
   setSetpoint(setpoint: number) {
     if (plant.furnace.mode === 'auto') setFurnace({ setpoint: Math.min(CDU_LIMITS.cot.max, Math.max(CDU_LIMITS.cot.min, setpoint)) })
@@ -501,6 +590,8 @@ export const controls = {
   reset() {
     carry = 0
     tankSeconds = 0
+    targets = null
+    targetsFrom = null
     publish(fresh())
   },
 }

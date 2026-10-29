@@ -19,6 +19,7 @@ import {
   BLENDING_OVERLAY,
   CDU_OVERLAY,
   CONVERSION_OVERLAY,
+  DCS_OVERLAY,
   LIGHT_ENDS_OVERLAY,
   OVERVIEW_OVERLAY,
   REFORMER_OVERLAY,
@@ -495,6 +496,31 @@ function PipeRack({ m }: { m: Materials }) {
   )
 }
 
+/** A beacon on the control room roof that flashes amber while the DCS has an unacknowledged alarm, red for a high-priority one. */
+function AlarmBeacon({ position }: { position: [number, number, number] }) {
+  const lamp = useRef<Mesh>(null)
+  const state = useRef<'off' | 'medium' | 'high'>('off')
+  const since = useRef(1)
+  useFrame(({ clock }, dt) => {
+    since.current += dt
+    if (since.current >= 0.5) {
+      since.current = 0
+      const open = getPlant().dcsAlarms.filter((a) => !a.acked && a.shelvedUntil === undefined)
+      state.current = open.some((a) => a.priority === 'high') ? 'high' : open.length ? 'medium' : 'off'
+    }
+    if (!lamp.current) return
+    const material = lamp.current.material as MeshBasicMaterial
+    const on = state.current !== 'off' && Math.sin(clock.elapsedTime * 8) > 0
+    material.color.set(!on ? '#3a3a36' : state.current === 'high' ? '#ff3a2a' : '#ffb020')
+  })
+  return (
+    <mesh ref={lamp} position={position}>
+      <cylinderGeometry args={[0.18, 0.22, 0.4, 12]} />
+      <meshBasicMaterial color="#3a3a36" toneMapped={false} />
+    </mesh>
+  )
+}
+
 /** The blast-resistant control room: low concrete walls, lit windows and its door. */
 function ControlRoom({ m }: { m: Materials }) {
   const { at, size, height } = REFINERY.controlRoom
@@ -502,11 +528,12 @@ function ControlRoom({ m }: { m: Materials }) {
   useInteractable({
     position: useMemo(() => new Vector3(at[0], 1.2, front + 0.6), [at, front]),
     radius: 2.6,
-    prompt: 'Press E to take the crude unit panel in the control room',
-    onInteract: () => openOverlay(CDU_OVERLAY),
+    prompt: 'Press E to sit at the control room DCS: every unit, alarms and trends',
+    onInteract: () => openOverlay(DCS_OVERLAY),
   })
   return (
     <group position={[at[0], 0, at[1]]}>
+      <AlarmBeacon position={[size[0] / 2 - 0.6, height + 0.5, size[1] / 2 - 0.6]} />
       <mesh position={[0, height / 2, 0]} material={m.concrete} castShadow receiveShadow>
         <boxGeometry args={[size[0], height, size[1]]} />
       </mesh>

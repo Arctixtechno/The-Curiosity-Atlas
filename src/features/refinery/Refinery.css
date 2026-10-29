@@ -1257,3 +1257,266 @@
     grid-column: 2 / -1;
   }
 }
+
+/* ---------------- Control room DCS ---------------- */
+
+.dcs-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.1);
+  border-radius: 12px;
+  background: #23272b;
+}
+
+.dcs-banner-high {
+  border-color: #ff5a3a;
+  background: rgba(255, 90, 58, 0.14);
+}
+
+.dcs-banner-medium {
+  border-color: #f0b030;
+  background: rgba(240, 176, 48, 0.12);
+}
+
+.dcs-banner-text {
+  flex: 1;
+  min-width: 12rem;
+  font-size: 0.9rem;
+}
+
+.dcs-banner-text time {
+  margin-right: 8px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dcs-counts {
+  display: flex;
+  gap: 10px;
+}
+
+.dcs-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dcs-mark {
+  width: 12px;
+  height: 12px;
+  vertical-align: -1px;
+}
+
+.dcs-mark-high {
+  fill: #ff5a3a;
+}
+
+.dcs-mark-medium {
+  fill: #f0b030;
+}
+
+.dcs-mark-low {
+  fill: #b48cf0;
+}
+
+.dcs-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+  gap: 12px;
+}
+
+.dcs-area {
+  padding: 6px 12px 10px;
+  border: 1px solid #4a5056;
+  border-radius: 10px;
+  background: #2b2f33;
+}
+
+.dcs-area-high {
+  border-color: #ff5a3a;
+}
+
+.dcs-area-medium {
+  border-color: #f0b030;
+}
+
+.dcs-area header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dcs-area h3 {
+  flex: 1;
+  margin: 6px 0;
+  color: #c9cdd1;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dcs-tag {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr) 5.5rem 60px 5.6rem;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+  color: #c9cdd1;
+  font-size: 0.85rem;
+}
+
+.dcs-tag-id {
+  color: #8f979e;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+}
+
+.dcs-tag-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dcs-tag output {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: #e6e9ec;
+}
+
+.dcs-tag output small {
+  color: #8f979e;
+}
+
+.dcs-tag-medium output {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #f0b030;
+  color: #1d1d1d;
+}
+
+.dcs-tag-high output {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #ff5a3a;
+  color: #1d1d1d;
+}
+
+.dcs-tag-medium output small,
+.dcs-tag-high output small {
+  color: #1d1d1d;
+}
+
+.dcs-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 2px;
+  background: #3c4247;
+}
+
+.dcs-bar-limit {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 12px;
+  background: #b0a060;
+}
+
+.dcs-bar-limit-hh {
+  background: #ff5a3a;
+}
+
+.dcs-bar-pointer {
+  position: absolute;
+  top: -3px;
+  width: 0;
+  height: 0;
+  margin-left: -5px;
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  border-top: 8px solid #e6e9ec;
+  transition: left 0.4s;
+}
+
+.dcs-spark {
+  width: 60px;
+  height: 20px;
+}
+
+.dcs-spark polyline {
+  fill: none;
+  stroke: #9fb0be;
+  stroke-width: 1.4;
+}
+
+.dcs-alarm-new td {
+  font-weight: 600;
+}
+
+.dcs-alarm-new td:first-child {
+  box-shadow: inset 3px 0 0 #ff8a6a;
+}
+
+.dcs-actions {
+  white-space: nowrap;
+}
+
+.dcs-alarms th,
+.dcs-alarms td {
+  text-align: left !important;
+}
+
+.dcs-trend polyline {
+  fill: none;
+}
+
+.dcs-grid {
+  stroke: rgba(244, 234, 216, 0.06);
+}
+
+.dcs-pens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 6px 16px;
+}
+
+.dcs-pens h4 {
+  margin: 6px 0 4px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dcs-pen {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 2px 0;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.dcs-pen small {
+  overflow: hidden;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .dcs-tag {
+    grid-template-columns: 4.2rem minmax(0, 1fr) 5.2rem;
+  }
+
+  .dcs-bar,
+  .dcs-spark {
+    display: none;
+  }
+}

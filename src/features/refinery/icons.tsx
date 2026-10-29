@@ -100,3 +100,12 @@ export const ManagerIcon = ({ size }: { size?: number }) => (
     <path d="M18.5 9h3v3" />
   </Icon>
 )
+
+/** A control room screen with a trend on it. */
+export const DcsIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <rect x="2.5" y="4" width="19" height="13" rx="1.5" />
+    <path d="M5.5 13l3-3 2.5 2 4.5-5 3 3" />
+    <path d="M9 21h6M12 17v4" />
+  </Icon>
+)
