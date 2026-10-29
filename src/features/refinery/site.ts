@@ -9,7 +9,7 @@ import { getPlant, type Plant } from './plant.ts'
 // planners and accountants look at every morning, and what the tank farm
 // runs on.
 
-export type ProductOutId = 'lpg' | 'petrol' | 'blendstock' | 'jet' | 'diesel' | 'fuelOil' | 'sulphur'
+export type ProductOutId = 'lpg' | 'petrol' | 'blendstock' | 'jet' | 'diesel' | 'fuelOil' | 'sulphur' | 'coke'
 
 export interface ProductOut {
   id: ProductOutId
@@ -47,7 +47,9 @@ export interface SiteBalance {
 /** Illustrative prices, dollars a barrel (a tonne where marked). */
 export const SITE_PRICES = {
   propane: 40,
+  /** Fuel oil from cutter stocks (slurry, cycle oil, coker gas oil), and vacuum residue, which is worth far less. */
   fuelOil: 62,
+  residue: 48,
   /** Dollars a tonne. */
   sulphur: 90,
   /** Dollars a tonne, from a steam methane reformer over the fence. */
@@ -60,15 +62,25 @@ export const SITE_PRICES = {
   /** Fuel gas, dollars a gigajoule; electricity, dollars a megawatt-hour. */
   fuel: 9,
   power: 80,
+  /** Coke, dollars a tonne: calcinable anode grade, or fuel grade for cement kilns and power stations. */
+  coke: { anode: 260, fuel: 70 },
+  /** Naphtha from the coker and hydrocracker sold for further processing, dollars a barrel. */
+  cokerNaphtha: 64,
+  hcNaphtha: 74,
 }
+
+/** Sulphur and coke are sold by the tonne; everything else by the barrel. */
+export const isTonnes = (id: ProductOutId) => id === 'sulphur' || id === 'coke'
 
 const sumVolumes = (volumes: number[]) => volumes.reduce((a, b) => a + b, 0)
 
 export function siteBalance(p: Plant = getPlant()): SiteBalance {
   const units = lightEndsResult(p)
   const { treating, gasPlant, alky, petrol, diesel } = units
-  const { conversion, reforming, dht, kero, lco, hydrogen, sru } = treating
-  const { cdu, vdu, fcc } = conversion
+  const { conversion, reforming, dht, kero, lco, hydrogen, sru, smr } = treating
+  const { cdu, vdu, fcc, coker, hc } = conversion
+  const cokerOn = p.coker.running
+  const hcOn = p.hydrocracker.running
   const crude = CRUDES[p.furnace.crude]
 
   // LPG: propane (and propylene unless it's alkylated) and the butane the blenders leave.
@@ -79,8 +91,9 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
   const lpgValue = propane * SITE_PRICES.propane + Math.max(0, butaneMade - butaneBlended) * 45
 
   // Petrol components the blenders don't use go for export as blendstock at their own value.
-  let blendstockRate = 0
-  let blendstockValue = 0
+  // The coker's and hydrocracker's naphtha go for export too, for others to treat and reform.
+  let blendstockRate = (cokerOn ? coker.rates.naphtha : 0) + (hcOn ? hc.rates.naphtha : 0)
+  let blendstockValue = (cokerOn ? coker.rates.naphtha * SITE_PRICES.cokerNaphtha : 0) + (hcOn ? hc.rates.naphtha * SITE_PRICES.hcNaphtha : 0)
   petrol.components.forEach((c, i) => {
     if (c.purchased || c.id === 'butane') return
     const spare = Math.max(0, c.available - petrol.volumes[i])
@@ -90,7 +103,7 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
 
   // Jet: kerosene not blended into diesel. Diesel: the blend, plus hydrotreated diesel left over.
   const keroIndex = diesel.components.findIndex((c) => c.id === 'kerosene')
-  const jetRate = Math.max(0, kero.rate - (diesel.volumes[keroIndex] ?? 0))
+  const jetRate = Math.max(0, kero.rate - (diesel.volumes[keroIndex] ?? 0)) + (hcOn ? hc.rates.jet : 0)
   const jetPrice = cdu.products.kerosene.onSpec ? 105 : OFF_SPEC_PRICE
   const dhtIndex = diesel.components.findIndex((c) => c.id === 'dhtDiesel')
   const dieselSpare = Math.max(0, diesel.components[dhtIndex].available - diesel.volumes[dhtIndex])
@@ -98,7 +111,9 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
   // Fuel oil: vacuum residue, the cracker's slurry, and its cycle oil if it isn't hydrotreated.
   const fccTonnes = (feedMass(p.fcc.feed) * 86400) / 1000
   const slurry = ((fcc.yields.slurry / 100) * fccTonnes) / (0.158987 * 1050)
-  const fuelOil = vdu.residueRate + slurry + (p.dht.lco ? 0 : lco.rate)
+  const residueToFuel = cokerOn ? 0 : vdu.residueRate
+  const fuelOil = residueToFuel + slurry + (p.dht.lco ? 0 : lco.rate) + (cokerOn && !hcOn ? coker.rates.gasOil : 0)
+  const fuelOilPrice = fuelOil > 0 ? (residueToFuel * SITE_PRICES.residue + (fuelOil - residueToFuel) * SITE_PRICES.fuelOil) / fuelOil : SITE_PRICES.fuelOil
 
   const petrolPrice = petrol.blend.onSpec ? petrol.grade.price : OFF_SPEC_PRICE
   const dieselPrice = diesel.blend.onSpec ? diesel.grade.price : OFF_SPEC_PRICE
@@ -122,8 +137,11 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
       colour: '#d9733c',
       note: diesel.blend.onSpec ? 'on spec' : 'off spec: sold as blendstock',
     },
-    { id: 'fuelOil', name: 'Fuel oil', rate: fuelOil, price: SITE_PRICES.fuelOil, colour: '#6b5a4a', note: 'vacuum residue, slurry' + (p.dht.lco ? '' : ' and cycle oil') },
+    { id: 'fuelOil', name: 'Fuel oil', rate: fuelOil, price: fuelOilPrice, colour: '#6b5a4a', note: [cokerOn ? '' : 'vacuum residue', 'slurry', p.dht.lco ? '' : 'cycle oil', cokerOn && !hcOn ? 'coker gas oil' : ''].filter(Boolean).join(', ') },
     { id: 'sulphur', name: 'Sulphur (t/d)', rate: sru.sulphur, price: SITE_PRICES.sulphur, colour: '#e8d27a', note: 'from the Claus plant' },
+    ...(cokerOn
+      ? [{ id: 'coke' as const, name: 'Coke (t/d)', rate: coker.rates.coke, price: SITE_PRICES.coke[coker.grade], colour: '#3a3a3a', note: coker.grade === 'anode' ? 'anode grade, for aluminium smelters' : 'fuel grade' }]
+      : []),
   ]
 
   const bought = (pool: typeof petrol) => pool.components.reduce((sum, c, i) => sum + (c.purchased ? pool.volumes[i] * 1000 * c.value : 0), 0)
@@ -137,7 +155,12 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
     { name: 'Hydrogen bought', dollars: hydrogen.imported * SITE_PRICES.hydrogen, note: `${hydrogen.imported.toFixed(1)} t/d` },
     { name: 'Isobutane bought', dollars: alky.isobutaneImported * 1000 * SITE_PRICES.isobutane, note: `${alky.isobutaneImported.toFixed(2)} kb/d` },
     { name: 'Alkylation acid', dollars: alky.acidUse * SITE_PRICES.acid, note: `${alky.acidUse.toFixed(1)} t/d` },
-    { name: 'Fuel', dollars: furnaceFuel + reformerFuel + gasPlantFuel + dhtFuel, note: 'furnaces and reboilers' },
+    {
+      name: 'Fuel',
+      dollars: furnaceFuel + reformerFuel + gasPlantFuel + dhtFuel + (((cokerOn ? coker.heaterDuty : 0) + (hcOn ? hc.heaterDuty : 0)) * 86.4 * SITE_PRICES.fuel) / 0.85,
+      note: 'furnaces and reboilers',
+    },
+    ...(smr.hydrogen > 0 ? [{ name: 'Natural gas for hydrogen', dollars: smr.gas * SITE_PRICES.fuel, note: `${smr.hydrogen.toFixed(0)} t/d of hydrogen, ${smr.co2.toFixed(0)} t/d of CO₂` }] : []),
     {
       name: conversion.toTank >= 0 ? 'Gas oil into its tank' : 'Gas oil from its tank',
       dollars: -conversion.toTank * 1000 * SITE_PRICES.vgo,
@@ -147,9 +170,9 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
   ]
 
   const crudeCost = p.furnace.feed * 1000 * crude.price
-  const revenue = products.reduce((sum, o) => sum + o.rate * (o.id === 'sulphur' ? 1 : 1000) * o.price, 0)
+  const revenue = products.reduce((sum, o) => sum + o.rate * (isTonnes(o.id) ? 1 : 1000) * o.price, 0)
   const margin = revenue - crudeCost - costs.reduce((sum, c) => sum + c.dollars, 0)
-  const liquids = products.filter((o) => o.id !== 'sulphur').reduce((sum, o) => sum + o.rate, 0)
+  const liquids = products.filter((o) => !isTonnes(o.id)).reduce((sum, o) => sum + o.rate, 0)
   const bought_ = sumVolumes(petrol.components.map((c, i) => (c.purchased ? petrol.volumes[i] : 0))) + sumVolumes(diesel.components.map((c, i) => (c.purchased ? diesel.volumes[i] : 0)))
   return {
     units,

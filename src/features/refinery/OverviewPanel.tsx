@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { openOverlay } from '../../world/overlay.ts'
-import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import { usePlantClock } from './clock.ts'
 import './Refinery.css'
@@ -25,6 +25,8 @@ const SCREENS: Partial<Record<UnitId, string>> = {
   gasPlant: LIGHT_ENDS_OVERLAY,
   isom: LIGHT_ENDS_OVERLAY,
   alky: LIGHT_ENDS_OVERLAY,
+  hydrocracker: HEAVY_END_OVERLAY,
+  coker: HEAVY_END_OVERLAY,
 }
 
 /** Products made by blending: their names on the board open the blend headers. */
@@ -197,7 +199,7 @@ export function OverviewPanel() {
       </div>
       <p className="muted">
         Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. Every
-        unit except the hydrocracker and coker can be run today: pick one and press Run it, or walk to it on site. Click Petrol or
+        unit can be run: pick one and press Run it, or walk to it on site. Click Petrol or
         Diesel to blend them.
       </p>
     </Panel>

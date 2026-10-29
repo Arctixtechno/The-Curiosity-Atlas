@@ -104,7 +104,7 @@ describe('plant manager tasks', () => {
     for (const t of SITE_TASKS) expect(met(t.id), t.id).toBe(false)
   })
 
-  it('can make $600k a day and $10 a barrel', () => {
+  it('can make $500k a day and $10 a barrel', () => {
     plan()
     expect(met('site-profit')).toBe(true)
     controls.setIsom({ recycle: true, temp: 155 })

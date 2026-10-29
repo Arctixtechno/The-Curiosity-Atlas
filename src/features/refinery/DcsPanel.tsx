@@ -5,7 +5,7 @@ import { usePlantClock } from './clock.ts'
 import { FCC_LIMITS } from './fcc.ts'
 import { SHELVE_SECONDS, TAG, type DcsAlarm, type Priority, type TagDef, type UnitArea } from './dcs.ts'
 import { DcsIcon } from './icons.tsx'
-import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { controls, conversionResult, reformingResult, usePlant, type Plant, type TagSample } from './plant.ts'
 import { REFORMER_LIMITS } from './reformer.ts'
 import { clock, SimClock, Slider } from './ui.tsx'
@@ -19,6 +19,7 @@ const AREAS: { id: UnitArea; name: string; overlay: string; tags: string[] }[] =
   { id: 'reformer', name: 'Reformer', overlay: REFORMER_OVERLAY, tags: ['TI-501', 'AI-502', 'FI-503'] },
   { id: 'treating', name: 'Hydrotreating and sulphur', overlay: TREATING_OVERLAY, tags: ['AI-603', 'FI-604', 'AI-701'] },
   { id: 'lightEnds', name: 'Light ends', overlay: LIGHT_ENDS_OVERLAY, tags: ['AI-803', 'AI-1001', 'AI-1002'] },
+  { id: 'heavyEnd', name: 'Heavy end', overlay: HEAVY_END_OVERLAY, tags: ['LI-1201', 'TI-1302', 'AI-1303', 'TI-1401'] },
   { id: 'blending', name: 'Blending', overlay: BLENDING_OVERLAY, tags: ['AI-1101', 'AI-1102'] },
   { id: 'tanks', name: 'Tank farm', overlay: SITE_OVERLAY, tags: ['LI-crude', 'LI-vgo', 'LI-petrol', 'LI-diesel', 'LI-fuelOil'] },
   { id: 'site', name: 'Site', overlay: SITE_OVERLAY, tags: ['MARGIN'] },

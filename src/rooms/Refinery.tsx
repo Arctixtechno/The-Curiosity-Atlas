@@ -20,6 +20,7 @@ import {
   CDU_OVERLAY,
   CONVERSION_OVERLAY,
   DCS_OVERLAY,
+  HEAVY_END_OVERLAY,
   LIGHT_ENDS_OVERLAY,
   OVERVIEW_OVERLAY,
   REFORMER_OVERLAY,
@@ -30,6 +31,7 @@ import { lightEndsResult } from '../features/refinery/lightEndsPlant.ts'
 import { usePlantClock } from '../features/refinery/clock.ts'
 import { getPlant, usePlant } from '../features/refinery/plant.ts'
 import { TANKS } from '../features/refinery/tankFarm.ts'
+import { drumCycle } from '../features/refinery/heavyEnd.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
@@ -874,6 +876,114 @@ function Blending({ m }: { m: Materials }) {
   )
 }
 
+/**
+ * The delayed coker: two coke drums on a concrete table under a drilling derrick, with the coke pit below. The drill
+ * stem goes down the idle drum while its coke is cut out, following the plant clock.
+ */
+function Coker({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.coker
+  const [x, z] = at
+  const stem = useRef<Mesh>(null)
+  const pile = useRef<Mesh>(null)
+  useFrame(() => {
+    const p = getPlant()
+    const cycle = drumCycle(p.furnace.time / 3600, p.coker.cycle)
+    if (stem.current) {
+      const cutting = p.coker.running && cycle.idle.startsWith('cutting')
+      const depth = cutting ? (cycle.through - 0.45) / 0.3 : 0
+      stem.current.position.set(cycle.filling === 'A' ? 2.2 : -2.2, 28 - depth * 12, 0)
+    }
+    if (pile.current) pile.current.scale.setScalar(p.coker.running ? 0.6 + 0.4 * cycle.through : 0.3)
+  })
+  return (
+    <group position={[x, 0, z]}>
+      {/* The table: columns and a deck, with the coke chute between. */}
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sz) => (
+          <mesh key={`${sx},${sz}`} position={[sx * 4, 4, sz * 1.8]} material={m.concrete} castShadow>
+            <boxGeometry args={[0.8, 8, 0.8]} />
+          </mesh>
+        )),
+      )}
+      <mesh position={[0, 8.2, 0]} material={m.concrete} castShadow receiveShadow>
+        <boxGeometry args={[9.6, 0.5, 4.6]} />
+      </mesh>
+      <Vessel x={-2.2} z={0} radius={1.8} height={12} base={8.5} material={m.cladding} />
+      <Vessel x={2.2} z={0} radius={1.8} height={12} base={8.5} material={m.cladding} />
+      {/* The derrick that lowers the cutting drill. */}
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sz) => (
+          <mesh key={`d${sx},${sz}`} position={[sx * 1.6, 28, sz * 1.2]} rotation={[sz * 0.06, 0, -sx * 0.08]} material={m.steel} castShadow>
+            <boxGeometry args={[0.2, 12, 0.2]} />
+          </mesh>
+        )),
+      )}
+      {[23, 27, 31].map((h) => (
+        <mesh key={h} position={[0, h, 0]} material={m.yellow}>
+          <boxGeometry args={[3.6 - (h - 23) * 0.12, 0.15, 2.6]} />
+        </mesh>
+      ))}
+      <mesh ref={stem} position={[2.2, 28, 0]} material={m.darkSteel}>
+        <cylinderGeometry args={[0.12, 0.12, 8, 8]} />
+      </mesh>
+      {/* Coke pit, with the pile from the last drum. */}
+      <mesh position={[0, 0.05, size[1] / 2 + 1.4]} rotation={[-Math.PI / 2, 0, 0]} material={m.darkSteel}>
+        <planeGeometry args={[9, 2.6]} />
+      </mesh>
+      <mesh ref={pile} position={[1.5, 0.6, size[1] / 2 + 1.4]} castShadow>
+        <coneGeometry args={[1.6, 1.4, 10]} />
+        <meshStandardMaterial color="#1e1e1e" roughness={1} />
+      </mesh>
+      <UnitSign at={[-3.5, size[1] / 2 + 3.4]} text="Unit 1200 · Delayed coker" prompt="Press E to run the coker, hydrocracker and hydrogen plant" overlay={HEAVY_END_OVERLAY} />
+    </group>
+  )
+}
+
+/** The hydrocracker: two thick-walled reactors, the high-pressure separator and the fractionator. */
+function Hydrocracker({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.hydrocracker
+  const [x, z] = at
+  return (
+    <group position={[x, 0, z]}>
+      <Vessel x={-2.8} z={-0.6} radius={1.3} height={13} base={0.5} material={m.darkSteel} />
+      <Vessel x={-0.2} z={-0.6} radius={1.3} height={13} base={0.5} material={m.darkSteel} />
+      <mesh position={[2, 1.4, 1.2]} rotation={[0, 0, Math.PI / 2]} material={m.steel} castShadow>
+        <cylinderGeometry args={[0.8, 0.8, 3.2, 16]} />
+      </mesh>
+      <Vessel x={3} z={-1} radius={0.9} height={18} material={m.cladding} />
+      <Platforms x={-1.5} z={-0.6} radius={2.6} heights={[6, 12]} m={m} />
+      <UnitSign at={[0, size[1] / 2 + 1.2]} text="Unit 1300 · Hydrocracker" prompt="Press E to run the hydrocracker, coker and hydrogen plant" overlay={HEAVY_END_OVERLAY} />
+    </group>
+  )
+}
+
+/** The hydrogen plant: the reformer furnace box, its tall stack, the shift reactor and the PSA vessels. Its windows glow when it runs. */
+function HydrogenPlant({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.smr
+  const [x, z] = at
+  const running = usePlant((p) => p.smr.running)
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 3.5, -1]} material={m.brick} castShadow receiveShadow>
+        <boxGeometry args={[size[0] - 0.6, 7, size[1] - 3]} />
+      </mesh>
+      {[-1.6, 0, 1.6].map((pz) => (
+        <mesh key={`w${pz}`} position={[size[0] / 2 - 0.29, 2, -1 + pz]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.8, 0.5]} />
+          <meshBasicMaterial color={running ? '#ff9a3a' : '#2a2420'} toneMapped={false} />
+        </mesh>
+      ))}
+      <mesh position={[-1.4, 12, -3.4]} material={m.darkSteel} castShadow>
+        <cylinderGeometry args={[0.45, 0.6, 24, 12]} />
+      </mesh>
+      {Array.from({ length: 6 }, (_, i) => (
+        <Vessel key={i} x={-1.5 + (i % 3) * 1.2} z={2.4 + Math.floor(i / 3) * 1.1} radius={0.35} height={4} material={m.steel} />
+      ))}
+      <UnitSign at={[size[0] / 2 + 1.2, 2]} text="Unit 1400 · Hydrogen plant" prompt="Press E to run the hydrogen plant, coker and hydrocracker" overlay={HEAVY_END_OVERLAY} />
+    </group>
+  )
+}
+
 /** Storage tanks with floating roofs, in the tank farm. The roof rides on the oil, and a gauge board on the shell shows the level. */
 function Tanks({ m }: { m: Materials }) {
   const r = REFINERY.tankRadius
@@ -1066,6 +1176,9 @@ export default function Refinery() {
       <Treating m={m} />
       <LightEnds m={m} />
       <Blending m={m} />
+      <Coker m={m} />
+      <Hydrocracker m={m} />
+      <HydrogenPlant m={m} />
       <Tanks m={m} />
       <Flare m={m} />
       <Distance m={m} />

@@ -9,9 +9,9 @@ export const SITE_TASKS: Task<Plant, SiteBalance>[] = [
   {
     id: 'site-profit',
     title: 'Into the black',
-    task: 'Run the whole site at a margin of $600k a day or more.',
+    task: 'Run the whole site at a margin of $500k a day or more.',
     hint: 'The biggest lever is the petrol pool: off spec, every barrel sells as blendstock. Blend it on spec, then look at the sales table for what else is selling cheap.',
-    met: (_, b) => b.margin >= 600_000,
+    met: (_, b) => b.margin >= 500_000,
   },
   {
     id: 'site-ten',

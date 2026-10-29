@@ -1520,3 +1520,26 @@
     display: none;
   }
 }
+
+/* ---------------- Heavy end ---------------- */
+
+.bl-yield {
+  height: 16px;
+  margin: 8px 0;
+}
+
+.hc-foam {
+  animation: hc-foam 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes hc-foam {
+  to {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc-foam {
+    animation: none;
+  }
+}

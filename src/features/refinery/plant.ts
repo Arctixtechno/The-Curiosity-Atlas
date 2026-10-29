@@ -38,6 +38,21 @@ import {
 import { ALKY_START, GAS_PLANT_START, ISOM_START, type AlkyInputs, type GasPlantInputs, type IsomInputs } from './lightEnds.ts'
 import type { Season } from './blending.ts'
 import { siteBalance } from './site.ts'
+import {
+  COKER_START,
+  HC_START,
+  residueQuality,
+  runCoker,
+  runHydrocracker,
+  runSmr,
+  SMR_START,
+  type CokerInputs,
+  type CokerResult,
+  type HydrocrackerInputs,
+  type HydrocrackerResult,
+  type SmrInputs,
+  type SmrResult,
+} from './heavyEnd.ts'
 import { alarmConditions, APC_PERIOD, APC_START, lagTags, runApc, tagTargets, updateDcsAlarms, type ApcSettings, type DcsAlarm, type TagValues } from './dcs.ts'
 import { bookShip, freshTankFarm, stepTankFarm, type TankFarm, type TankId } from './tankFarm.ts'
 
@@ -99,6 +114,9 @@ export interface Plant {
   apc: ApcSettings
   /** Feed-forward from crude rate to the furnace's fuel valve. */
   feedForward: boolean
+  coker: CokerInputs
+  hydrocracker: HydrocrackerInputs
+  smr: SmrInputs
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -163,6 +181,9 @@ function fresh(): Plant {
     dcsAlarms: [],
     apc: APC_START,
     feedForward: false,
+    coker: COKER_START,
+    hydrocracker: HC_START,
+    smr: SMR_START,
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -252,16 +273,29 @@ export interface ConversionResult {
   cdu: CduResult
   vdu: VduResult
   fcc: FccResult
-  /** Vacuum gas oil the cat cracker doesn't take, thousand barrels a day: negative when it draws on the tank. */
+  coker: CokerResult
+  hc: HydrocrackerResult
+  /** Sulphur in the vacuum gas oil, ppm. */
+  vgoSulphur: number
+  /**
+   * Vacuum gas oil the cat cracker and hydrocracker don't take, plus the hydrocracker's unconverted oil, thousand
+   * barrels a day: negative when they draw on the tank.
+   */
   toTank: number
 }
 
-/** What the vacuum unit and cat cracker are doing, fed by the crude unit as it stands. */
+/** What the vacuum unit, cat cracker, coker and hydrocracker are doing, fed by the crude unit as it stands. */
 export function conversionResult(p: Plant = plant): ConversionResult {
   const cdu = currentResult(p)
   const vdu = runVdu(p.furnace.crude, p.furnace.feed, cdu.products.residue.from, p.vdu)
   const fcc = runFcc(p.fcc, { carbon: vdu.carbon, metals: vdu.metals, crackability: vdu.crackability })
-  return { cdu, vdu, fcc, toTank: vdu.vgoRate - p.fcc.feed }
+  // Gas oil carries most of the residue's sulphur.
+  const vgoSulphur = cdu.products.residue.sulphurPpm * 0.75
+  const coker = runCoker(p.coker.running ? vdu.residueRate : 0, p.furnace.crude, vdu.cutPoint, p.coker)
+  const hcRunning = p.hydrocracker.running
+  const hc = runHydrocracker(hcRunning ? p.hydrocracker.feed : 0, hcRunning && p.coker.running ? coker.rates.gasOil : 0, vgoSulphur, p.hydrocracker)
+  const unconverted = hcRunning && !p.hydrocracker.recycle ? hc.rates.unconverted : 0
+  return { cdu, vdu, fcc, coker, hc, vgoSulphur, toTank: vdu.vgoRate - p.fcc.feed - (hcRunning ? p.hydrocracker.feed : 0) + unconverted }
 }
 
 export interface ReformingResult {
@@ -296,6 +330,8 @@ export interface TreatingResult {
   /** Sulphur in the crude, tonnes a day. */
   crudeSulphur: number
   sru: SruResult
+  /** The hydrogen plant, making what the reformer can't. */
+  smr: SmrResult
 }
 
 /** Share of the kerosene's sulphur the kerosene treater takes out, and the hydrogen it uses, wt% of feed. */
@@ -307,9 +343,8 @@ const FCC_H2S = 0.45
 export function treatingResult(p: Plant = plant): TreatingResult {
   const conversion = conversionResult(p)
   const reforming = reformingResult(p)
-  const { cdu, fcc } = conversion
-  // Gas oil carries most of the residue's sulphur; cracking concentrates it in the cycle oil.
-  const vgoSulphur = cdu.products.residue.sulphurPpm * 0.75
+  const { cdu, fcc, coker, hc, vgoSulphur } = conversion
+  // Cracking concentrates the gas oil's sulphur in the cycle oil.
   const fccTonnes = (feedMass(p.fcc.feed) * 86400) / 1000
   const lcoTonnes = (fcc.yields.lco / 100) * fccTonnes
   const lco = { rate: lcoTonnes / (0.158987 * 950), sulphur: vgoSulphur * 1.3 }
@@ -320,16 +355,26 @@ export function treatingResult(p: Plant = plant): TreatingResult {
   const keroTonnes = gasOilTonnes(kero.rate, 800)
   const nhtTonnes = naphthaTonnes(reforming.feed.rate)
 
-  const hydrogen = hydrogenBalance(reforming.reformer.hydrogen, [
+  const users = [
     { name: 'Naphtha hydrotreater', tonnes: nhtTonnes * 0.0005 },
     { name: 'Kerosene treater', tonnes: (keroTonnes * KERO_TREATER.hydrogen) / 100 },
     { name: 'Diesel hydrotreater', tonnes: dht.hydrogen },
-  ])
+    ...(p.hydrocracker.running ? [{ name: 'Hydrocracker', tonnes: hc.hydrogen }] : []),
+  ]
+  // The hydrogen plant follows the header: it makes whatever the reformer can't, up to its capacity.
+  const shortfall = users.reduce((sum, u) => sum + u.tonnes, 0) - reforming.reformer.hydrogen
+  const smr = runSmr(shortfall, p.smr)
+  const hydrogen = hydrogenBalance(reforming.reformer.hydrogen + smr.hydrogen, users)
   const sulphurSources = [
     { name: 'Naphtha hydrotreater', tonnes: (nhtTonnes * (reforming.nht.sulphurIn - reforming.nht.sulphurOut)) / 1e6 },
     { name: 'Kerosene treater', tonnes: (keroTonnes * (kero.sulphurIn - kero.sulphurOut)) / 1e6 },
     { name: 'Diesel hydrotreater', tonnes: dht.sulphurRemoved },
     { name: 'Cat cracker', tonnes: (fccTonnes * vgoSulphur * FCC_H2S) / 1e6 },
+    ...(p.hydrocracker.running ? [{ name: 'Hydrocracker', tonnes: hc.sulphurRemoved }] : []),
+    // About a quarter of the residue's sulphur leaves the coker as H₂S in its gas.
+    ...(p.coker.running
+      ? [{ name: 'Coker', tonnes: ((coker.feed * 158.987 * 1010) / 1000) * residueQuality(p.furnace.crude, conversion.vdu.cutPoint).sulphur * 0.0025 }]
+      : []),
   ]
   const crudeTonnes = p.furnace.feed * 158.987 * (141.5 / (CRUDES[p.furnace.crude].api + 131.5))
   const crudeSulphur = (crudeTonnes * CRUDES[p.furnace.crude].sulphur) / 100
@@ -337,7 +382,7 @@ export function treatingResult(p: Plant = plant): TreatingResult {
     sulphurSources.reduce((sum, s) => sum + s.tonnes, 0),
     p.sru,
   )
-  return { conversion, reforming, dht, lco, kero, hydrogen, sulphurSources, crudeSulphur, sru }
+  return { conversion, reforming, dht, lco, kero, hydrogen, sulphurSources, crudeSulphur, sru, smr }
 }
 
 /** Advances the simulation by `realSeconds` of wall-clock time at the plant's speed. */
@@ -560,6 +605,18 @@ export const controls = {
   /** Replaces a pool's whole recipe, marking whether it came from the planner. */
   applyRecipe(pool: 'petrol' | 'diesel', recipe: Record<string, number> | null, planned: boolean) {
     publish({ ...plant, blend: { ...plant.blend, [pool]: recipe, planned: { ...plant.blend.planned, [pool]: planned } } })
+  },
+  setCoker(change: Partial<CokerInputs>) {
+    publish({ ...plant, coker: { ...plant.coker, ...change } })
+  },
+  setHydrocracker(change: Partial<HydrocrackerInputs>) {
+    publish({ ...plant, hydrocracker: { ...plant.hydrocracker, ...change } })
+  },
+  setSmr(change: Partial<SmrInputs>) {
+    publish({ ...plant, smr: { ...plant.smr, ...change } })
+  },
+  resetHeavyEnd() {
+    publish({ ...plant, coker: COKER_START, hydrocracker: HC_START, smr: SMR_START })
   },
   resetTreating() {
     publish({ ...plant, dht: DHT_START, sru: SRU_START })

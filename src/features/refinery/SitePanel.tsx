@@ -5,9 +5,9 @@ import { complete } from './challenges.ts'
 import { usePlantClock } from './clock.ts'
 import { CRUDES } from './crudes.ts'
 import { ManagerIcon } from './icons.tsx'
-import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { controls, savedAt, usePlant, type Plant } from './plant.ts'
-import { siteBalance, type SiteBalance } from './site.ts'
+import { isTonnes, siteBalance, type SiteBalance } from './site.ts'
 import { SITE_TASKS } from './siteTasks.ts'
 import { daysOfCover, ledgerTotal, rundowns, TANK_IDS, TANK_LIMITS, TANKS, type TankFarm, type TankId } from './tankFarm.ts'
 import { CurveChart, money, SimClock, TaskList } from './ui.tsx'
@@ -134,7 +134,7 @@ function Margin({ plant, balance }: { plant: Plant; balance: SiteBalance }) {
                 </td>
                 <td>{o.rate.toFixed(1)}</td>
                 <td>{o.price.toFixed(0)}</td>
-                <td>{money(o.rate * (o.id === 'sulphur' ? 1 : 1000) * o.price)}</td>
+                <td>{money(o.rate * (isTonnes(o.id) ? 1 : 1000) * o.price)}</td>
               </tr>
             ))}
           </tbody>
@@ -186,7 +186,7 @@ function Margin({ plant, balance }: { plant: Plant; balance: SiteBalance }) {
 function Sankey({ balance }: { balance: SiteBalance }) {
   const W = 920
   const H = 250
-  const liquids = balance.products.filter((o) => o.id !== 'sulphur' && o.rate > 0.05)
+  const liquids = balance.products.filter((o) => !isTonnes(o.id) && o.rate > 0.05)
   const total = liquids.reduce((s, o) => s + o.rate, 0) || 1
   const gap = 8
   const usable = H - 20 - gap * (liquids.length - 1)
@@ -245,6 +245,16 @@ function Units({ balance }: { balance: SiteBalance }) {
     { name: 'Hydrotreating', reading: `diesel ${dht.sulphurOut.toFixed(1)} ppm S, H₂ ${hydrogen.imported > 0 ? `short ${hydrogen.imported.toFixed(0)} t/d` : 'balanced'}`, warnings: dht.warnings, overlay: TREATING_OVERLAY },
     { name: 'Sulphur plant', reading: `${sru.recovery.toFixed(1)}% recovery, SO₂ ${sru.so2.toFixed(1)} t/d`, warnings: sru.warnings, overlay: TREATING_OVERLAY },
     { name: 'Light ends', reading: `alkylate ${alky.octane.toFixed(1)}, isomerate ${isom.octane.toFixed(1)} RON`, warnings: [...gasPlant.warnings, ...alky.warnings], overlay: LIGHT_ENDS_OVERLAY },
+    {
+      name: 'Heavy end',
+      reading: [
+        conversion.coker.feed > 0 ? `coker ${conversion.coker.rates.coke.toFixed(0)} t/d coke` : 'coker down',
+        conversion.hc.freshFeed > 0 ? `hydrocracker ${conversion.hc.conversion.toFixed(0)}%` : 'hydrocracker down',
+        treating.smr.hydrogen > 0 ? `H₂ plant ${treating.smr.hydrogen.toFixed(0)} t/d` : 'H₂ plant down',
+      ].join(', '),
+      warnings: [...(conversion.coker.feed > 0 ? conversion.coker.warnings : []), ...(conversion.hc.freshFeed > 0 ? conversion.hc.warnings : []), ...treating.smr.warnings],
+      overlay: HEAVY_END_OVERLAY,
+    },
     {
       name: 'Blending',
       reading: `${petrol.grade.name} ${petrol.blend.onSpec ? 'on spec' : 'off spec'}, diesel ${diesel.blend.onSpec ? 'on spec' : 'off spec'}`,

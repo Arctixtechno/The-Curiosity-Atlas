@@ -109,3 +109,13 @@ export const DcsIcon = ({ size }: { size?: number }) => (
     <path d="M9 21h6M12 17v4" />
   </Icon>
 )
+
+/** A delayed coker: two drums under a drilling derrick. */
+export const CokerIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M2.5 21h19" />
+    <rect x="5" y="10" width="5" height="11" rx="2" />
+    <rect x="14" y="10" width="5" height="11" rx="2" />
+    <path d="M4 10h16M7.5 10L12 2.5 16.5 10M12 2.5V10" />
+  </Icon>
+)

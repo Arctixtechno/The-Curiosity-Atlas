@@ -1,6 +1,7 @@
 import { CDU_LIMITS } from './cdu.ts'
 import { FCC_LIMITS, runFcc } from './fcc.ts'
 import { measured } from './furnace.ts'
+import { drumCycle, HC_LIMITS, SMR_LIMITS } from './heavyEnd.ts'
 import { GAS_PLANT_LIMITS } from './lightEnds.ts'
 import { conversionResult, reformingResult, type Plant } from './plant.ts'
 import { REFORMER_LIMITS } from './reformer.ts'
@@ -18,7 +19,7 @@ import { DHT_LIMITS, SRU_LIMITS } from './treating.ts'
 // minutes, a reformer's octane drifting over a quarter of an hour, an
 // analyser catching up after its sample delay.
 
-export type UnitArea = 'cdu' | 'fcc' | 'reformer' | 'treating' | 'lightEnds' | 'blending' | 'tanks' | 'site'
+export type UnitArea = 'cdu' | 'fcc' | 'reformer' | 'treating' | 'lightEnds' | 'heavyEnd' | 'blending' | 'tanks' | 'site'
 
 export interface TagDef {
   id: string
@@ -105,6 +106,21 @@ export const TAGS: TagDef[] = [
   },
   { id: 'AI-1001', area: 'lightEnds', name: 'Alkylate octane', units: 'RON', digits: 1, tau: 900, range: [88, 99], target: (_, b) => b.units.alky.octane },
   { id: 'AI-1002', area: 'lightEnds', name: 'Alkylation acid', units: 'wt%', digits: 1, tau: 0, range: [84, 98], lo: 89, ll: 88, target: (p) => p.alky.acid },
+  {
+    id: 'LI-1201',
+    area: 'heavyEnd',
+    name: 'Filling coke drum',
+    units: '%',
+    digits: 0,
+    tau: 0,
+    range: [0, 120],
+    hi: 90,
+    hh: 100,
+    target: (p, b) => (p.coker.running ? b.units.treating.conversion.coker.fill * drumCycle(p.furnace.time / 3600, p.coker.cycle).through * 100 : 0),
+  },
+  { id: 'TI-1302', area: 'heavyEnd', name: 'Hydrocracker beds', units: '°C', digits: 0, tau: 240, range: [350, 430], hi: HC_LIMITS.endOfRun, hh: HC_LIMITS.endOfRun + 6, target: (p) => (p.hydrocracker.running ? p.hydrocracker.temp : 350) },
+  { id: 'AI-1303', area: 'heavyEnd', name: 'Hydrocracker conversion', units: '%', digits: 1, tau: 900, range: [0, 100], target: (p, b) => (p.hydrocracker.running ? b.units.treating.conversion.hc.conversion : 0) },
+  { id: 'TI-1401', area: 'heavyEnd', name: 'Hydrogen plant tube outlet', units: '°C', digits: 0, tau: 300, range: [700, 940], hi: SMR_LIMITS.tubeLimit, hh: SMR_LIMITS.tubeLimit + 15, target: (p) => (p.smr.running ? p.smr.outlet : 700) },
   { id: 'AI-1101', area: 'blending', name: 'Petrol octane (RON)', units: 'RON', digits: 1, tau: 300, range: [88, 100], target: (_, b) => b.units.petrol.blend.properties.ron ?? 0 },
   { id: 'AI-1102', area: 'blending', name: 'Petrol vapour pressure', units: 'kPa', digits: 1, tau: 300, range: [30, 100], target: (_, b) => b.units.petrol.blend.properties.rvp ?? 0 },
   tank('crude'),
@@ -186,6 +202,9 @@ export function alarmConditions(values: TagValues, p: Plant, b: SiteBalance): Co
   warn('reformer', 'REF', [...u.treating.reforming.nht.warnings, ...u.treating.reforming.reformer.warnings])
   warn('treating', 'TRT', [...u.treating.dht.warnings, ...u.treating.sru.warnings])
   warn('lightEnds', 'LE', [...u.gasPlant.warnings, ...u.alky.warnings])
+  if (p.coker.running) warn('heavyEnd', 'CK', u.treating.conversion.coker.warnings)
+  if (p.hydrocracker.running) warn('heavyEnd', 'HC', u.treating.conversion.hc.warnings)
+  warn('heavyEnd', 'SMR', u.treating.smr.warnings)
   if (!u.petrol.blend.onSpec) out.push({ id: 'BLEND-P', area: 'blending', text: 'Petrol blend off spec: selling as blendstock', priority: 'medium' })
   if (!u.diesel.blend.onSpec) out.push({ id: 'BLEND-D', area: 'blending', text: 'Diesel blend off spec: selling as blendstock', priority: 'medium' })
   return out

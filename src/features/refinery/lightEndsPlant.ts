@@ -6,6 +6,7 @@ import {
   DENSITY,
   kbpd,
   lpgFromTonnes,
+  NO_LPG,
   runAlky,
   runGasPlant,
   runIsom,
@@ -67,12 +68,20 @@ export function lightEndsResult(p: Plant = getPlant()): LightEndsResult {
     isobutane: 0.2,
     butane: 0.35,
   })
+  // The coker's gas is olefinic, the hydrocracker's saturated and rich in isobutane; both are already in kb/d.
+  const { coker, hc } = conversion
+  const cokerLpg: Lpg = p.coker.running
+    ? { propane: coker.rates.lpg * 0.4, propylene: coker.rates.lpg * 0.15, isobutane: coker.rates.lpg * 0.1, butane: coker.rates.lpg * 0.25, butylenes: coker.rates.lpg * 0.1 }
+    : NO_LPG
+  const hcLpg: Lpg = p.hydrocracker.running ? { propane: hc.rates.lpg * 0.4, propylene: 0, isobutane: hc.rates.lpg * 0.38, butane: hc.rates.lpg * 0.22, butylenes: 0 } : NO_LPG
   const lpgSources = [
     { name: 'Crude unit', lpg: cduLpg },
     { name: 'Cat cracker', lpg: fccLpg },
     { name: 'Reformer', lpg: reformerLpg },
+    ...(p.coker.running ? [{ name: 'Coker', lpg: cokerLpg }] : []),
+    ...(p.hydrocracker.running ? [{ name: 'Hydrocracker', lpg: hcLpg }] : []),
   ]
-  const gasPlant = runGasPlant(addLpg(cduLpg, fccLpg, reformerLpg), p.gasPlant)
+  const gasPlant = runGasPlant(addLpg(cduLpg, fccLpg, reformerLpg, cokerLpg, hcLpg), p.gasPlant)
 
   const naphtha = cdu.products.naphtha
   const lightShare = Math.max(0, Math.min(percentBelow(crude, LIGHT_NAPHTHA_END), percentBelow(crude, naphtha.to)) - percentBelow(crude, naphtha.from))
@@ -179,6 +188,20 @@ export function lightEndsResult(p: Plant = getPlant()): LightEndsResult {
       colour: '#f0a64a',
       props: { cetane: 46, density: 800, sulphur: Math.min(kero.sulphurOut, dht.sulphurOut), cloud: -47, fame: 0 },
     },
+    ...(p.hydrocracker.running && hc.rates.diesel > 0
+      ? [
+          {
+            // Hydrocracked diesel: almost no sulphur or aromatics, high cetane, and little wax.
+            id: 'hcDiesel',
+            name: 'Hydrocracked diesel',
+            available: hc.rates.diesel,
+            density: 828,
+            value: 96,
+            colour: '#e8b070',
+            props: { cetane: hc.dieselCetane, density: 828, sulphur: 3, cloud: -14, fame: 0 },
+          },
+        ]
+      : []),
     {
       id: 'fame',
       name: 'Biodiesel (bought)',
