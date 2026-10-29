@@ -16,7 +16,7 @@ A car is parked in the courtyard by the east hedge. Getting in plays a drive (Lo
 | 4 | **Diesel hydrotreater**, **hydrogen header**, **amine unit** and **Claus sulphur recovery**: ultra-low-sulphur diesel, cracked stock, hydrogen balance, where the crude's sulphur goes, the 2:1 air ratio, converters and tail gas unit, SO₂ permit; shift tasks | ✅ Done |
 | 5 | **Gas plant**, **isomerisation** and **alkylation**; **blending** petrol and diesel to EN 228 and EN 590 from every unit's streams, with a linear-programming planner to compare against; shift tasks | ✅ Done |
 | 6 | **Hydrocracker**, **delayed coker** and a **steam methane reformer**; the whole site as one live plant with a tank farm; the control room as a DCS with alarms, trends, feed-forward and advanced control | ✅ Done |
-| 7 | Learning layer (guided lessons, quizzes, glossary), safety and emergencies (start-up and shutdown, drills, relief and flare, permits, HAZOP), planning and market, and the living site | ⬜ |
+| 7 | ✅ **Training centre**: guided lessons on the live plant with a coach, quizzes, a glossary, certificates and an engineer's notebook. Still to come: safety and emergencies (start-up and shutdown, drills, relief and flare, permits, HAZOP), planning and market, and the living site | 🚧 |
 
 ## The crude unit model (stage 1)
 
@@ -123,3 +123,13 @@ One screen (`HeavyEndPanel.tsx`, models in `heavyEnd.ts`) with a switch between 
 - **On the site**: residue no longer goes to fuel oil at $48 a barrel; coke is sold by the tonne; coker and hydrocracker naphtha are exported; LPG from both joins the gas plant; the hydrocracker and coker send H₂S to the sulphur plant; and the DCS has tags for the filling drum, the hydrocracker beds and conversion, and the reformer tubes.
 - **Shift tasks** (`heavyEndTasks.ts`): bring the coker on line within its drum and coke limits, coke Maya's residue, make 6 kb/d of hydrocracked diesel, recycle to extinction at 95%, run 15 kb/d through the hydrocracker on hydrogen made on site, and make hydrogen on 160 MJ a kilogram or less.
 
+
+## The training centre
+
+A portakabin in front of the control room, its door facing the car park, opens the training centre (`AcademyPanel.tsx`; lessons, quizzes, glossary and notebook readings in `academy.ts`; progress in `academyStore.ts`, saved in the browser). The site board links to it too. A board by its door lights a lamp for each lesson finished. Tests are in `academy.test.ts`.
+
+- **Guided lessons**: seven, one for each part of the site (the crude unit, cat cracking, reforming, treating, the control room, the business and the heavy end), each three to six steps. Every step is a check on the live plant: a screen open, a setpoint moved, a spec met, a margin made. A coach card (`LessonCoach.tsx`) sits in the corner over the world and any screen, ticks each step off when the plant reaches it and says what it showed. Each step has a button to open its screen and one to do it for you. A test runs every lesson to the end with those buttons alone.
+- **Quizzes**: five questions a topic, seven topics, each answer explained. The best score is kept and four out of five is a pass.
+- **Glossary**: about seventy terms, A to Z, searched by term first and then by meaning.
+- **Certificates**: one for each lesson, earned by finishing it and passing its quiz, and a full-course certificate for all seven. Each prints with the trainee's name.
+- **Engineer's notebook**: notes, each saved with a snapshot of the plant's key readings (crude and rate, furnace outlet, kerosene, cat cracker conversion and octane, reformate octane, diesel sulphur, sulphur recovery and the site margin) and the plant time, and downloadable as text.

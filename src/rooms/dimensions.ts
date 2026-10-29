@@ -314,6 +314,8 @@ export const REFINERY = {
   coker: { at: [-22, -24] as [number, number], size: [10, 5] as [number, number] },
   hydrocracker: { at: [10, -22] as [number, number], size: [8, 5] as [number, number] },
   smr: { at: [-28, 15] as [number, number], size: [5, 8] as [number, number] },
+  /** The training centre: a portakabin in front of the control room, its door facing the car park. */
+  training: { at: [-17, 23] as [number, number], size: [7, 3.2] as [number, number], height: 2.8 },
   /** The blend header and its analyser house, by the tank farm near the gate. */
   blending: { at: [6.5, 19] as [number, number], size: [4, 5] as [number, number] },
   tanks: [

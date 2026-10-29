@@ -16,6 +16,7 @@ import {
 } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
 import {
+  ACADEMY_OVERLAY,
   BLENDING_OVERLAY,
   CDU_OVERLAY,
   CONVERSION_OVERLAY,
@@ -32,6 +33,8 @@ import { usePlantClock } from '../features/refinery/clock.ts'
 import { getPlant, usePlant } from '../features/refinery/plant.ts'
 import { TANKS } from '../features/refinery/tankFarm.ts'
 import { drumCycle } from '../features/refinery/heavyEnd.ts'
+import { LESSONS } from '../features/refinery/academy.ts'
+import { useAcademy } from '../features/refinery/academyStore.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
@@ -557,6 +560,83 @@ function ControlRoom({ m }: { m: Materials }) {
       </mesh>
       <pointLight position={[0, 2.6, size[1] / 2 + 1.2]} color="#ffd8a0" intensity={6} distance={8} decay={1.8} />
       <Label3D text="Control room" position={[0, 3.4, size[1] / 2 + 0.05]} scale={2} />
+    </group>
+  )
+}
+
+/**
+ * The training centre: a portakabin in front of the control room, its door facing the car park. A board by the door
+ * lights a lamp for every lesson finished.
+ */
+function TrainingCentre({ m }: { m: Materials }) {
+  const { at, size, height } = REFINERY.training
+  const done = useAcademy((s) => s.lessonsDone)
+  const walls = useMemo(() => new MeshStandardMaterial({ color: '#e6dcc4', roughness: 0.8 }), [])
+  const band = useMemo(() => new MeshStandardMaterial({ color: '#2f6f9f', roughness: 0.6 }), [])
+  useEffect(
+    () => () => {
+      walls.dispose()
+      band.dispose()
+    },
+    [walls, band],
+  )
+  const [w, d] = size
+  return (
+    <group position={[at[0], 0, at[1]]}>
+      {/* Raised on blocks, like any site cabin. */}
+      <mesh position={[0, 0.2 + height / 2, 0]} material={walls} castShadow receiveShadow>
+        <boxGeometry args={[w, height, d]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height + 0.08, 0]} material={m.darkSteel}>
+        <boxGeometry args={[w + 0.2, 0.16, d + 0.2]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height - 0.35, 0]} material={band}>
+        <boxGeometry args={[w + 0.02, 0.22, d + 0.02]} />
+      </mesh>
+      {[-w / 2 + 0.6, w / 2 - 0.6].map((x) =>
+        [-d / 2 + 0.5, d / 2 - 0.5].map((z) => (
+          <mesh key={`${x}${z}`} position={[x, 0.1, z]} material={m.concrete}>
+            <boxGeometry args={[0.5, 0.2, 0.5]} />
+          </mesh>
+        )),
+      )}
+      {/* Windows down both long sides, lit from inside. */}
+      {[-2.2, -0.7, 0.8].map((x) =>
+        [-1, 1].map((side) => (
+          <mesh key={`${x}${side}`} position={[x, 1.75, side * (d / 2 + 0.01)]} rotation={[0, side < 0 ? Math.PI : 0, 0]} material={m.window}>
+            <planeGeometry args={[1.1, 0.8]} />
+          </mesh>
+        )),
+      )}
+      {/* The door, its step and a lamp over it, on the east end. */}
+      <mesh position={[w / 2 + 0.01, 1.25, 0.5]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[0.9, 2]} />
+        <meshStandardMaterial color="#2f6f9f" roughness={0.5} />
+      </mesh>
+      <mesh position={[w / 2 + 0.45, 0.12, 0.5]} material={m.concrete}>
+        <boxGeometry args={[0.9, 0.24, 1.2]} />
+      </mesh>
+      <mesh position={[w / 2 + 0.12, 2.45, 0.5]} material={m.lamp}>
+        <boxGeometry args={[0.2, 0.1, 0.45]} />
+      </mesh>
+      <pointLight position={[w / 2 + 1, 2.4, 0.5]} color="#ffd8a0" intensity={4} distance={6} decay={1.8} />
+      {/* The progress board: a lamp for each lesson. */}
+      <group position={[w / 2 + 0.05, 1.7, -0.8]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh material={m.darkSteel}>
+          <boxGeometry args={[1.5, 0.5, 0.06]} />
+        </mesh>
+        {LESSONS.map((l, i) => (
+          <mesh key={l.id} position={[-0.6 + i * 0.2, 0, 0.05]}>
+            <sphereGeometry args={[0.06, 10, 10]} />
+            <meshBasicMaterial color={done.includes(l.id) ? '#6fe08a' : '#4a3a2a'} toneMapped={false} />
+          </mesh>
+        ))}
+      </group>
+      {/* Labels face +z, so turn them to face the car park. */}
+      <group position={[w / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <Label3D text="Training centre" position={[0, height + 0.75, 0.06]} scale={1.8} />
+        <UnitSign at={[-0.5, 1.4]} text="Lessons and quizzes" prompt="Press E for the training centre: lessons, quizzes and certificates" overlay={ACADEMY_OVERLAY} height={2} />
+      </group>
     </group>
   )
 }
@@ -1166,6 +1246,7 @@ export default function Refinery() {
       <Lamps m={m} />
       <SiteBoard />
       <ControlRoom m={m} />
+      <TrainingCentre m={m} />
       <Furnace m={m} />
       <CrudeColumn m={m} />
       <FieldPanel />

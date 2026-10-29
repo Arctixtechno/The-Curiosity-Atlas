@@ -456,6 +456,7 @@ export const rooms: Record<string, RoomDefinition> = {
       boxCollider(...REFINERY.coker.at, REFINERY.coker.size[0], REFINERY.coker.size[1]),
       boxCollider(...REFINERY.hydrocracker.at, REFINERY.hydrocracker.size[0], REFINERY.hydrocracker.size[1] - 1),
       boxCollider(...REFINERY.smr.at, REFINERY.smr.size[0], REFINERY.smr.size[1]),
+      boxCollider(...REFINERY.training.at, REFINERY.training.size[0] + 0.2, REFINERY.training.size[1] + 0.2),
       boxCollider(...REFINERY.blending.at, REFINERY.blending.size[0] - 0.8, REFINERY.blending.size[1] - 1.6),
       ...REFINERY.tanks.map(({ at }) => boxCollider(...at, REFINERY.tankRadius * 2 + 0.4, REFINERY.tankRadius * 2 + 0.4)),
       boxCollider(...REFINERY.flare, 2, 2),

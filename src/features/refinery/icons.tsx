@@ -119,3 +119,12 @@ export const CokerIcon = ({ size }: { size?: number }) => (
     <path d="M4 10h16M7.5 10L12 2.5 16.5 10M12 2.5V10" />
   </Icon>
 )
+
+/** A mortarboard over an open book, for the training centre. */
+export const AcademyIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M2.5 7.5 12 3.5l9.5 4-9.5 4z" />
+    <path d="M6.5 9.3v3.6c1.6 1.2 3.5 1.8 5.5 1.8s3.9-.6 5.5-1.8V9.3M21.5 7.5v4" />
+    <path d="M3.5 20.5c2.8-1.4 5.6-1.4 8.5 0 2.9-1.4 5.7-1.4 8.5 0M12 17.5v3" />
+  </Icon>
+)
