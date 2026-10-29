@@ -19,6 +19,10 @@ export const RESIDUE: Record<CrudeId, { ccr: number; sulphur: number; metals: nu
   wti: { ccr: 12, sulphur: 0.9, metals: 45 },
   arabLight: { ccr: 19, sulphur: 4, metals: 110 },
   maya: { ccr: 26, sulphur: 5, metals: 700 },
+  bonny: { ccr: 10, sulphur: 0.5, metals: 25 },
+  sverdrup: { ccr: 15, sulphur: 1.6, metals: 70 },
+  basrah: { ccr: 21, sulphur: 5.2, metals: 200 },
+  wcs: { ccr: 28, sulphur: 5, metals: 400 },
 }
 
 /** The residue the vacuum unit leaves gets heavier the deeper it cuts. */

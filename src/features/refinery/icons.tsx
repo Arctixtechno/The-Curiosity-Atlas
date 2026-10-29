@@ -136,3 +136,12 @@ export const SafetyIcon = ({ size }: { size?: number }) => (
     <path d="M12 17c-1.7 0-2.8-1.1-2.8-2.5 0-1.6 1.6-2.3 1.8-3.8 1 .7 1.6 1.6 1.6 2.4.5-.4.7-.9.8-1.4.9.8 1.4 1.7 1.4 2.7 0 1.5-1.1 2.6-2.8 2.6z" />
   </Icon>
 )
+
+/** A calendar with a rising line, for planning and trading. */
+export const PlanIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <rect x="3" y="4.5" width="18" height="16" rx="2" />
+    <path d="M3 9h18M8 2.5v4M16 2.5v4" />
+    <path d="M6.5 17.5l3.5-3.5 2.5 2 5-5" />
+  </Icon>
+)

@@ -2,6 +2,7 @@ import { OFF_SPEC_PRICE } from './blending.ts'
 import { CRUDES } from './crudes.ts'
 import { feedMass } from './fcc.ts'
 import { lightEndsResult, type LightEndsResult } from './lightEndsPlant.ts'
+import { CO2_PER_COKE, CO2_PER_GJ, marketOn, PRODUCT_CRACK, type MarketDay } from './market.ts'
 import { getPlant, type Plant } from './plant.ts'
 
 // The whole site's balance: crude in, every product out, and what the site
@@ -42,6 +43,10 @@ export interface SiteBalance {
   perBarrel: number
   /** Liquid barrels out per barrel of crude in, %: cracking makes more, lighter barrels than it takes. */
   volumeGain: number
+  /** CO₂ released, tonnes a day: from burning fuel, the cat cracker's coke, and making hydrogen. */
+  co2: { fuel: number; fcc: number; hydrogen: number; total: number }
+  /** The day's market, when the site trades at market prices. */
+  market: MarketDay | null
 }
 
 /** Illustrative prices, dollars a barrel (a tonne where marked). */
@@ -169,14 +174,35 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
     { name: 'Steam and power', dollars: cdu.economics.steamCost + alky.power * 24 * SITE_PRICES.power, note: 'stripping steam, refrigeration' },
   ]
 
-  const crudeCost = p.furnace.feed * 1000 * crude.price
+  // CO₂: fuel burnt in the furnaces (its GJ from what it cost), the coke burnt off the cat cracker's catalyst, and the
+  // hydrogen plant's process and fuel CO₂.
+  const fuelGj = costs.find((c) => c.name === 'Fuel')!.dollars / SITE_PRICES.fuel
+  const co2Fuel = fuelGj * CO2_PER_GJ
+  const co2Fcc = (fcc.yields.coke / 100) * fccTonnes * CO2_PER_COKE
+  const co2H2 = smr.hydrogen > 0 ? smr.co2 : 0
+  const co2 = { fuel: co2Fuel, fcc: co2Fcc, hydrogen: co2H2, total: co2Fuel + co2Fcc + co2H2 }
+
+  // At market prices every crude moves with Brent, each product with Brent and its own crack, and fuel with gas.
+  const market = p.market.live ? marketOn(p.tanks.day) : null
+  let crudePrice = crude.price
+  if (market) {
+    crudePrice += market.crude
+    for (const o of products) {
+      const crack = PRODUCT_CRACK[o.id]
+      if (crack && o.rate > 0) o.price = Math.max(0, o.price + market.crude + market.cracks[crack])
+    }
+    for (const c of costs) if (c.name === 'Fuel' || c.name === 'Natural gas for hydrogen') c.dollars *= market.gas / SITE_PRICES.fuel
+  }
+  if (p.market.carbon > 0) costs.push({ name: 'Carbon', dollars: co2.total * p.market.carbon, note: `${co2.total.toFixed(0)} t/d of CO₂ at $${p.market.carbon} a tonne` })
+
+  const crudeCost = p.furnace.feed * 1000 * crudePrice
   const revenue = products.reduce((sum, o) => sum + o.rate * (isTonnes(o.id) ? 1 : 1000) * o.price, 0)
   const margin = revenue - crudeCost - costs.reduce((sum, c) => sum + c.dollars, 0)
   const liquids = products.filter((o) => !isTonnes(o.id)).reduce((sum, o) => sum + o.rate, 0)
   const bought_ = sumVolumes(petrol.components.map((c, i) => (c.purchased ? petrol.volumes[i] : 0))) + sumVolumes(diesel.components.map((c, i) => (c.purchased ? diesel.volumes[i] : 0)))
   return {
     units,
-    crude: { rate: p.furnace.feed, price: crude.price, cost: crudeCost },
+    crude: { rate: p.furnace.feed, price: crudePrice, cost: crudeCost },
     products,
     vgoToTank: conversion.toTank,
     costs,
@@ -184,5 +210,7 @@ export function siteBalance(p: Plant = getPlant()): SiteBalance {
     margin,
     perBarrel: p.furnace.feed > 0 ? margin / (p.furnace.feed * 1000) : 0,
     volumeGain: p.furnace.feed > 0 ? ((liquids - bought_ + conversion.toTank) / p.furnace.feed) * 100 : 0,
+    co2,
+    market,
   }
 }

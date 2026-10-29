@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { openOverlay } from '../../world/overlay.ts'
-import { ACADEMY_OVERLAY, BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, SAFETY_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { ACADEMY_OVERLAY, BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, PLANNING_OVERLAY, REFORMER_OVERLAY, SAFETY_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import { usePlantClock } from './clock.ts'
 import './Refinery.css'
@@ -201,6 +201,9 @@ export function OverviewPanel() {
         </button>
         <button className="button" onClick={() => openOverlay(SAFETY_OVERLAY)}>
           Safety and emergencies
+        </button>
+        <button className="button" onClick={() => openOverlay(PLANNING_OVERLAY)}>
+          Planning and trading
         </button>
       </div>
       <p className="muted">

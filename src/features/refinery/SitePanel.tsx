@@ -5,7 +5,7 @@ import { complete } from './challenges.ts'
 import { usePlantClock } from './clock.ts'
 import { CRUDES } from './crudes.ts'
 import { ManagerIcon } from './icons.tsx'
-import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, PLANNING_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { controls, savedAt, usePlant, type Plant } from './plant.ts'
 import { isTonnes, siteBalance, type SiteBalance } from './site.ts'
 import { SITE_TASKS } from './siteTasks.ts'
@@ -44,7 +44,12 @@ export function SitePanel() {
               </button>
             ))}
           </div>
-          <SimClock plant={plant} />
+          <div className="cdu-clock">
+            <button className="button" onClick={() => openOverlay(PLANNING_OVERLAY)}>
+              Planning and trading
+            </button>
+            <SimClock plant={plant} />
+          </div>
         </div>
         <Kpis plant={plant} balance={balance} />
         {tab === 'margin' && <Margin plant={plant} balance={balance} />}

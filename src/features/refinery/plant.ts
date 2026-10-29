@@ -117,6 +117,8 @@ export interface Plant {
   coker: CokerInputs
   hydrocracker: HydrocrackerInputs
   smr: SmrInputs
+  /** Sell and buy at the day's market prices rather than the base ones, and pay for carbon. */
+  market: MarketSettings
   /** One sample every SAMPLE_EVERY simulated seconds, newest last. */
   history: Sample[]
   alarms: Alarm[]
@@ -124,6 +126,14 @@ export interface Plant {
   speed: number
   paused: boolean
 }
+
+export interface MarketSettings {
+  live: boolean
+  /** Carbon price, dollars a tonne of CO₂. */
+  carbon: number
+}
+
+export const MARKET_START: MarketSettings = { live: false, carbon: 0 }
 
 export interface CyclePoint {
   days: number
@@ -184,6 +194,7 @@ function fresh(): Plant {
     coker: COKER_START,
     hydrocracker: HC_START,
     smr: SMR_START,
+    market: MARKET_START,
     // Start with half an hour of steady running on the trend, as if you'd taken over mid-shift.
     history: Array.from({ length: HISTORY_SECONDS / SAMPLE_EVERY + 1 }, (_, i) => ({
       time: (i - HISTORY_SECONDS / SAMPLE_EVERY) * SAMPLE_EVERY,
@@ -614,6 +625,9 @@ export const controls = {
   },
   setSmr(change: Partial<SmrInputs>) {
     publish({ ...plant, smr: { ...plant.smr, ...change } })
+  },
+  setMarket(change: Partial<MarketSettings>) {
+    publish({ ...plant, market: { ...plant.market, ...change } })
   },
   resetHeavyEnd() {
     publish({ ...plant, coker: COKER_START, hydrocracker: HC_START, smr: SMR_START })

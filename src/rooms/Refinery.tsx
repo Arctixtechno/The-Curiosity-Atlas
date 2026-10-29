@@ -18,6 +18,7 @@ import {
 import { Label3D } from '../components/Label3D.tsx'
 import {
   ACADEMY_OVERLAY,
+  PLANNING_OVERLAY,
   SAFETY_OVERLAY,
   BLENDING_OVERLAY,
   CDU_OVERLAY,
@@ -636,9 +637,38 @@ function TrainingCentre({ m }: { m: Materials }) {
           </mesh>
         ))}
       </group>
+      {/* The planning office upstairs, reached by an outside stair at the west end. */}
+      <mesh position={[0, 0.2 + height * 1.5 + 0.16, 0]} material={walls} castShadow>
+        <boxGeometry args={[w, height, d]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height * 2 + 0.24, 0]} material={m.darkSteel}>
+        <boxGeometry args={[w + 0.2, 0.16, d + 0.2]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height * 2 - 0.2, 0]} material={band}>
+        <boxGeometry args={[w + 0.02, 0.22, d + 0.02]} />
+      </mesh>
+      {[-2.2, -0.7, 0.8, 2.3].map((x) =>
+        [-1, 1].map((side) => (
+          <mesh key={`u${x}${side}`} position={[x, height + 1.9, side * (d / 2 + 0.01)]} rotation={[0, side < 0 ? Math.PI : 0, 0]} material={m.window}>
+            <planeGeometry args={[1.1, 0.8]} />
+          </mesh>
+        )),
+      )}
+      {Array.from({ length: 10 }, (_, i) => (
+        <mesh key={i} position={[-w / 2 + 0.6 + i * 0.32, 0.15 + i * 0.3, -d / 2 - 0.5]} material={m.darkSteel}>
+          <boxGeometry args={[0.32, 0.06, 0.9]} />
+        </mesh>
+      ))}
+      <mesh position={[-w / 2 + 0.6 + 10 * 0.32 + 0.4, height + 0.2, -d / 2 - 0.5]} material={m.darkSteel}>
+        <boxGeometry args={[1, 0.08, 0.9]} />
+      </mesh>
+      <group position={[-w / 2, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <Label3D text="Planning office" position={[0, height * 2 + 0.8, 0.06]} scale={1.6} />
+        <UnitSign at={[0.6, 1.4]} text="Planning and trading" prompt="Press E for planning: next month’s crudes, the market, carbon and the turnaround" overlay={PLANNING_OVERLAY} height={2} />
+      </group>
       {/* Labels face +z, so turn them to face the car park. */}
       <group position={[w / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <Label3D text="Training centre" position={[0, height + 0.75, 0.06]} scale={1.8} />
+        <Label3D text="Training centre" position={[0, height - 0.1, 0.06]} scale={1.6} />
         <UnitSign at={[-0.5, 1.4]} text="Lessons and quizzes" prompt="Press E for the training centre: lessons, quizzes and certificates" overlay={ACADEMY_OVERLAY} height={2} />
       </group>
     </group>
