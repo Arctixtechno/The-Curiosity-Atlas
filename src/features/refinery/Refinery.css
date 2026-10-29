@@ -3156,3 +3156,219 @@
 .pl-crew-critical {
   border-color: rgba(224, 112, 58, 0.6);
 }
+
+/* Operator rounds. */
+.rd-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px 18px;
+  margin: 12px 0;
+  padding-left: 20px;
+  font-size: 0.88rem;
+}
+
+.rd-list small,
+.rd-sheet small {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.rd-reading h3 {
+  margin: 2px 0 4px;
+}
+
+.rd-gauges {
+  margin: 12px 0;
+}
+
+.rd-gauges div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rd-gauges dd {
+  margin: 0;
+  text-align: right;
+}
+
+.rd-calls .button {
+  padding: 8px 18px;
+}
+
+.rd-sheet {
+  padding: 14px 16px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #fbf3df, #f2e6c8);
+  color: #2e2010;
+}
+
+.rd-sheet small {
+  color: #6a5236;
+}
+
+.rd-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #c8a060;
+}
+
+.rd-sheet ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rd-sheet li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.88rem;
+}
+
+.rd-box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #8a6a3c;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.rd-right .rd-box {
+  color: #1a7a3a;
+}
+
+.rd-wrong .rd-box {
+  color: #b02a1a;
+}
+
+/* The round chip and tour card over the world. */
+.round-chip {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 29;
+  display: grid;
+  gap: 4px;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border: 1px solid rgba(232, 192, 32, 0.55);
+  border-radius: 12px;
+  background: rgba(30, 24, 12, 0.92);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  animation: coach-in 0.35s ease both;
+}
+
+.round-chip strong {
+  color: #f4d040;
+}
+
+.round-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.round-dots i {
+  width: 14px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(244, 234, 216, 0.15);
+}
+
+.round-dots i.done {
+  background: #f4d040;
+}
+
+.tour-card {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 30;
+  width: min(560px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid rgba(224, 164, 88, 0.45);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(40, 29, 18, 0.94), rgba(24, 17, 10, 0.95));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  transform: translateX(-50%);
+  animation: coach-in 0.35s ease both;
+}
+
+.tour-card .coach-step {
+  line-height: 1.5;
+}
+
+.tour-keys {
+  margin: 10px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+.tour-keys kbd {
+  padding: 1px 5px;
+  border: 1px solid rgba(244, 234, 216, 0.3);
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round-chip,
+  .tour-card {
+    animation: none;
+  }
+}
+
+.pl-table-wrap {
+  overflow-x: auto;
+}
+
+.pl-table {
+  min-width: 720px;
+}
+
+.pl-gantt {
+  min-width: 620px;
+}
+
+.pl-turnaround-wrap {
+  overflow-x: auto;
+}
+
+/* On touch screens the walk stick and buttons own the bottom corners, so the cards sit at the top. */
+@media (pointer: coarse) {
+  .coach,
+  .tour-card {
+    top: 64px;
+    bottom: auto;
+  }
+
+  .round-chip {
+    top: 64px;
+    right: 12px;
+    bottom: auto;
+  }
+
+  .tour-keys {
+    display: none;
+  }
+
+  .drill-banner {
+    top: 8px;
+    font-size: 0.72rem;
+  }
+}

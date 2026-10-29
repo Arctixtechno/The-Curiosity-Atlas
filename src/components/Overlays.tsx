@@ -18,6 +18,7 @@ import {
   OVERVIEW_OVERLAY,
   PLANNING_OVERLAY,
   REFORMER_OVERLAY,
+  ROUNDS_OVERLAY,
   SAFETY_OVERLAY,
   SITE_OVERLAY,
   TREATING_OVERLAY,
@@ -56,6 +57,7 @@ const DcsPanel = lazy(() => import('../features/refinery/DcsPanel.tsx').then((m)
 const AcademyPanel = lazy(() => import('../features/refinery/AcademyPanel.tsx').then((m) => ({ default: m.AcademyPanel })))
 const SafetyPanel = lazy(() => import('../features/refinery/SafetyPanel.tsx').then((m) => ({ default: m.SafetyPanel })))
 const PlanningPanel = lazy(() => import('../features/refinery/PlanningPanel.tsx').then((m) => ({ default: m.PlanningPanel })))
+const RoundsPanel = lazy(() => import('../features/refinery/RoundsPanel.tsx').then((m) => ({ default: m.RoundsPanel })))
 const SitePanel = lazy(() => import('../features/refinery/SitePanel.tsx').then((m) => ({ default: m.SitePanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
@@ -113,6 +115,7 @@ export function Overlays() {
     [ACADEMY_OVERLAY]: AcademyPanel,
     [SAFETY_OVERLAY]: SafetyPanel,
     [PLANNING_OVERLAY]: PlanningPanel,
+    [ROUNDS_OVERLAY]: RoundsPanel,
     [DCS_OVERLAY]: DcsPanel,
     [HEAVY_END_OVERLAY]: HeavyEndPanel,
   }[overlay ?? '']

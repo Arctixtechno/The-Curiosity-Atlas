@@ -316,6 +316,10 @@ export const REFINERY = {
   smr: { at: [-28, 15] as [number, number], size: [5, 8] as [number, number] },
   /** The training centre: a portakabin in front of the control room, its door facing the car park. */
   training: { at: [-17, 23] as [number, number], size: [7, 3.2] as [number, number], height: 2.8 },
+  /** The crude charge pumps, west of the furnace. */
+  chargePumps: [-9.6, -3] as [number, number],
+  /** The jetty: its trestle leaves the east fence here and runs this far out into the estuary. */
+  jetty: { x: 32, z: 8, length: 26 },
   /** The muster point by the gate, where everyone gathers in an emergency. */
   muster: [-3.4, 25.5] as [number, number],
   /** The blend header and its analyser house, by the tank farm near the gate. */

@@ -145,3 +145,12 @@ export const PlanIcon = ({ size }: { size?: number }) => (
     <path d="M6.5 17.5l3.5-3.5 2.5 2 5-5" />
   </Icon>
 )
+
+/** A clipboard with ticks, for the operator's round. */
+export const RoundsIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9 4V2.8h6V4" />
+    <path d="M8 9.5l1.4 1.4L12 8.3M8 15l1.4 1.4 2.6-2.6M14 10h3M14 15.5h3" />
+  </Icon>
+)

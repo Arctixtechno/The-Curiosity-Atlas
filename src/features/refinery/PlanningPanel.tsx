@@ -18,7 +18,12 @@ export function PlanningPanel() {
   const plant = usePlant((p) => p)
   const [tab, setTab] = useState<Tab>('crudes')
   return (
-    <Panel title="Planning and trading" subtitle="Choose next month’s crudes, follow the market, price the carbon and plan the turnaround" icon={<PlanIcon />} wide>
+    <Panel
+      title="Planning and trading"
+      subtitle="Choose next month’s crudes, follow the market, price the carbon and plan the turnaround"
+      icon={<PlanIcon />}
+      wide
+    >
       <div className="cdu pl">
         <div className="cdu-bar">
           <div className="segmented" role="tablist" aria-label="Section">
@@ -48,7 +53,23 @@ export function PlanningPanel() {
 
 /** The plant's settings, but not its clock: what the planner's sums depend on. */
 const settingsKey = (p: Plant) =>
-  JSON.stringify([p.furnace.crude, p.column, p.vdu, p.fcc, p.reformer, p.dht, p.sru, p.coker, p.hydrocracker, p.smr, p.blend, p.alky, p.isom, p.market, Math.floor(p.tanks.day)])
+  JSON.stringify([
+    p.furnace.crude,
+    p.column,
+    p.vdu,
+    p.fcc,
+    p.reformer,
+    p.dht,
+    p.sru,
+    p.coker,
+    p.hydrocracker,
+    p.smr,
+    p.blend,
+    p.alky,
+    p.isom,
+    p.market,
+    Math.floor(p.tanks.day),
+  ])
 
 function CrudePlan({ plant }: { plant: Plant }) {
   const key = settingsKey(plant)
@@ -65,14 +86,16 @@ function CrudePlan({ plant }: { plant: Plant }) {
     <>
       <p className="cdu-note">
         Each crude is run through the whole site model at 100 kb/d: the one running now as it’s set, the others at their natural cuts with the blends
-        re-planned. A linear programme then picks next month’s slate for the most margin, within the crude unit, what can be done with the residue, the
-        sulphur plant, and {MAX_CARGOES} cargoes of {CARGO} kbbl a grade.
+        re-planned. A linear programme then picks next month’s slate for the most margin, within the crude unit, what can be done with the residue, the sulphur
+        plant, and {MAX_CARGOES} cargoes of {CARGO} kbbl a grade.
       </p>
       <div className="pl-slate" role="img" aria-label="Next month's crude slate">
         {CRUDE_IDS.filter((id) => plan.barrels[id] > 1).map((id) => (
           <div key={id} style={{ flex: plan.barrels[id], background: CRUDE_COLOURS[id] }} title={`${CRUDES[id].name}: ${plan.barrels[id].toFixed(0)} kbbl`}>
             <span>{CRUDES[id].name}</span>
-            <small>{((plan.barrels[id] / CARGO) * 10) / 10 >= 1 ? `${(plan.barrels[id] / CARGO).toFixed(1)} cargoes` : `${plan.barrels[id].toFixed(0)} kbbl`}</small>
+            <small>
+              {((plan.barrels[id] / CARGO) * 10) / 10 >= 1 ? `${(plan.barrels[id] / CARGO).toFixed(1)} cargoes` : `${plan.barrels[id].toFixed(0)} kbbl`}
+            </small>
           </div>
         ))}
       </div>
@@ -97,7 +120,11 @@ function CrudePlan({ plant }: { plant: Plant }) {
                 <span>{binding ? 'Binding' : `${Math.round((c.used / c.limit) * 100)}% used`}</span>
               </div>
               <div className="pl-bar" aria-hidden="true">
-                <i style={{ width: `${Math.min(100, (c.used / c.limit) * 100)}%` }} />
+                <i
+                  style={{
+                    width: `${Math.min(100, (c.used / c.limit) * 100)}%`,
+                  }}
+                />
               </div>
               <small>
                 {c.used.toFixed(0)} of {c.limit.toFixed(0)} {c.unit}.{' '}
@@ -109,92 +136,114 @@ function CrudePlan({ plant }: { plant: Plant }) {
           )
         })}
       </div>
-      <table className="sf-table pl-table">
-        <thead>
-          <tr>
-            <th>On offer</th>
-            <th>Crude</th>
-            <th>Price</th>
-            <th>Margin at 100 kb/d</th>
-            <th>Residue</th>
-            <th>Sulphur</th>
-            <th>Discount</th>
-            <th>Plan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {values.map((v) => {
-            const c = CRUDES[v.id]
-            const d = discounts[v.id] ?? 0
-            return (
-              <tr key={v.id} className={offered.has(v.id) ? '' : 'pl-off'}>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={offered.has(v.id)}
-                    aria-label={`${c.name} on offer`}
-                    onChange={() => {
-                      const next = new Set(offered)
-                      if (next.has(v.id)) next.delete(v.id)
-                      else next.add(v.id)
-                      setOffered(next)
-                    }}
-                  />
-                </td>
-                <td>
-                  <span className="cdu-swatch" style={{ background: CRUDE_COLOURS[v.id] }} /> <strong>{c.name}</strong>
-                  {plant.furnace.crude === v.id && <small className="pl-now"> running</small>}
-                  <br />
-                  <small className="muted">
-                    {c.origin} · API {c.api} · {c.sulphur}% S
-                  </small>
-                </td>
-                <td>${(c.price + move - d).toFixed(2)}</td>
-                <td className={v.margin + d > 0 ? 'cdu-good' : 'cdu-bad'}>
-                  ${(v.margin + d).toFixed(2)}/bbl
-                  {!v.onSpec && (
-                    <small className="sf-warn" title="Some products are off spec at these cuts">
-                      {' '}
-                      ⚠ off spec
+      <div className="pl-table-wrap">
+        <table className="sf-table pl-table">
+          <thead>
+            <tr>
+              <th>On offer</th>
+              <th>Crude</th>
+              <th>Price</th>
+              <th>Margin at 100 kb/d</th>
+              <th>Residue</th>
+              <th>Sulphur</th>
+              <th>Discount</th>
+              <th>Plan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {values.map((v) => {
+              const c = CRUDES[v.id]
+              const d = discounts[v.id] ?? 0
+              return (
+                <tr key={v.id} className={offered.has(v.id) ? '' : 'pl-off'}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={offered.has(v.id)}
+                      aria-label={`${c.name} on offer`}
+                      onChange={() => {
+                        const next = new Set(offered)
+                        if (next.has(v.id)) next.delete(v.id)
+                        else next.add(v.id)
+                        setOffered(next)
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <span className="cdu-swatch" style={{ background: CRUDE_COLOURS[v.id] }} /> <strong>{c.name}</strong>
+                    {plant.furnace.crude === v.id && <small className="pl-now"> running</small>}
+                    <br />
+                    <small className="muted">
+                      {c.origin} · API {c.api} · {c.sulphur}% S
                     </small>
-                  )}
-                </td>
-                <td>{(v.residue * 100).toFixed(0)}%</td>
-                <td>{v.sulphur.toFixed(2)} t/kbbl</td>
-                <td>
-                  <input
-                    className="pl-discount"
-                    type="range"
-                    min={-5}
-                    max={5}
-                    step={0.5}
-                    value={d}
-                    aria-label={`${c.name} discount, dollars a barrel`}
-                    onChange={(e) => setDiscounts({ ...discounts, [v.id]: Number(e.target.value) })}
-                  />
-                  <small>{d === 0 ? 'list' : d > 0 ? `−$${d}` : `+$${-d}`}</small>
-                </td>
-                <td>
-                  <strong>{plan.barrels[v.id] > 1 ? `${plan.barrels[v.id].toFixed(0)} kbbl` : '–'}</strong>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  <td>${(c.price + move - d).toFixed(2)}</td>
+                  <td className={v.margin + d > 0 ? 'cdu-good' : 'cdu-bad'}>
+                    ${(v.margin + d).toFixed(2)}/bbl
+                    {!v.onSpec && (
+                      <small className="sf-warn" title="Some products are off spec at these cuts">
+                        {' '}
+                        ⚠ off spec
+                      </small>
+                    )}
+                  </td>
+                  <td>{(v.residue * 100).toFixed(0)}%</td>
+                  <td>{v.sulphur.toFixed(2)} t/kbbl</td>
+                  <td>
+                    <input
+                      className="pl-discount"
+                      type="range"
+                      min={-5}
+                      max={5}
+                      step={0.5}
+                      value={d}
+                      aria-label={`${c.name} discount, dollars a barrel`}
+                      onChange={(e) =>
+                        setDiscounts({
+                          ...discounts,
+                          [v.id]: Number(e.target.value),
+                        })
+                      }
+                    />
+                    <small>{d === 0 ? 'list' : d > 0 ? `−$${d}` : `+$${-d}`}</small>
+                  </td>
+                  <td>
+                    <strong>{plan.barrels[v.id] > 1 ? `${plan.barrels[v.id].toFixed(0)} kbbl` : '–'}</strong>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
       <p className="cdu-note muted">
-        Real planners then round the plan to whole cargoes and check it against the full model, because a linear model is only exact near where it was
-        measured. Try taking a crude off offer, or a dollar off one, and watch the slate and the shadow prices move.
+        Real planners then round the plan to whole cargoes and check it against the full model, because a linear model is only exact near where it was measured.
+        Try taking a crude off offer, or a dollar off one, and watch the slate and the shadow prices move.
       </p>
     </>
   )
 }
 
 const CRACKS: { id: CrackId; name: string; colour: string; base: number }[] = [
-  { id: 'petrol', name: 'Petrol crack', colour: '#f0c050', base: 105 - BASE_BRENT },
-  { id: 'diesel', name: 'Diesel crack', colour: '#d9733c', base: 108 - BASE_BRENT },
+  {
+    id: 'petrol',
+    name: 'Petrol crack',
+    colour: '#f0c050',
+    base: 105 - BASE_BRENT,
+  },
+  {
+    id: 'diesel',
+    name: 'Diesel crack',
+    colour: '#d9733c',
+    base: 108 - BASE_BRENT,
+  },
   { id: 'jet', name: 'Jet crack', colour: '#9fd0e0', base: 105 - BASE_BRENT },
-  { id: 'fuelOil', name: 'Fuel oil crack', colour: '#8a7a6a', base: SITE_PRICES.fuelOil - BASE_BRENT },
+  {
+    id: 'fuelOil',
+    name: 'Fuel oil crack',
+    colour: '#8a7a6a',
+    base: SITE_PRICES.fuelOil - BASE_BRENT,
+  },
 ]
 
 function Market({ plant }: { plant: Plant }) {
@@ -204,13 +253,16 @@ function Market({ plant }: { plant: Plant }) {
   const live = plant.market.live
   const key = settingsKey(plant)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const [atBase, atMarket] = useMemo(() => [siteBalance({ ...plant, market: { ...plant.market, live: false } }), siteBalance({ ...plant, market: { ...plant.market, live: true } })], [key])
+  const [atBase, atMarket] = useMemo(
+    () => [siteBalance({ ...plant, market: { ...plant.market, live: false } }), siteBalance({ ...plant, market: { ...plant.market, live: true } })],
+    [key],
+  )
   const x = (d: number) => d - Math.floor(day)
   return (
     <>
       <p className="cdu-note">
-        Refiners don’t earn the price of petrol: they earn its <em>crack</em>, what it sells for over the crude it came from. Crude wanders over months;
-        petrol cracks peak in the summer driving season, diesel’s and gas’s in winter. The market moves a day each time the tank farm runs a day.
+        Refiners don’t earn the price of petrol: they earn its <em>crack</em>, what it sells for over the crude it came from. Crude wanders over months; petrol
+        cracks peak in the summer driving season, diesel’s and gas’s in winter. The market moves a day each time the tank farm runs a day.
       </p>
       <div className="pl-market-head">
         <div className="pl-today">
@@ -241,14 +293,24 @@ function Market({ plant }: { plant: Plant }) {
           label="Brent over the last 120 days"
           x={{ min: -119, max: 0, label: 'Days ago' }}
           y={{ min: 70, max: 95, label: '$/bbl' }}
-          curves={[{ name: 'Brent', colour: '#e0a458', points: past.map((m) => [x(m.day), m.brent]) }]}
+          curves={[
+            {
+              name: 'Brent',
+              colour: '#e0a458',
+              points: past.map((m) => [x(m.day), m.brent]),
+            },
+          ]}
           lines={[{ y: BASE_BRENT, label: 'plan' }]}
         />
         <CurveChart
           label="Product cracks over the last 120 days"
           x={{ min: -119, max: 0, label: 'Days ago' }}
           y={{ min: -30, max: 35, label: '$/bbl over Brent' }}
-          curves={CRACKS.map((c) => ({ name: c.name, colour: c.colour, points: past.map((m) => [x(m.day), c.base + m.cracks[c.id]] as [number, number]) }))}
+          curves={CRACKS.map((c) => ({
+            name: c.name,
+            colour: c.colour,
+            points: past.map((m) => [x(m.day), c.base + m.cracks[c.id]] as [number, number]),
+          }))}
         />
       </div>
       <table className="sf-table">
@@ -266,7 +328,10 @@ function Market({ plant }: { plant: Plant }) {
                 <span className="cdu-swatch" style={{ background: c.colour }} /> {c.name.replace(' crack', '')}
               </td>
               <td>
-                ${(c.base + today.cracks[c.id]).toFixed(2)} <small className="muted">({today.cracks[c.id] >= 0 ? '+' : '−'}${Math.abs(today.cracks[c.id]).toFixed(2)})</small>
+                ${(c.base + today.cracks[c.id]).toFixed(2)}{' '}
+                <small className="muted">
+                  ({today.cracks[c.id] >= 0 ? '+' : '−'}${Math.abs(today.cracks[c.id]).toFixed(2)})
+                </small>
               </td>
               <td>${(today.brent + c.base + today.cracks[c.id]).toFixed(2)}</td>
             </tr>
@@ -292,16 +357,28 @@ function Carbon({ plant }: { plant: Plant }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const b = useMemo(() => siteBalance(plant), [key])
   const parts = [
-    { name: 'Fuel burnt in furnaces and reboilers', t: b.co2.fuel, colour: '#e0a458' },
-    { name: 'Coke burnt off the cat cracker’s catalyst', t: b.co2.fcc, colour: '#8a7a6a' },
-    { name: 'Making hydrogen from natural gas', t: b.co2.hydrogen, colour: '#7fb4dc' },
+    {
+      name: 'Fuel burnt in furnaces and reboilers',
+      t: b.co2.fuel,
+      colour: '#e0a458',
+    },
+    {
+      name: 'Coke burnt off the cat cracker’s catalyst',
+      t: b.co2.fcc,
+      colour: '#8a7a6a',
+    },
+    {
+      name: 'Making hydrogen from natural gas',
+      t: b.co2.hydrogen,
+      colour: '#7fb4dc',
+    },
   ]
   const perBbl = plant.furnace.feed > 0 ? (b.co2.total * 1000) / (plant.furnace.feed * 1000) : 0
   return (
     <>
       <p className="cdu-note">
-        A refinery burns a few per cent of its crude to run itself. In the UK and Europe every tonne of CO₂ needs an allowance, so carbon is a running cost
-        like fuel. This is the site’s direct CO₂: what its stacks release, not what the fuels release when they’re used.
+        A refinery burns a few per cent of its crude to run itself. In the UK and Europe every tonne of CO₂ needs an allowance, so carbon is a running cost like
+        fuel. This is the site’s direct CO₂: what its stacks release, not what the fuels release when they’re used.
       </p>
       <div className="pl-carbon">
         <div>
@@ -327,7 +404,14 @@ function Carbon({ plant }: { plant: Plant }) {
         <div>
           <label className="cdu-control">
             <span>Carbon price</span>
-            <input type="range" min={0} max={150} step={5} value={plant.market.carbon} onChange={(e) => controls.setMarket({ carbon: Number(e.target.value) })} />
+            <input
+              type="range"
+              min={0}
+              max={150}
+              step={5}
+              value={plant.market.carbon}
+              onChange={(e) => controls.setMarket({ carbon: Number(e.target.value) })}
+            />
             <output>${plant.market.carbon} /t</output>
           </label>
           <dl className="sf-readings">
@@ -379,42 +463,51 @@ function Turnaround({ plant }: { plant: Plant }) {
   return (
     <>
       <p className="cdu-note">
-        Every four or five years the crude unit comes down for a turnaround: inspection, cleaning and repairs no one can do with it running. Every day it’s
-        down costs the site its margin, about {money(daily)} today. Extra crews working nights shorten some jobs, at a price. Only the jobs on the{' '}
+        Every four or five years the crude unit comes down for a turnaround: inspection, cleaning and repairs no one can do with it running. Every day it’s down
+        costs the site its margin, about {money(daily)} today. Extra crews working nights shorten some jobs, at a price. Only the jobs on the{' '}
         <strong>critical path</strong> decide how long it takes: shortening anything else just gives it more slack.
       </p>
-      <svg className="pl-gantt" viewBox={`0 0 ${w} ${TURNAROUND.length * row + 34}`} role="img" aria-label={`Turnaround schedule: ${s.days} days`}>
-        {Array.from({ length: 26 }, (_, d) => (
-          <g key={d}>
-            <line x1={left + d * dayW} x2={left + d * dayW} y1={20} y2={TURNAROUND.length * row + 24} className={d % 5 === 0 ? 'pl-grid-major' : 'pl-grid'} />
-            {d % 5 === 0 && (
-              <text x={left + d * dayW} y={14} textAnchor="middle" className="pl-gantt-day">
-                day {d}
-              </text>
-            )}
-          </g>
-        ))}
-        {TURNAROUND.map((t, i) => {
-          const y = 24 + i * row
-          const critical = s.critical.includes(t.id)
-          const len = s.finish[t.id] - s.start[t.id]
-          return (
-            <g key={t.id}>
-              <text x={left - 8} y={y + 15} textAnchor="end" className={`pl-gantt-name${critical ? ' pl-critical-text' : ''}`}>
-                {t.name}
-              </text>
-              {s.slack[t.id] > 0 && <rect x={left + s.finish[t.id] * dayW} y={y + 8} width={s.slack[t.id] * dayW} height={4} className="pl-slack" />}
-              <rect x={left + s.start[t.id] * dayW + 1} y={y + 3} width={Math.max(2, len * dayW - 2)} height={row - 8} rx={4} className={critical ? 'pl-critical' : 'pl-task'} />
-              {crashed.has(t.id) && (
-                <text x={left + s.start[t.id] * dayW + 6} y={y + 16} className="pl-gantt-crew">
-                  +crew
+      <div className="pl-turnaround-wrap">
+        <svg className="pl-gantt" viewBox={`0 0 ${w} ${TURNAROUND.length * row + 34}`} role="img" aria-label={`Turnaround schedule: ${s.days} days`}>
+          {Array.from({ length: 26 }, (_, d) => (
+            <g key={d}>
+              <line x1={left + d * dayW} x2={left + d * dayW} y1={20} y2={TURNAROUND.length * row + 24} className={d % 5 === 0 ? 'pl-grid-major' : 'pl-grid'} />
+              {d % 5 === 0 && (
+                <text x={left + d * dayW} y={14} textAnchor="middle" className="pl-gantt-day">
+                  day {d}
                 </text>
               )}
             </g>
-          )
-        })}
-        <line x1={left + s.days * dayW} x2={left + s.days * dayW} y1={18} y2={TURNAROUND.length * row + 26} className="pl-end" />
-      </svg>
+          ))}
+          {TURNAROUND.map((t, i) => {
+            const y = 24 + i * row
+            const critical = s.critical.includes(t.id)
+            const len = s.finish[t.id] - s.start[t.id]
+            return (
+              <g key={t.id}>
+                <text x={left - 8} y={y + 15} textAnchor="end" className={`pl-gantt-name${critical ? ' pl-critical-text' : ''}`}>
+                  {t.name}
+                </text>
+                {s.slack[t.id] > 0 && <rect x={left + s.finish[t.id] * dayW} y={y + 8} width={s.slack[t.id] * dayW} height={4} className="pl-slack" />}
+                <rect
+                  x={left + s.start[t.id] * dayW + 1}
+                  y={y + 3}
+                  width={Math.max(2, len * dayW - 2)}
+                  height={row - 8}
+                  rx={4}
+                  className={critical ? 'pl-critical' : 'pl-task'}
+                />
+                {crashed.has(t.id) && (
+                  <text x={left + s.start[t.id] * dayW + 6} y={y + 16} className="pl-gantt-crew">
+                    +crew
+                  </text>
+                )}
+              </g>
+            )
+          })}
+          <line x1={left + s.days * dayW} x2={left + s.days * dayW} y1={18} y2={TURNAROUND.length * row + 26} className="pl-end" />
+        </svg>
+      </div>
       <div className="pl-crews">
         {TURNAROUND.filter((t) => t.crashed < t.days).map((t) => (
           <label key={t.id} className={`pl-crew${s.critical.includes(t.id) ? ' pl-crew-critical' : ''}`}>
