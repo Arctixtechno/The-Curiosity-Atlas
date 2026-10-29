@@ -10,6 +10,7 @@ import {
   type MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
+  type PointLight,
   RepeatWrapping,
   SRGBColorSpace,
   Vector3,
@@ -17,6 +18,7 @@ import {
 import { Label3D } from '../components/Label3D.tsx'
 import {
   ACADEMY_OVERLAY,
+  SAFETY_OVERLAY,
   BLENDING_OVERLAY,
   CDU_OVERLAY,
   CONVERSION_OVERLAY,
@@ -35,6 +37,8 @@ import { TANKS } from '../features/refinery/tankFarm.ts'
 import { drumCycle } from '../features/refinery/heavyEnd.ts'
 import { LESSONS } from '../features/refinery/academy.ts'
 import { useAcademy } from '../features/refinery/academyStore.ts'
+import { liveFlare, PURGE } from '../features/refinery/drills.ts'
+import { getSafety, useSafety } from '../features/refinery/safetyStore.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
@@ -1109,10 +1113,25 @@ function Tanks({ m }: { m: Materials }) {
 function Flare({ m }: { m: Materials }) {
   const [x, z] = REFINERY.flare
   const height = 45
-  const flame = useRef<Mesh>(null)
-  useFrame(({ clock }) => {
+  const flame = useRef<Group>(null)
+  const light = useRef<PointLight>(null)
+  /** How big the flame is drawn, eased towards what the flare is burning. */
+  const size = useRef(1)
+  const target = useRef(1)
+  const since = useRef(1)
+  useFrame(({ clock }, dt) => {
+    since.current += dt
+    if (since.current > 0.25) {
+      since.current = 0
+      // Purge gas alone draws the usual pilot-sized flame; a relief load grows it with the square root of the flow.
+      const load = liveFlare(getSafety(), getPlant().furnace.time)
+      target.current = Math.min(5, 0.6 + 0.4 * Math.sqrt(load / PURGE))
+    }
+    size.current += (target.current - size.current) * Math.min(1, dt * 1.5)
     const t = clock.elapsedTime
-    if (flame.current) flame.current.scale.set(1 + Math.sin(t * 9) * 0.08, 1 + Math.sin(t * 6.3) * 0.15 + Math.sin(t * 13) * 0.06, 1)
+    const s = size.current
+    if (flame.current) flame.current.scale.set(s * (1 + Math.sin(t * 9) * 0.08), s * (1 + Math.sin(t * 6.3) * 0.15 + Math.sin(t * 13) * 0.06), s)
+    if (light.current) light.current.intensity = 60 * s * s
   })
   return (
     <group position={[x, 0, z]}>
@@ -1124,15 +1143,70 @@ function Flare({ m }: { m: Materials }) {
           <torusGeometry args={[0.9, 0.05, 4, 20]} />
         </mesh>
       ))}
-      <mesh ref={flame} position={[0, height + 2.2, 0]}>
-        <coneGeometry args={[1.1, 4.4, 12, 1, true]} />
-        <meshBasicMaterial color="#ffb34a" transparent opacity={0.9} side={DoubleSide} toneMapped={false} />
+      <group ref={flame} position={[0, height, 0]}>
+        <mesh position={[0, 2.2, 0]}>
+          <coneGeometry args={[1.1, 4.4, 12, 1, true]} />
+          <meshBasicMaterial color="#ffb34a" transparent opacity={0.9} side={DoubleSide} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 1.4, 0]}>
+          <sphereGeometry args={[0.8, 12, 12]} />
+          <meshBasicMaterial color="#fff0b0" toneMapped={false} />
+        </mesh>
+      </group>
+      <pointLight ref={light} position={[0, height + 2, 0]} color="#ff9a3a" intensity={60} distance={90} decay={1.4} />
+      <UnitSign at={[-3, 3.5]} text="Flare · relief and safety" prompt="Press E for safety and emergencies: drills, the flare, permits and HAZOP" overlay={SAFETY_OVERLAY} />
+    </group>
+  )
+}
+
+/**
+ * The muster point by the gate, where everyone gathers in an emergency, with a siren mast whose beacon turns while
+ * a drill runs. Its sign opens the safety screen.
+ */
+function MusterPoint() {
+  const [x, z] = REFINERY.muster
+  const beacon = useRef<Mesh>(null)
+  const drill = useSafety((s) => s.drill !== null && !s.drill.finished)
+  useFrame(({ clock }) => {
+    if (!beacon.current) return
+    const on = drill && Math.sin(clock.elapsedTime * 10) > 0
+    ;(beacon.current.material as MeshBasicMaterial).color.set(on ? '#ff3a2a' : '#4a2420')
+  })
+  // Faces north, into the site, so it's seen from the units.
+  return (
+    <group position={[x, 0, z]} rotation={[0, Math.PI, 0]}>
+      {[-0.7, 0.7].map((px) => (
+        <mesh key={px} position={[px, 1, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 2, 8]} />
+          <meshStandardMaterial color="#8a8a86" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      <mesh position={[0, 1.75, 0]}>
+        <boxGeometry args={[1.8, 0.9, 0.06]} />
+        <meshStandardMaterial color="#1f8a4c" roughness={0.6} />
       </mesh>
-      <mesh position={[0, height + 1.4, 0]}>
-        <sphereGeometry args={[0.8, 12, 12]} />
-        <meshBasicMaterial color="#fff0b0" toneMapped={false} />
+      <mesh position={[0, 1.75, 0.035]}>
+        <planeGeometry args={[1.6, 0.7]} />
+        <meshBasicMaterial color="#f4f4ee" toneMapped={false} />
       </mesh>
-      <pointLight position={[0, height + 2, 0]} color="#ff9a3a" intensity={60} distance={70} decay={1.4} />
+      <mesh position={[0, 1.75, 0.04]}>
+        <planeGeometry args={[1.45, 0.55]} />
+        <meshBasicMaterial color="#1f8a4c" toneMapped={false} />
+      </mesh>
+      <Label3D text="Muster point" position={[0, 1.75, 0.06]} scale={1.3} />
+      <mesh position={[1.8, 2.5, 0]}>
+        <cylinderGeometry args={[0.07, 0.09, 5, 8]} />
+        <meshStandardMaterial color="#8a8a86" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[1.8, 4.6, 0.18]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.22, 0.4, 12, 1, true]} />
+        <meshStandardMaterial color="#d8d4c8" side={DoubleSide} />
+      </mesh>
+      <mesh ref={beacon} position={[1.8, 5.1, 0]}>
+        <cylinderGeometry args={[0.14, 0.16, 0.28, 12]} />
+        <meshBasicMaterial color="#4a2420" toneMapped={false} />
+      </mesh>
+      <UnitSign at={[0, 1.2]} text="Safety and emergencies" prompt="Press E for safety and emergencies: drills, the flare, permits and HAZOP" overlay={SAFETY_OVERLAY} height={3.1} />
     </group>
   )
 }
@@ -1247,6 +1321,7 @@ export default function Refinery() {
       <SiteBoard />
       <ControlRoom m={m} />
       <TrainingCentre m={m} />
+      <MusterPoint />
       <Furnace m={m} />
       <CrudeColumn m={m} />
       <FieldPanel />

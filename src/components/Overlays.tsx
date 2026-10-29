@@ -17,6 +17,7 @@ import {
   LIGHT_ENDS_OVERLAY,
   OVERVIEW_OVERLAY,
   REFORMER_OVERLAY,
+  SAFETY_OVERLAY,
   SITE_OVERLAY,
   TREATING_OVERLAY,
 } from '../features/refinery/overlayIds.ts'
@@ -52,6 +53,7 @@ const BlendingPanel = lazy(() => import('../features/refinery/BlendingPanel.tsx'
 const HeavyEndPanel = lazy(() => import('../features/refinery/HeavyEndPanel.tsx').then((m) => ({ default: m.HeavyEndPanel })))
 const DcsPanel = lazy(() => import('../features/refinery/DcsPanel.tsx').then((m) => ({ default: m.DcsPanel })))
 const AcademyPanel = lazy(() => import('../features/refinery/AcademyPanel.tsx').then((m) => ({ default: m.AcademyPanel })))
+const SafetyPanel = lazy(() => import('../features/refinery/SafetyPanel.tsx').then((m) => ({ default: m.SafetyPanel })))
 const SitePanel = lazy(() => import('../features/refinery/SitePanel.tsx').then((m) => ({ default: m.SitePanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
@@ -107,6 +109,7 @@ export function Overlays() {
     [BLENDING_OVERLAY]: BlendingPanel,
     [SITE_OVERLAY]: SitePanel,
     [ACADEMY_OVERLAY]: AcademyPanel,
+    [SAFETY_OVERLAY]: SafetyPanel,
     [DCS_OVERLAY]: DcsPanel,
     [HEAVY_END_OVERLAY]: HeavyEndPanel,
   }[overlay ?? '']

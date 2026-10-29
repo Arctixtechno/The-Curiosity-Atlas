@@ -316,6 +316,8 @@ export const REFINERY = {
   smr: { at: [-28, 15] as [number, number], size: [5, 8] as [number, number] },
   /** The training centre: a portakabin in front of the control room, its door facing the car park. */
   training: { at: [-17, 23] as [number, number], size: [7, 3.2] as [number, number], height: 2.8 },
+  /** The muster point by the gate, where everyone gathers in an emergency. */
+  muster: [-3.4, 25.5] as [number, number],
   /** The blend header and its analyser house, by the tank farm near the gate. */
   blending: { at: [6.5, 19] as [number, number], size: [4, 5] as [number, number] },
   tanks: [
