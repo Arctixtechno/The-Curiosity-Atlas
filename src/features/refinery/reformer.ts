@@ -70,6 +70,11 @@ export const NAPHTHA_PNA: Record<CrudeId, { p: number; n: number; a: number }> =
   wti: { p: 55, n: 32, a: 13 },
   arabLight: { p: 66, n: 22, a: 12 },
   maya: { p: 45, n: 38, a: 17 },
+  bonny: { p: 36, n: 48, a: 16 },
+  sverdrup: { p: 40, n: 44, a: 16 },
+  basrah: { p: 62, n: 24, a: 14 },
+  // The condensate diluent's naphtha: light and paraffinic.
+  wcs: { p: 60, n: 30, a: 10 },
 }
 
 /** The light naphtha (C5 and C6, boiling below this) goes to the isomerisation unit, not the reformer, °C. */

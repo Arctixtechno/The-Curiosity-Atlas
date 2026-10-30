@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { useAcademy } from '../features/refinery/academyStore.ts'
+import { useSafety } from '../features/refinery/safetyStore.ts'
+import { useRounds } from '../features/refinery/roundStore.ts'
+import { useTourStop } from '../features/refinery/tour.ts'
 import { rooms } from '../rooms/registry.ts'
 import { computeRoomStates } from '../world/navigation.ts'
 import { clockText, useHour } from '../world/clock.ts'
@@ -12,6 +16,11 @@ import { ChevronIcon, GearIcon, MapIcon } from './icons.tsx'
 import { TouchControls } from './TouchControls.tsx'
 import './Hud.css'
 import './Panel.css'
+
+const DrillBanner = lazy(() => import('../features/refinery/DrillBanner.tsx').then((m) => ({ default: m.DrillBanner })))
+const RoundChip = lazy(() => import('../features/refinery/SiteHud.tsx').then((m) => ({ default: m.RoundChip })))
+const TourCard = lazy(() => import('../features/refinery/SiteHud.tsx').then((m) => ({ default: m.TourCard })))
+const LessonCoach = lazy(() => import('../features/refinery/LessonCoach.tsx').then((m) => ({ default: m.LessonCoach })))
 
 // Conventional HTML overlay drawn on top of the 3D canvas.
 export function Hud() {
@@ -27,6 +36,10 @@ export function Hud() {
   const [photo, setPhoto] = useState(false)
   const hour = useHour()
   const touch = useTouchMode()
+  const lesson = useAcademy((s) => s.active)
+  const drill = useSafety((s) => s.drill !== null)
+  const round = useRounds((s) => s.active !== null)
+  const touring = useTourStop() !== null
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -53,6 +66,22 @@ export function Hud() {
       </div>
       {showRoomStates && <RoomStates />}
       {toast && <div className="toast">{toast}</div>}
+      {drill && activeRoomId === 'refinery' && (
+        <Suspense fallback={null}>
+          <DrillBanner />
+        </Suspense>
+      )}
+      {activeRoomId === 'refinery' && (round || touring) && (
+        <Suspense fallback={null}>
+          {round && !overlay && <RoundChip />}
+          {touring && <TourCard />}
+        </Suspense>
+      )}
+      {lesson && activeRoomId === 'refinery' && (
+        <Suspense fallback={null}>
+          <LessonCoach />
+        </Suspense>
+      )}
       {viewing === 'telescope' && <Eyepiece />}
       {viewing === 'spyglass' && <Spyglass />}
       {isExploring && touch && viewing && !overlay && <TouchControls />}

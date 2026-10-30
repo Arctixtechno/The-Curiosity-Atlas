@@ -8,12 +8,14 @@ import { DHT_LIMITS, SRU_LIMITS } from './treating.ts'
 import { TreatingPfd } from './TreatingPfd.tsx'
 import { TREATING_TASKS } from './treatingTasks.ts'
 import { Slider } from './ui.tsx'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
 
 type Tab = 'operate' | 'shift' | 'learn'
 
 /** The diesel hydrotreater, the hydrogen header and the sulphur plant: where the crude's sulphur ends up. */
 export function TreatingPanel() {
+  usePlantClock()
   const plant = usePlant((p) => p)
   const result = useMemo(() => treatingResult(plant), [plant])
   const [tab, setTab] = useState<Tab>('operate')

@@ -309,11 +309,28 @@ export const REFINERY = {
   fcc: { at: [-20, -14] as [number, number], size: 9 },
   reformer: { at: [-3, -19] as [number, number], size: [13, 7] as [number, number] },
   treating: { at: [-23, -1] as [number, number], size: [8, 6] as [number, number] },
+  lightEnds: { at: [20, -3] as [number, number], size: [8, 6] as [number, number] },
+  /** The heavy end, built last, round the edges of the site. */
+  coker: { at: [-22, -24] as [number, number], size: [10, 5] as [number, number] },
+  hydrocracker: { at: [10, -22] as [number, number], size: [8, 5] as [number, number] },
+  smr: { at: [-28, 15] as [number, number], size: [5, 8] as [number, number] },
+  /** The training centre: a portakabin in front of the control room, its door facing the car park. */
+  training: { at: [-17, 23] as [number, number], size: [7, 3.2] as [number, number], height: 2.8 },
+  /** The crude charge pumps, west of the furnace. */
+  chargePumps: [-9.6, -3] as [number, number],
+  /** The jetty: its trestle leaves the east fence here and runs this far out into the estuary. */
+  jetty: { x: 32, z: 8, length: 26 },
+  /** The muster point by the gate, where everyone gathers in an emergency. */
+  muster: [-3.4, 25.5] as [number, number],
+  /** The blend header and its analyser house, by the tank farm near the gate. */
+  blending: { at: [6.5, 19] as [number, number], size: [4, 5] as [number, number] },
   tanks: [
-    { at: [25, 19] as [number, number], label: 'Crude oil' },
-    { at: [25, 7] as [number, number], label: 'Diesel' },
-    { at: [14, 19] as [number, number], label: 'Kerosene' },
+    { at: [25, 19] as [number, number], label: 'Crude oil', tank: 'crude' as const },
+    { at: [25, 7] as [number, number], label: 'Diesel', tank: 'diesel' as const },
+    { at: [14, 19] as [number, number], label: 'Jet fuel', tank: 'jet' as const },
   ],
+  /** The tank farm office's sign, between the tanks and the road: opens the plant manager's screen. */
+  tankFarmSign: [19.5, 14.2] as [number, number],
   tankRadius: 4.4,
   flare: [27, -23] as [number, number],
 }

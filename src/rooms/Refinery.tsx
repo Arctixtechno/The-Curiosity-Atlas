@@ -4,20 +4,50 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
   CanvasTexture,
   DoubleSide,
+  type Group,
   type InstancedMesh,
   type Mesh,
+  type MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
+  type PointLight,
   RepeatWrapping,
   SRGBColorSpace,
   Vector3,
 } from 'three'
 import { Label3D } from '../components/Label3D.tsx'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
-import { usePlant } from '../features/refinery/plant.ts'
+import {
+  ACADEMY_OVERLAY,
+  PLANNING_OVERLAY,
+  ROUNDS_OVERLAY,
+  SAFETY_OVERLAY,
+  BLENDING_OVERLAY,
+  CDU_OVERLAY,
+  CONVERSION_OVERLAY,
+  DCS_OVERLAY,
+  HEAVY_END_OVERLAY,
+  LIGHT_ENDS_OVERLAY,
+  OVERVIEW_OVERLAY,
+  REFORMER_OVERLAY,
+  SITE_OVERLAY,
+  TREATING_OVERLAY,
+} from '../features/refinery/overlayIds.ts'
+import { lightEndsResult } from '../features/refinery/lightEndsPlant.ts'
+import { usePlantClock } from '../features/refinery/clock.ts'
+import { getPlant, usePlant } from '../features/refinery/plant.ts'
+import { TANKS, type TankFarm } from '../features/refinery/tankFarm.ts'
+import { CHECKPOINTS } from '../features/refinery/rounds.ts'
+import { rounds, useRounds } from '../features/refinery/roundStore.ts'
+import { drumCycle } from '../features/refinery/heavyEnd.ts'
+import { LESSONS } from '../features/refinery/academy.ts'
+import { useAcademy } from '../features/refinery/academyStore.ts'
+import { liveFlare, PURGE } from '../features/refinery/drills.ts'
+import { getSafety, useSafety } from '../features/refinery/safetyStore.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
 import { Atmosphere } from './Atmosphere.tsx'
+import { roomSounds } from '../world/Ambience.tsx'
+import { playerPose } from '../world/store.ts'
 import { REFINERY } from './dimensions.ts'
 
 // Marshgate Refinery at dusk: an open site on the Thames estuary marshes,
@@ -481,6 +511,31 @@ function PipeRack({ m }: { m: Materials }) {
   )
 }
 
+/** A beacon on the control room roof that flashes amber while the DCS has an unacknowledged alarm, red for a high-priority one. */
+function AlarmBeacon({ position }: { position: [number, number, number] }) {
+  const lamp = useRef<Mesh>(null)
+  const state = useRef<'off' | 'medium' | 'high'>('off')
+  const since = useRef(1)
+  useFrame(({ clock }, dt) => {
+    since.current += dt
+    if (since.current >= 0.5) {
+      since.current = 0
+      const open = getPlant().dcsAlarms.filter((a) => !a.acked && a.shelvedUntil === undefined)
+      state.current = open.some((a) => a.priority === 'high') ? 'high' : open.length ? 'medium' : 'off'
+    }
+    if (!lamp.current) return
+    const material = lamp.current.material as MeshBasicMaterial
+    const on = state.current !== 'off' && Math.sin(clock.elapsedTime * 8) > 0
+    material.color.set(!on ? '#3a3a36' : state.current === 'high' ? '#ff3a2a' : '#ffb020')
+  })
+  return (
+    <mesh ref={lamp} position={position}>
+      <cylinderGeometry args={[0.18, 0.22, 0.4, 12]} />
+      <meshBasicMaterial color="#3a3a36" toneMapped={false} />
+    </mesh>
+  )
+}
+
 /** The blast-resistant control room: low concrete walls, lit windows and its door. */
 function ControlRoom({ m }: { m: Materials }) {
   const { at, size, height } = REFINERY.controlRoom
@@ -488,11 +543,12 @@ function ControlRoom({ m }: { m: Materials }) {
   useInteractable({
     position: useMemo(() => new Vector3(at[0], 1.2, front + 0.6), [at, front]),
     radius: 2.6,
-    prompt: 'Press E to take the crude unit panel in the control room',
-    onInteract: () => openOverlay(CDU_OVERLAY),
+    prompt: 'Press E to sit at the control room DCS: every unit, alarms and trends',
+    onInteract: () => openOverlay(DCS_OVERLAY),
   })
   return (
     <group position={[at[0], 0, at[1]]}>
+      <AlarmBeacon position={[size[0] / 2 - 0.6, height + 0.5, size[1] / 2 - 0.6]} />
       <mesh position={[0, height / 2, 0]} material={m.concrete} castShadow receiveShadow>
         <boxGeometry args={[size[0], height, size[1]]} />
       </mesh>
@@ -514,6 +570,112 @@ function ControlRoom({ m }: { m: Materials }) {
       </mesh>
       <pointLight position={[0, 2.6, size[1] / 2 + 1.2]} color="#ffd8a0" intensity={6} distance={8} decay={1.8} />
       <Label3D text="Control room" position={[0, 3.4, size[1] / 2 + 0.05]} scale={2} />
+    </group>
+  )
+}
+
+/**
+ * The training centre: a portakabin in front of the control room, its door facing the car park. A board by the door
+ * lights a lamp for every lesson finished.
+ */
+function TrainingCentre({ m }: { m: Materials }) {
+  const { at, size, height } = REFINERY.training
+  const done = useAcademy((s) => s.lessonsDone)
+  const walls = useMemo(() => new MeshStandardMaterial({ color: '#e6dcc4', roughness: 0.8 }), [])
+  const band = useMemo(() => new MeshStandardMaterial({ color: '#2f6f9f', roughness: 0.6 }), [])
+  useEffect(
+    () => () => {
+      walls.dispose()
+      band.dispose()
+    },
+    [walls, band],
+  )
+  const [w, d] = size
+  return (
+    <group position={[at[0], 0, at[1]]}>
+      {/* Raised on blocks, like any site cabin. */}
+      <mesh position={[0, 0.2 + height / 2, 0]} material={walls} castShadow receiveShadow>
+        <boxGeometry args={[w, height, d]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height + 0.08, 0]} material={m.darkSteel}>
+        <boxGeometry args={[w + 0.2, 0.16, d + 0.2]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height - 0.35, 0]} material={band}>
+        <boxGeometry args={[w + 0.02, 0.22, d + 0.02]} />
+      </mesh>
+      {[-w / 2 + 0.6, w / 2 - 0.6].map((x) =>
+        [-d / 2 + 0.5, d / 2 - 0.5].map((z) => (
+          <mesh key={`${x}${z}`} position={[x, 0.1, z]} material={m.concrete}>
+            <boxGeometry args={[0.5, 0.2, 0.5]} />
+          </mesh>
+        )),
+      )}
+      {/* Windows down both long sides, lit from inside. */}
+      {[-2.2, -0.7, 0.8].map((x) =>
+        [-1, 1].map((side) => (
+          <mesh key={`${x}${side}`} position={[x, 1.75, side * (d / 2 + 0.01)]} rotation={[0, side < 0 ? Math.PI : 0, 0]} material={m.window}>
+            <planeGeometry args={[1.1, 0.8]} />
+          </mesh>
+        )),
+      )}
+      {/* The door, its step and a lamp over it, on the east end. */}
+      <mesh position={[w / 2 + 0.01, 1.25, 0.5]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[0.9, 2]} />
+        <meshStandardMaterial color="#2f6f9f" roughness={0.5} />
+      </mesh>
+      <mesh position={[w / 2 + 0.45, 0.12, 0.5]} material={m.concrete}>
+        <boxGeometry args={[0.9, 0.24, 1.2]} />
+      </mesh>
+      <mesh position={[w / 2 + 0.12, 2.45, 0.5]} material={m.lamp}>
+        <boxGeometry args={[0.2, 0.1, 0.45]} />
+      </mesh>
+      <pointLight position={[w / 2 + 1, 2.4, 0.5]} color="#ffd8a0" intensity={4} distance={6} decay={1.8} />
+      {/* The progress board: a lamp for each lesson. */}
+      <group position={[w / 2 + 0.05, 1.7, -0.8]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh material={m.darkSteel}>
+          <boxGeometry args={[1.5, 0.5, 0.06]} />
+        </mesh>
+        {LESSONS.map((l, i) => (
+          <mesh key={l.id} position={[-0.6 + i * 0.2, 0, 0.05]}>
+            <sphereGeometry args={[0.06, 10, 10]} />
+            <meshBasicMaterial color={done.includes(l.id) ? '#6fe08a' : '#4a3a2a'} toneMapped={false} />
+          </mesh>
+        ))}
+      </group>
+      {/* The planning office upstairs, reached by an outside stair at the west end. */}
+      <mesh position={[0, 0.2 + height * 1.5 + 0.16, 0]} material={walls} castShadow>
+        <boxGeometry args={[w, height, d]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height * 2 + 0.24, 0]} material={m.darkSteel}>
+        <boxGeometry args={[w + 0.2, 0.16, d + 0.2]} />
+      </mesh>
+      <mesh position={[0, 0.2 + height * 2 - 0.2, 0]} material={band}>
+        <boxGeometry args={[w + 0.02, 0.22, d + 0.02]} />
+      </mesh>
+      {[-2.2, -0.7, 0.8, 2.3].map((x) =>
+        [-1, 1].map((side) => (
+          <mesh key={`u${x}${side}`} position={[x, height + 1.9, side * (d / 2 + 0.01)]} rotation={[0, side < 0 ? Math.PI : 0, 0]} material={m.window}>
+            <planeGeometry args={[1.1, 0.8]} />
+          </mesh>
+        )),
+      )}
+      {Array.from({ length: 10 }, (_, i) => (
+        <mesh key={i} position={[-w / 2 + 0.6 + i * 0.32, 0.15 + i * 0.3, -d / 2 - 0.5]} material={m.darkSteel}>
+          <boxGeometry args={[0.32, 0.06, 0.9]} />
+        </mesh>
+      ))}
+      <mesh position={[-w / 2 + 0.6 + 10 * 0.32 + 0.4, height + 0.2, -d / 2 - 0.5]} material={m.darkSteel}>
+        <boxGeometry args={[1, 0.08, 0.9]} />
+      </mesh>
+      <group position={[-w / 2, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <Label3D text="Planning office" position={[0, height * 2 + 0.8, 0.06]} scale={1.6} />
+        <UnitSign at={[0.6, 1.4]} text="Planning and trading" prompt="Press E for planning: next month’s crudes, the market, carbon and the turnaround" overlay={PLANNING_OVERLAY} height={2} />
+      </group>
+      {/* Labels face +z, so turn them to face the car park. */}
+      <group position={[w / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <Label3D text="Training centre" position={[0, height - 0.1, 0.06]} scale={1.6} />
+        <UnitSign at={[-0.5, 1.4]} text="Lessons and quizzes" prompt="Press E for the training centre: lessons, quizzes and certificates" overlay={ACADEMY_OVERLAY} height={2} />
+      </group>
     </group>
   )
 }
@@ -591,15 +753,24 @@ function SiteBoard() {
   )
 }
 
-/** A unit's name board: opens its operator screen, or says when it's coming. */
+/**
+ * A unit's name board: opens its operator screen, or says when it's coming. `at` is in the parent group's
+ * coordinates, so the interaction point is read back from the board's world position once it is placed.
+ */
 function UnitSign({ at, text, prompt, overlay, height = 2.4 }: { at: [number, number]; text: string; prompt: string; overlay?: string; height?: number }) {
-  useInteractable({
-    position: useMemo(() => new Vector3(at[0], 1.2, at[1]), [at]),
-    radius: 3,
-    prompt,
-    onInteract: overlay ? () => openOverlay(overlay) : undefined,
+  const anchor = useRef<Group>(null)
+  const position = useMemo(() => new Vector3(at[0], 1.2, at[1]), [at])
+  useLayoutEffect(() => {
+    if (!anchor.current) return
+    anchor.current.updateWorldMatrix(true, false)
+    anchor.current.getWorldPosition(position)
   })
-  return <Label3D text={text} position={[at[0], height, at[1]]} scale={2.2} />
+  useInteractable({ position, radius: 3, prompt, onInteract: overlay ? () => openOverlay(overlay) : undefined })
+  return (
+    <group ref={anchor} position={[at[0], 1.2, at[1]]}>
+      <Label3D text={text} position={[0, height - 1.2, 0]} scale={2.2} />
+    </group>
+  )
 }
 
 /** The vacuum column: shorter and much fatter than the crude column, because vapour under vacuum takes up so much room. */
@@ -724,29 +895,251 @@ function Treating({ m }: { m: Materials }) {
   )
 }
 
-/** Storage tanks with floating roofs, in the tank farm. */
-function Tanks({ m }: { m: Materials }) {
-  const r = REFINERY.tankRadius
+/** A status lamp that shows whether a product is on spec, checked once a second rather than every frame. */
+function SpecLamp({ position, check }: { position: [number, number, number]; check: () => boolean }) {
+  const lamp = useRef<Mesh>(null)
+  const since = useRef(1)
+  useFrame((_, dt) => {
+    since.current += dt
+    if (since.current < 1 || !lamp.current) return
+    since.current = 0
+    ;(lamp.current.material as MeshBasicMaterial).color.set(check() ? '#6fe08a' : '#ff5a3a')
+  })
   return (
-    <group>
-      {REFINERY.tanks.map(({ at, label }) => (
-        <group key={label} position={[at[0], 0, at[1]]}>
-          <mesh position={[0, 4.5, 0]} material={m.tank} castShadow receiveShadow>
-            <cylinderGeometry args={[r, r, 9, 40, 1, true]} />
+    <mesh ref={lamp} position={position}>
+      <sphereGeometry args={[0.16, 12, 12]} />
+      <meshBasicMaterial color="#6fe08a" toneMapped={false} />
+    </mesh>
+  )
+}
+
+/** The gas plant, isomerisation and alkylation: slim columns, LPG spheres on legs, and the alkylation contactors, frosted cold. */
+function LightEnds({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.lightEnds
+  const [x, z] = at
+  const frost = useMemo(() => new MeshStandardMaterial({ color: '#dfe9f2', roughness: 0.35, metalness: 0.1 }), [])
+  useEffect(() => () => frost.dispose(), [frost])
+  return (
+    <group position={[x, 0, z]}>
+      {/* Depropaniser and deisobutaniser. */}
+      <Vessel x={-3} z={-2} radius={0.6} height={16} material={m.cladding} />
+      <Vessel x={-1.3} z={-2} radius={0.9} height={20} material={m.cladding} />
+      <Platforms x={-1.3} z={-2} radius={0.9} heights={[7, 14]} m={m} />
+      {/* Isomerisation reactors, in series. */}
+      <Vessel x={1} z={-2.2} radius={0.6} height={5} base={0.6} material={m.steel} />
+      <Vessel x={2.4} z={-2.2} radius={0.6} height={5} base={0.6} material={m.steel} />
+      {/* Alkylation contactors, lying down, kept a few degrees above freezing. */}
+      {[0.6, 1.9].map((cz) => (
+        <mesh key={cz} position={[-1.2, 1.1, cz]} rotation={[0, 0, Math.PI / 2]} material={frost} castShadow>
+          <cylinderGeometry args={[0.6, 0.6, 3.4, 20]} />
+        </mesh>
+      ))}
+      {/* LPG storage spheres on their legs. */}
+      {[[2.4, 1.4]].map(([sx, sz]) => (
+        <group key={sx} position={[sx, 0, sz]}>
+          <mesh position={[0, 3.2, 0]} material={m.tank} castShadow>
+            <sphereGeometry args={[1.5, 24, 16]} />
           </mesh>
-          <mesh position={[0, 7.6, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.darkSteel}>
-            <circleGeometry args={[r - 0.05, 40]} />
-          </mesh>
-          <mesh position={[0, 9.05, 0]} material={m.yellow}>
-            <torusGeometry args={[r, 0.04, 4, 48]} />
-          </mesh>
-          {/* Stairs spiralling up the shell, drawn as a single sloping band. */}
-          <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]} material={m.darkSteel}>
-            <cylinderGeometry args={[r + 0.06, r + 0.06, 0.25, 40, 1, true, 0, 0.6]} />
-          </mesh>
-          <Label3D text={label} position={[0, 5, r + 0.1]} scale={3} />
+          {Array.from({ length: 6 }, (_, i) => {
+            const a = (i / 6) * Math.PI * 2
+            return (
+              <mesh key={i} position={[Math.cos(a) * 1.35, 1.6, Math.sin(a) * 1.35]} material={m.darkSteel}>
+                <cylinderGeometry args={[0.07, 0.07, 3.2, 6]} />
+              </mesh>
+            )
+          })}
         </group>
       ))}
+      <SpecLamp position={[-3, 1.5, -1.3]} check={() => lightEndsResult(getPlant()).gasPlant.butaneInPropane <= 2.5} />
+      <UnitSign
+        at={[0, size[1] / 2 + 1.2]}
+        text="Units 800–1000 · Gas plant, isom, alkylation"
+        prompt="Press E to run the gas plant, isomerisation and alkylation"
+        overlay={LIGHT_ENDS_OVERLAY}
+      />
+    </group>
+  )
+}
+
+/** The blend header: a run-down line from every component tank, the in-line analysers in their hut, and lamps for the two pools. */
+function Blending({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.blending
+  const [x, z] = at
+  const colours = ['#9fd0e0', '#b8e08a', '#f0c050', '#e0a458', '#d6e8f0', '#c8a0e0', '#d9733c', '#a8c878']
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.08, 0]} material={m.concrete} receiveShadow>
+        <boxGeometry args={[size[0], 0.16, size[1]]} />
+      </mesh>
+      {/* Component lines rising to the header. */}
+      {colours.map((c, i) => (
+        <mesh key={c} position={[-1.4, 0.9, -2 + i * 0.5]}>
+          <cylinderGeometry args={[0.13, 0.13, 1.6, 8]} />
+          <meshStandardMaterial color={c} roughness={0.5} />
+        </mesh>
+      ))}
+      <mesh position={[-1.4, 1.7, -0.25]} rotation={[Math.PI / 2, 0, 0]} material={m.pipe}>
+        <cylinderGeometry args={[0.16, 0.16, 4, 10]} />
+      </mesh>
+      {/* Analyser house. */}
+      <mesh position={[0.6, 1.1, 0.6]} material={m.tank} castShadow>
+        <boxGeometry args={[1.6, 2.2, 1.8]} />
+      </mesh>
+      <mesh position={[0.6, 2.25, 0.6]} material={m.darkSteel}>
+        <boxGeometry args={[1.8, 0.1, 2]} />
+      </mesh>
+      <SpecLamp position={[1.45, 1.8, 0.2]} check={() => lightEndsResult(getPlant()).petrol.blend.onSpec} />
+      <SpecLamp position={[1.45, 1.8, 1]} check={() => lightEndsResult(getPlant()).diesel.blend.onSpec} />
+      <UnitSign at={[0, size[1] / 2 + 0.8]} text="Blending · petrol and diesel" prompt="Press E to blend petrol and diesel" overlay={BLENDING_OVERLAY} />
+    </group>
+  )
+}
+
+/**
+ * The delayed coker: two coke drums on a concrete table under a drilling derrick, with the coke pit below. The drill
+ * stem goes down the idle drum while its coke is cut out, following the plant clock.
+ */
+function Coker({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.coker
+  const [x, z] = at
+  const stem = useRef<Mesh>(null)
+  const pile = useRef<Mesh>(null)
+  useFrame(() => {
+    const p = getPlant()
+    const cycle = drumCycle(p.furnace.time / 3600, p.coker.cycle)
+    if (stem.current) {
+      const cutting = p.coker.running && cycle.idle.startsWith('cutting')
+      const depth = cutting ? (cycle.through - 0.45) / 0.3 : 0
+      stem.current.position.set(cycle.filling === 'A' ? 2.2 : -2.2, 28 - depth * 12, 0)
+    }
+    if (pile.current) pile.current.scale.setScalar(p.coker.running ? 0.6 + 0.4 * cycle.through : 0.3)
+  })
+  return (
+    <group position={[x, 0, z]}>
+      {/* The table: columns and a deck, with the coke chute between. */}
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sz) => (
+          <mesh key={`${sx},${sz}`} position={[sx * 4, 4, sz * 1.8]} material={m.concrete} castShadow>
+            <boxGeometry args={[0.8, 8, 0.8]} />
+          </mesh>
+        )),
+      )}
+      <mesh position={[0, 8.2, 0]} material={m.concrete} castShadow receiveShadow>
+        <boxGeometry args={[9.6, 0.5, 4.6]} />
+      </mesh>
+      <Vessel x={-2.2} z={0} radius={1.8} height={12} base={8.5} material={m.cladding} />
+      <Vessel x={2.2} z={0} radius={1.8} height={12} base={8.5} material={m.cladding} />
+      {/* The derrick that lowers the cutting drill. */}
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sz) => (
+          <mesh key={`d${sx},${sz}`} position={[sx * 1.6, 28, sz * 1.2]} rotation={[sz * 0.06, 0, -sx * 0.08]} material={m.steel} castShadow>
+            <boxGeometry args={[0.2, 12, 0.2]} />
+          </mesh>
+        )),
+      )}
+      {[23, 27, 31].map((h) => (
+        <mesh key={h} position={[0, h, 0]} material={m.yellow}>
+          <boxGeometry args={[3.6 - (h - 23) * 0.12, 0.15, 2.6]} />
+        </mesh>
+      ))}
+      <mesh ref={stem} position={[2.2, 28, 0]} material={m.darkSteel}>
+        <cylinderGeometry args={[0.12, 0.12, 8, 8]} />
+      </mesh>
+      {/* Coke pit, with the pile from the last drum. */}
+      <mesh position={[0, 0.05, size[1] / 2 + 1.4]} rotation={[-Math.PI / 2, 0, 0]} material={m.darkSteel}>
+        <planeGeometry args={[9, 2.6]} />
+      </mesh>
+      <mesh ref={pile} position={[1.5, 0.6, size[1] / 2 + 1.4]} castShadow>
+        <coneGeometry args={[1.6, 1.4, 10]} />
+        <meshStandardMaterial color="#1e1e1e" roughness={1} />
+      </mesh>
+      <UnitSign at={[-3.5, size[1] / 2 + 3.4]} text="Unit 1200 · Delayed coker" prompt="Press E to run the coker, hydrocracker and hydrogen plant" overlay={HEAVY_END_OVERLAY} />
+    </group>
+  )
+}
+
+/** The hydrocracker: two thick-walled reactors, the high-pressure separator and the fractionator. */
+function Hydrocracker({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.hydrocracker
+  const [x, z] = at
+  return (
+    <group position={[x, 0, z]}>
+      <Vessel x={-2.8} z={-0.6} radius={1.3} height={13} base={0.5} material={m.darkSteel} />
+      <Vessel x={-0.2} z={-0.6} radius={1.3} height={13} base={0.5} material={m.darkSteel} />
+      <mesh position={[2, 1.4, 1.2]} rotation={[0, 0, Math.PI / 2]} material={m.steel} castShadow>
+        <cylinderGeometry args={[0.8, 0.8, 3.2, 16]} />
+      </mesh>
+      <Vessel x={3} z={-1} radius={0.9} height={18} material={m.cladding} />
+      <Platforms x={-1.5} z={-0.6} radius={2.6} heights={[6, 12]} m={m} />
+      <UnitSign at={[0, size[1] / 2 + 1.2]} text="Unit 1300 · Hydrocracker" prompt="Press E to run the hydrocracker, coker and hydrogen plant" overlay={HEAVY_END_OVERLAY} />
+    </group>
+  )
+}
+
+/** The hydrogen plant: the reformer furnace box, its tall stack, the shift reactor and the PSA vessels. Its windows glow when it runs. */
+function HydrogenPlant({ m }: { m: Materials }) {
+  const { at, size } = REFINERY.smr
+  const [x, z] = at
+  const running = usePlant((p) => p.smr.running)
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 3.5, -1]} material={m.brick} castShadow receiveShadow>
+        <boxGeometry args={[size[0] - 0.6, 7, size[1] - 3]} />
+      </mesh>
+      {[-1.6, 0, 1.6].map((pz) => (
+        <mesh key={`w${pz}`} position={[size[0] / 2 - 0.29, 2, -1 + pz]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.8, 0.5]} />
+          <meshBasicMaterial color={running ? '#ff9a3a' : '#2a2420'} toneMapped={false} />
+        </mesh>
+      ))}
+      <mesh position={[-1.4, 12, -3.4]} material={m.darkSteel} castShadow>
+        <cylinderGeometry args={[0.45, 0.6, 24, 12]} />
+      </mesh>
+      {Array.from({ length: 6 }, (_, i) => (
+        <Vessel key={i} x={-1.5 + (i % 3) * 1.2} z={2.4 + Math.floor(i / 3) * 1.1} radius={0.35} height={4} material={m.steel} />
+      ))}
+      <UnitSign at={[size[0] / 2 + 1.2, 2]} text="Unit 1400 · Hydrogen plant" prompt="Press E to run the hydrogen plant, coker and hydrocracker" overlay={HEAVY_END_OVERLAY} />
+    </group>
+  )
+}
+
+/** Storage tanks with floating roofs, in the tank farm. The roof rides on the oil, and a gauge board on the shell shows the level. */
+function Tanks({ m }: { m: Materials }) {
+  const r = REFINERY.tankRadius
+  const levels = usePlant((p) => p.tanks.levels)
+  return (
+    <group>
+      {REFINERY.tanks.map(({ at, label, tank }) => {
+        const share = Math.min(1, levels[tank] / TANKS[tank].capacity)
+        const y = 0.5 + share * 8.2
+        return (
+          <group key={label} position={[at[0], 0, at[1]]}>
+            <mesh position={[0, 4.5, 0]} material={m.tank} castShadow receiveShadow>
+              <cylinderGeometry args={[r, r, 9, 40, 1, true]} />
+            </mesh>
+            <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.darkSteel}>
+              <circleGeometry args={[r - 0.05, 40]} />
+            </mesh>
+            <mesh position={[0, 9.05, 0]} material={m.yellow}>
+              <torusGeometry args={[r, 0.04, 4, 48]} />
+            </mesh>
+            {/* Stairs spiralling up the shell, drawn as a single sloping band. */}
+            <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]} material={m.darkSteel}>
+              <cylinderGeometry args={[r + 0.06, r + 0.06, 0.25, 40, 1, true, 0, 0.6]} />
+            </mesh>
+            {/* Float gauge board: the marker rides up and down with the roof. */}
+            <mesh position={[-1.6, 4.5, r + 0.02]} material={m.darkSteel}>
+              <boxGeometry args={[0.35, 8.6, 0.05]} />
+            </mesh>
+            <mesh position={[-1.6, y, r + 0.07]}>
+              <boxGeometry args={[0.5, 0.18, 0.06]} />
+              <meshBasicMaterial color={share > 0.9 || share < 0.08 ? '#ff5a3a' : '#ffd25a'} toneMapped={false} />
+            </mesh>
+            <Label3D text={`${label} · ${(share * 100).toFixed(0)}%`} position={[0, 5, r + 0.1]} scale={3} />
+          </group>
+        )
+      })}
+      <UnitSign at={REFINERY.tankFarmSign} text="Tank farm · plant manager" prompt="Press E for the plant manager: margin, tanks and the jetty" overlay={SITE_OVERLAY} />
     </group>
   )
 }
@@ -755,10 +1148,25 @@ function Tanks({ m }: { m: Materials }) {
 function Flare({ m }: { m: Materials }) {
   const [x, z] = REFINERY.flare
   const height = 45
-  const flame = useRef<Mesh>(null)
-  useFrame(({ clock }) => {
+  const flame = useRef<Group>(null)
+  const light = useRef<PointLight>(null)
+  /** How big the flame is drawn, eased towards what the flare is burning. */
+  const size = useRef(1)
+  const target = useRef(1)
+  const since = useRef(1)
+  useFrame(({ clock }, dt) => {
+    since.current += dt
+    if (since.current > 0.25) {
+      since.current = 0
+      // Purge gas alone draws the usual pilot-sized flame; a relief load grows it with the square root of the flow.
+      const load = liveFlare(getSafety(), getPlant().furnace.time)
+      target.current = Math.min(5, 0.6 + 0.4 * Math.sqrt(load / PURGE))
+    }
+    size.current += (target.current - size.current) * Math.min(1, dt * 1.5)
     const t = clock.elapsedTime
-    if (flame.current) flame.current.scale.set(1 + Math.sin(t * 9) * 0.08, 1 + Math.sin(t * 6.3) * 0.15 + Math.sin(t * 13) * 0.06, 1)
+    const s = size.current
+    if (flame.current) flame.current.scale.set(s * (1 + Math.sin(t * 9) * 0.08), s * (1 + Math.sin(t * 6.3) * 0.15 + Math.sin(t * 13) * 0.06), s)
+    if (light.current) light.current.intensity = 60 * s * s
   })
   return (
     <group position={[x, 0, z]}>
@@ -770,17 +1178,312 @@ function Flare({ m }: { m: Materials }) {
           <torusGeometry args={[0.9, 0.05, 4, 20]} />
         </mesh>
       ))}
-      <mesh ref={flame} position={[0, height + 2.2, 0]}>
-        <coneGeometry args={[1.1, 4.4, 12, 1, true]} />
-        <meshBasicMaterial color="#ffb34a" transparent opacity={0.9} side={DoubleSide} toneMapped={false} />
-      </mesh>
-      <mesh position={[0, height + 1.4, 0]}>
-        <sphereGeometry args={[0.8, 12, 12]} />
-        <meshBasicMaterial color="#fff0b0" toneMapped={false} />
-      </mesh>
-      <pointLight position={[0, height + 2, 0]} color="#ff9a3a" intensity={60} distance={70} decay={1.4} />
+      <group ref={flame} position={[0, height, 0]}>
+        <mesh position={[0, 2.2, 0]}>
+          <coneGeometry args={[1.1, 4.4, 12, 1, true]} />
+          <meshBasicMaterial color="#ffb34a" transparent opacity={0.9} side={DoubleSide} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 1.4, 0]}>
+          <sphereGeometry args={[0.8, 12, 12]} />
+          <meshBasicMaterial color="#fff0b0" toneMapped={false} />
+        </mesh>
+      </group>
+      <pointLight ref={light} position={[0, height + 2, 0]} color="#ff9a3a" intensity={60} distance={90} decay={1.4} />
+      <UnitSign at={[-3, 3.5]} text="Flare · relief and safety" prompt="Press E for safety and emergencies: drills, the flare, permits and HAZOP" overlay={SAFETY_OVERLAY} />
     </group>
   )
+}
+
+/**
+ * The muster point by the gate, where everyone gathers in an emergency, with a siren mast whose beacon turns while
+ * a drill runs. Its sign opens the safety screen.
+ */
+function MusterPoint() {
+  const [x, z] = REFINERY.muster
+  const beacon = useRef<Mesh>(null)
+  const drill = useSafety((s) => s.drill !== null && !s.drill.finished)
+  useFrame(({ clock }) => {
+    if (!beacon.current) return
+    const on = drill && Math.sin(clock.elapsedTime * 10) > 0
+    ;(beacon.current.material as MeshBasicMaterial).color.set(on ? '#ff3a2a' : '#4a2420')
+  })
+  // Faces north, into the site, so it's seen from the units.
+  return (
+    <group position={[x, 0, z]} rotation={[0, Math.PI, 0]}>
+      {[-0.7, 0.7].map((px) => (
+        <mesh key={px} position={[px, 1, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 2, 8]} />
+          <meshStandardMaterial color="#8a8a86" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      <mesh position={[0, 1.75, 0]}>
+        <boxGeometry args={[1.8, 0.9, 0.06]} />
+        <meshStandardMaterial color="#1f8a4c" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 1.75, 0.035]}>
+        <planeGeometry args={[1.6, 0.7]} />
+        <meshBasicMaterial color="#f4f4ee" toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 1.75, 0.04]}>
+        <planeGeometry args={[1.45, 0.55]} />
+        <meshBasicMaterial color="#1f8a4c" toneMapped={false} />
+      </mesh>
+      <Label3D text="Muster point" position={[0, 1.75, 0.06]} scale={1.3} />
+      <mesh position={[1.8, 2.5, 0]}>
+        <cylinderGeometry args={[0.07, 0.09, 5, 8]} />
+        <meshStandardMaterial color="#8a8a86" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[1.8, 4.6, 0.18]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.22, 0.4, 12, 1, true]} />
+        <meshStandardMaterial color="#d8d4c8" side={DoubleSide} />
+      </mesh>
+      <mesh ref={beacon} position={[1.8, 5.1, 0]}>
+        <cylinderGeometry args={[0.14, 0.16, 0.28, 12]} />
+        <meshBasicMaterial color="#4a2420" toneMapped={false} />
+      </mesh>
+      <UnitSign at={[0, 1.2]} text="Safety and emergencies" prompt="Press E for safety and emergencies: drills, the flare, permits and HAZOP" overlay={SAFETY_OVERLAY} height={3.1} />
+    </group>
+  )
+}
+
+/**
+ * A plume rising from a stack: puffs that drift up and downwind, swell and fade. `strength` (0 to 1) is read from the
+ * plant twice a second and eased, so a furnace that cuts back visibly smokes less.
+ */
+function Plume({ at, strength, colour = '#ecebe6', rise = 1, spread = 1 }: { at: [number, number, number]; strength: () => number; colour?: string; rise?: number; spread?: number }) {
+  const COUNT = 12
+  const puffs = useRef<(Mesh | null)[]>([])
+  const level = useRef(0)
+  const target = useRef(0)
+  const since = useRef(1)
+  useFrame(({ clock }, dt) => {
+    since.current += dt
+    if (since.current > 0.5) {
+      since.current = 0
+      target.current = strength()
+    }
+    level.current += (target.current - level.current) * Math.min(1, dt * 0.8)
+    const t = clock.elapsedTime
+    puffs.current.forEach((puff, i) => {
+      if (!puff) return
+      const age = (t * 0.09 + i / COUNT) % 1
+      // The wind off the estuary carries it west.
+      puff.position.set(-age * 7 + Math.sin(i * 1.7) * age * 1.2, age * 11 * rise, Math.cos(i * 2.3) * age * 1.2)
+      puff.scale.setScalar((0.5 + age * 2.6) * spread)
+      ;(puff.material as MeshBasicMaterial).opacity = level.current * 0.32 * (1 - age) * Math.min(1, age * 8)
+    })
+  })
+  return (
+    <group position={at}>
+      {Array.from({ length: COUNT }, (_, i) => (
+        <mesh key={i} ref={(el) => void (puffs.current[i] = el)}>
+          <sphereGeometry args={[1, 10, 8]} />
+          <meshBasicMaterial color={colour} transparent opacity={0} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+/** Plumes from the site's stacks, each following its unit. */
+function Plumes() {
+  const f = REFINERY.furnace
+  const smr = REFINERY.smr
+  const fcc = REFINERY.fcc
+  const coker = REFINERY.coker
+  return (
+    <>
+      <Plume at={[f.at[0], 2 + f.height + 3.8 + 18.4, f.at[1]]} strength={() => (getPlant().furnace.tripped ? 0 : getPlant().furnace.valve / 90)} colour="#d8d6d0" spread={0.8} />
+      <Plume at={[fcc.at[0] - 1.5, 17.5, fcc.at[1]]} strength={() => getPlant().fcc.feed / 50} colour="#e6e4de" />
+      <Plume at={[smr.at[0] - 1.4, 24.2, smr.at[1] - 3.4]} strength={() => (getPlant().smr.running ? 0.9 : 0)} colour="#f4f4f0" spread={0.7} />
+      {/* The coker's idle drum steams hard while it's quenched. */}
+      <Plume
+        at={[coker.at[0], 16, coker.at[1]]}
+        strength={() => {
+          const p = getPlant()
+          if (!p.coker.running) return 0
+          const idle = drumCycle(p.furnace.time / 3600, p.coker.cycle).idle
+          return idle === 'steaming out' || idle === 'water quench' ? 1 : 0.15
+        }}
+        colour="#ffffff"
+        rise={1.3}
+        spread={1.3}
+      />
+    </>
+  )
+}
+
+/** The crude charge pumps by the furnace: two pumps and their motors on a plinth. */
+function ChargePumps({ m }: { m: Materials }) {
+  const [x, z] = REFINERY.chargePumps
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.15, 0]} material={m.concrete} receiveShadow>
+        <boxGeometry args={[2.2, 0.3, 2.4]} />
+      </mesh>
+      {[-0.6, 0.6].map((pz) => (
+        <group key={pz} position={[0, 0.3, pz]}>
+          <mesh position={[-0.45, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.28, 0.28, 0.9, 14]} />
+            <meshStandardMaterial color="#2f6f9f" metalness={0.4} roughness={0.5} />
+          </mesh>
+          <mesh position={[0.35, 0.35, 0]} material={m.steel}>
+            <sphereGeometry args={[0.32, 14, 10]} />
+          </mesh>
+          <mesh position={[0.35, 0.95, 0]} material={m.pipe}>
+            <cylinderGeometry args={[0.1, 0.1, 0.9, 10]} />
+          </mesh>
+        </group>
+      ))}
+      <Label3D text="P-101A/B · Charge pumps" position={[0, 1.9, 1.25]} scale={1.1} />
+    </group>
+  )
+}
+
+/** A round checkpoint: a yellow post with its tag, lit while a round is on and it's still to be read. */
+function RoundPost({ checkpoint }: { checkpoint: (typeof CHECKPOINTS)[number] }) {
+  const [x, z] = checkpoint.at
+  const state = useRounds((s) => (!s.active ? 'off' : s.active.calls[checkpoint.id] ? 'done' : 'due'))
+  const lamp = useRef<Mesh>(null)
+  useInteractable({
+    position: useMemo(() => new Vector3(x, 1.2, z), [x, z]),
+    radius: 2.2,
+    prompt: state === 'due' ? `Press E to take the readings: ${checkpoint.name}` : state === 'done' ? 'Press E for the round sheet' : 'Press E for operator rounds',
+    onInteract: () => {
+      rounds.arrive(state === 'due' ? checkpoint.id : null)
+      openOverlay(ROUNDS_OVERLAY)
+    },
+  })
+  useFrame(({ clock }) => {
+    if (!lamp.current) return
+    const material = lamp.current.material as MeshBasicMaterial
+    if (state === 'due') material.color.setRGB(1, 0.62 + 0.3 * Math.sin(clock.elapsedTime * 4), 0.1)
+    else material.color.set(state === 'done' ? '#5fd07a' : '#5a4a20')
+  })
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.7, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 1.4, 8]} />
+        <meshStandardMaterial color="#e8c020" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 1.25, 0.06]}>
+        <boxGeometry args={[0.32, 0.22, 0.04]} />
+        <meshStandardMaterial color="#f4e060" roughness={0.6} />
+      </mesh>
+      <mesh ref={lamp} position={[0, 1.5, 0]}>
+        <sphereGeometry args={[0.08, 10, 10]} />
+        <meshBasicMaterial color="#5a4a20" toneMapped={false} />
+      </mesh>
+    </group>
+  )
+}
+
+/**
+ * The estuary beyond the east fence, the jetty reaching out into it, and the tankers: one alongside when the tank
+ * farm has a ship berthed, and any others waiting at anchor.
+ */
+function Estuary({ m }: { m: Materials }) {
+  const ships = usePlant((p) => p.tanks.ships)
+  const { x, z, length } = REFINERY.jetty
+  const alongside = ships.find((s) => s.berthed !== undefined && TANKS[s.tank].cargoBy === 'ship')
+  const waiting = ships.filter((s) => s !== alongside && TANKS[s.tank].cargoBy === 'ship').slice(0, 2)
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x + 160, -0.01, 0]}>
+        <planeGeometry args={[320, 600]} />
+        <meshStandardMaterial color="#4a5a60" roughness={0.25} metalness={0.3} />
+      </mesh>
+      {/* The pipeline trestle and walkway out to the loading platform. */}
+      <mesh position={[x + length / 2, 1.2, z]} material={m.darkSteel}>
+        <boxGeometry args={[length, 0.2, 2.4]} />
+      </mesh>
+      {Array.from({ length: Math.floor(length / 4) + 1 }, (_, i) => (
+        <mesh key={i} position={[x + i * 4, 0.5, z]} material={m.concrete}>
+          <boxGeometry args={[0.4, 1.4, 2]} />
+        </mesh>
+      ))}
+      {[-0.6, 0, 0.6].map((dz) => (
+        <mesh key={dz} position={[x + length / 2, 1.5, z + dz]} rotation={[0, 0, Math.PI / 2]} material={m.pipe}>
+          <cylinderGeometry args={[0.16, 0.16, length, 8]} />
+        </mesh>
+      ))}
+      <mesh position={[x + length + 3, 1.2, z]} material={m.concrete}>
+        <boxGeometry args={[6, 0.6, 10]} />
+      </mesh>
+      {/* Loading arms. */}
+      {[-2.5, 0, 2.5].map((dz) => (
+        <group key={dz} position={[x + length + 4.6, 1.5, z + dz]}>
+          <mesh position={[0, 2.5, 0]} material={m.yellow}>
+            <boxGeometry args={[0.3, 5, 0.3]} />
+          </mesh>
+          <mesh position={[0.9, 4.6, 0]} rotation={[0, 0, -0.9]} material={m.yellow}>
+            <boxGeometry args={[0.2, 2.6, 0.2]} />
+          </mesh>
+        </group>
+      ))}
+      <Label3D text="Jetty" position={[x + length + 3, 3.4, z + 5.2]} scale={2} />
+      {alongside && <Tanker key={alongside.id} ship={alongside} position={[x + length + 11, z]} rotation={0} />}
+      {waiting.map((s, i) => (
+        <Tanker key={s.id} ship={s} position={[x + 70 + i * 28, z - 45 - i * 20]} rotation={0.6 + i * 0.4} />
+      ))}
+    </group>
+  )
+}
+
+function Tanker({ ship, position, rotation }: { ship: TankFarm['ships'][number]; position: [number, number]; rotation: number }) {
+  const crude = ship.tank === 'crude'
+  const length = 52
+  return (
+    <group position={[position[0], 0, position[1]]} rotation={[0, rotation, 0]}>
+      <mesh position={[0, 0.6, 0]}>
+        <boxGeometry args={[9, 3, length]} />
+        <meshStandardMaterial color="#7a2a20" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 3.4, 0]}>
+        <boxGeometry args={[9, 2.6, length]} />
+        <meshStandardMaterial color={crude ? '#1a1c20' : '#2a4a6a'} roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 4.75, 0]}>
+        <boxGeometry args={[8.6, 0.1, length - 1]} />
+        <meshStandardMaterial color="#6a5a4a" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 5.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.25, 0.25, length - 14, 8]} />
+        <meshStandardMaterial color={TANKS[ship.tank].colour} />
+      </mesh>
+      {/* Accommodation and funnel at the stern. */}
+      <mesh position={[0, 8, length / 2 - 5]}>
+        <boxGeometry args={[8, 7, 6]} />
+        <meshStandardMaterial color="#e8e6e0" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 12.5, length / 2 - 6]}>
+        <cylinderGeometry args={[1, 1.1, 3, 12]} />
+        <meshStandardMaterial color="#c83a2a" roughness={0.5} />
+      </mesh>
+      <Label3D text={`${ship.name} · ${ship.kind === 'discharge' ? 'discharging' : 'loading'} ${TANKS[ship.tank].name.toLowerCase()}`} position={[0, 15, length / 2 - 5]} scale={2.4} />
+    </group>
+  )
+}
+
+/** The site's sounds, worked out from where you stand and what the plant is doing: machinery everywhere, the furnace's roar near it, the flare by its load, and the siren in a drill. */
+function useRefinerySounds() {
+  useEffect(() => {
+    roomSounds.set('refinery', () => {
+      const p = getPlant()
+      const near = ([ax, az]: [number, number], range: number) => Math.max(0, 1 - Math.hypot(playerPose.x - ax, playerPose.z - az) / range)
+      const firing = p.furnace.tripped ? 0 : p.furnace.valve / 100
+      const flare = liveFlare(getSafety(), p.furnace.time)
+      const drill = getSafety().drill
+      return {
+        plant: 0.3 + 0.4 * near([2, -6], 40),
+        furnace: firing * near(REFINERY.furnace.at, 20) ** 1.5,
+        flare: Math.min(1, 0.04 + Math.sqrt(flare / 150)) * (0.25 + 0.75 * near(REFINERY.flare, 70)),
+        siren: drill && !drill.finished ? 0.35 : 0,
+        wind: 0.15,
+      }
+    })
+    return () => void roomSounds.delete('refinery')
+  }, [])
 }
 
 /** Tall lamp posts along the roads, all one instanced mesh. */
@@ -866,6 +1569,9 @@ function StaticShadows() {
 
 export default function Refinery() {
   const m = useMaterials()
+  // The plant runs while you're on site, so the tanks and furnace move as you walk round.
+  usePlantClock()
+  useRefinerySounds()
   return (
     <group>
       <Atmosphere background={HORIZON} fog={[50, 210]} />
@@ -890,6 +1596,8 @@ export default function Refinery() {
       <Lamps m={m} />
       <SiteBoard />
       <ControlRoom m={m} />
+      <TrainingCentre m={m} />
+      <MusterPoint />
       <Furnace m={m} />
       <CrudeColumn m={m} />
       <FieldPanel />
@@ -898,8 +1606,19 @@ export default function Refinery() {
       <CatCracker m={m} />
       <Reformer m={m} />
       <Treating m={m} />
+      <LightEnds m={m} />
+      <Blending m={m} />
+      <Coker m={m} />
+      <Hydrocracker m={m} />
+      <HydrogenPlant m={m} />
       <Tanks m={m} />
       <Flare m={m} />
+      <Plumes />
+      <ChargePumps m={m} />
+      {CHECKPOINTS.map((c) => (
+        <RoundPost key={c.id} checkpoint={c} />
+      ))}
+      <Estuary m={m} />
       <Distance m={m} />
       <Label3D text="Atmospheric distillation column" position={[REFINERY.column.at[0], 6, REFINERY.column.at[1] + REFINERY.column.radius + 0.4]} scale={2} />
     </group>

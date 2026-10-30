@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
-import { openOverlay } from '../../world/overlay.ts'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { closeOverlay, openOverlay } from '../../world/overlay.ts'
+import { ACADEMY_OVERLAY, BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, PLANNING_OVERLAY, REFORMER_OVERLAY, ROUNDS_OVERLAY, SAFETY_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
+import { usePlantClock } from './clock.ts'
+import { tour } from './tour.ts'
 import './Refinery.css'
 
 const W = 960
@@ -21,7 +23,15 @@ const SCREENS: Partial<Record<UnitId, string>> = {
   dht: TREATING_OVERLAY,
   amine: TREATING_OVERLAY,
   sru: TREATING_OVERLAY,
+  gasPlant: LIGHT_ENDS_OVERLAY,
+  isom: LIGHT_ENDS_OVERLAY,
+  alky: LIGHT_ENDS_OVERLAY,
+  hydrocracker: HEAVY_END_OVERLAY,
+  coker: HEAVY_END_OVERLAY,
 }
+
+/** Products made by blending: their names on the board open the blend headers. */
+const BLENDED: ProductOut[] = ['petrol', 'diesel']
 
 function box(id: UnitId) {
   const [x, y] = BOARD_LAYOUT[id]
@@ -74,6 +84,7 @@ function route(from: UnitId | 'crude', to: UnitId | ProductOut, index: number): 
 
 /** The site board by the gate: the whole refinery as a block diagram, and what every unit does. */
 export function OverviewPanel() {
+  usePlantClock()
   const [selected, setSelected] = useState<UnitId>('cdu')
   const unit = UNITS[selected]
   const screen = SCREENS[unit.id]
@@ -127,13 +138,30 @@ export function OverviewPanel() {
               </g>
             )
           })}
-          {(Object.keys(OUTPUTS) as ProductOut[]).map((id) => (
-            <g key={id} className="board-output">
-              <text x={OUT_X + 8} y={OUTPUTS[id].y + 4}>
-                {OUTPUTS[id].name}
-              </text>
-            </g>
-          ))}
+          {(Object.keys(OUTPUTS) as ProductOut[]).map((id) =>
+            BLENDED.includes(id) ? (
+              <g
+                key={id}
+                className="board-output board-output-live"
+                role="button"
+                tabIndex={0}
+                aria-label={`Blend ${OUTPUTS[id].name.toLowerCase()}`}
+                onClick={() => openOverlay(BLENDING_OVERLAY)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openOverlay(BLENDING_OVERLAY))}
+              >
+                <rect x={OUT_X + 2} y={OUTPUTS[id].y - 12} width={96} height={22} rx={6} />
+                <text x={OUT_X + 8} y={OUTPUTS[id].y + 4}>
+                  {OUTPUTS[id].name} ›
+                </text>
+              </g>
+            ) : (
+              <g key={id} className="board-output">
+                <text x={OUT_X + 8} y={OUTPUTS[id].y + 4}>
+                  {OUTPUTS[id].name}
+                </text>
+              </g>
+            ),
+          )}
         </svg>
         <article className="board-card" aria-live="polite">
           <div className="board-card-head">
@@ -165,10 +193,36 @@ export function OverviewPanel() {
           <p>{unit.why}</p>
         </article>
       </div>
+      <div className="board-foot">
+        <button className="button button-primary" onClick={() => openOverlay(SITE_OVERLAY)}>
+          Plant manager: margin, tanks and jetty
+        </button>
+        <button
+          className="button"
+          onClick={() => {
+            closeOverlay()
+            tour.go(0)
+          }}
+        >
+          Take the site tour
+        </button>
+        <button className="button" onClick={() => openOverlay(ROUNDS_OVERLAY)}>
+          Operator rounds
+        </button>
+        <button className="button" onClick={() => openOverlay(ACADEMY_OVERLAY)}>
+          Training centre: lessons and quizzes
+        </button>
+        <button className="button" onClick={() => openOverlay(SAFETY_OVERLAY)}>
+          Safety and emergencies
+        </button>
+        <button className="button" onClick={() => openOverlay(PLANNING_OVERLAY)}>
+          Planning and trading
+        </button>
+      </div>
       <p className="muted">
-        Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. The crude
-        unit, vacuum unit, cat cracker, reformer, hydrotreaters and sulphur plant can be run today: pick one and press Run it, or walk
-        to it on site. Isomerisation, the gas plant, alkylation and product blending come next.
+        Click any unit to read about it. Lines show where each stream goes; the ones touching the unit you've picked are lit. Every
+        unit can be run: pick one and press Run it, or walk to it on site. Click Petrol or
+        Diesel to blend them.
       </p>
     </Panel>
   )

@@ -7,7 +7,22 @@ import { CAFE_OVERLAY } from '../features/cafe/overlayId.ts'
 import { BUOYANCY_OVERLAY, GAS_OVERLAY } from '../features/experiments/overlayIds.ts'
 import { CIRCUIT_OVERLAY, GEARS_OVERLAY } from '../features/workshop/overlayIds.ts'
 import { SOLAR_OVERLAY } from '../features/solar/overlayId.ts'
-import { CDU_OVERLAY, CONVERSION_OVERLAY, OVERVIEW_OVERLAY, REFORMER_OVERLAY, TREATING_OVERLAY } from '../features/refinery/overlayIds.ts'
+import {
+  ACADEMY_OVERLAY,
+  BLENDING_OVERLAY,
+  CDU_OVERLAY,
+  CONVERSION_OVERLAY,
+  DCS_OVERLAY,
+  HEAVY_END_OVERLAY,
+  LIGHT_ENDS_OVERLAY,
+  OVERVIEW_OVERLAY,
+  PLANNING_OVERLAY,
+  REFORMER_OVERLAY,
+  ROUNDS_OVERLAY,
+  SAFETY_OVERLAY,
+  SITE_OVERLAY,
+  TREATING_OVERLAY,
+} from '../features/refinery/overlayIds.ts'
 import { exhibitFromOverlay } from '../features/museum/overlayId.ts'
 import { CITY_EXPLORER_OVERLAY } from '../features/tourism/overlayId.ts'
 import { toggleOverlay } from '../world/overlay.ts'
@@ -35,6 +50,15 @@ const CduPanel = lazy(() => import('../features/refinery/CduPanel.tsx').then((m)
 const ConversionPanel = lazy(() => import('../features/refinery/ConversionPanel.tsx').then((m) => ({ default: m.ConversionPanel })))
 const ReformerPanel = lazy(() => import('../features/refinery/ReformerPanel.tsx').then((m) => ({ default: m.ReformerPanel })))
 const TreatingPanel = lazy(() => import('../features/refinery/TreatingPanel.tsx').then((m) => ({ default: m.TreatingPanel })))
+const LightEndsPanel = lazy(() => import('../features/refinery/LightEndsPanel.tsx').then((m) => ({ default: m.LightEndsPanel })))
+const BlendingPanel = lazy(() => import('../features/refinery/BlendingPanel.tsx').then((m) => ({ default: m.BlendingPanel })))
+const HeavyEndPanel = lazy(() => import('../features/refinery/HeavyEndPanel.tsx').then((m) => ({ default: m.HeavyEndPanel })))
+const DcsPanel = lazy(() => import('../features/refinery/DcsPanel.tsx').then((m) => ({ default: m.DcsPanel })))
+const AcademyPanel = lazy(() => import('../features/refinery/AcademyPanel.tsx').then((m) => ({ default: m.AcademyPanel })))
+const SafetyPanel = lazy(() => import('../features/refinery/SafetyPanel.tsx').then((m) => ({ default: m.SafetyPanel })))
+const PlanningPanel = lazy(() => import('../features/refinery/PlanningPanel.tsx').then((m) => ({ default: m.PlanningPanel })))
+const RoundsPanel = lazy(() => import('../features/refinery/RoundsPanel.tsx').then((m) => ({ default: m.RoundsPanel })))
+const SitePanel = lazy(() => import('../features/refinery/SitePanel.tsx').then((m) => ({ default: m.SitePanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
@@ -85,6 +109,15 @@ export function Overlays() {
     [OVERVIEW_OVERLAY]: OverviewPanel,
     [REFORMER_OVERLAY]: ReformerPanel,
     [TREATING_OVERLAY]: TreatingPanel,
+    [LIGHT_ENDS_OVERLAY]: LightEndsPanel,
+    [BLENDING_OVERLAY]: BlendingPanel,
+    [SITE_OVERLAY]: SitePanel,
+    [ACADEMY_OVERLAY]: AcademyPanel,
+    [SAFETY_OVERLAY]: SafetyPanel,
+    [PLANNING_OVERLAY]: PlanningPanel,
+    [ROUNDS_OVERLAY]: RoundsPanel,
+    [DCS_OVERLAY]: DcsPanel,
+    [HEAVY_END_OVERLAY]: HeavyEndPanel,
   }[overlay ?? '']
   if (Lazy)
     return (
