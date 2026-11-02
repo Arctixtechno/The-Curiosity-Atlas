@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { MAIN_HALL } from '../rooms/dimensions.ts'
 import { rooms } from '../rooms/registry.ts'
 import type { DoorDefinition } from '../types/room.ts'
@@ -11,6 +12,9 @@ import { MapIcon } from './icons.tsx'
 import './MapPanel.css'
 
 export const MAP_OVERLAY = 'map'
+
+/** The refinery, out of town: it isn't on the plan, so it gets a card of its own once you've been. */
+const RefineryBriefing = lazy(() => import('../features/refinery/RefineryBriefing.tsx'))
 
 const HALL_W = MAIN_HALL.width / 2
 const HALL_L = MAIN_HALL.length / 2
@@ -136,6 +140,16 @@ export function MapPanel() {
           ))}
         {![...visited].some((id) => id !== activeRoomId) && <span className="muted">rooms you visit will appear here.</span>}
       </div>
+      {visited.has('refinery') && activeRoomId !== 'refinery' && (
+        <div className="map-away">
+          <Suspense fallback={null}>
+            <RefineryBriefing title="Out of town · Marshgate Refinery, 34 miles" />
+          </Suspense>
+          <button className="button button-primary" onClick={() => goTo('refinery')}>
+            Drive to the refinery
+          </button>
+        </div>
+      )}
       <p className="muted">
         Press <kbd>M</kbd> to open or close the map. Click a room you've been in to go straight back. Rooms marked "coming later"
         open in later versions.

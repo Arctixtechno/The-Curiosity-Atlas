@@ -14,7 +14,7 @@ import './Refinery.css'
 const TIER_TEXT: Record<Tier, string> = { none: 'Not yet', bronze: 'Bronze', silver: 'Silver', gold: 'Gold' }
 
 /** The medals as they stand, kept up to date from every store they're earned in. */
-function useMedals() {
+export function useMedals() {
   const tasksDone = useCompleted()
   const academy = useAcademy((s) => s)
   const safety = useSafety((s) => s)

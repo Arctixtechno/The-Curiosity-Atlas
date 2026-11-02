@@ -78,3 +78,15 @@ g:hover > .map-go {
   gap: 8px;
   margin-bottom: 8px;
 }
+
+.map-away {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin: 0 0 12px;
+}
+
+.map-away .brief {
+  justify-self: stretch;
+  margin: 0;
+}

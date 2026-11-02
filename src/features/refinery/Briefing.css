@@ -1,0 +1,85 @@
+.brief {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--glass-edge, rgba(244, 234, 216, 0.18));
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  text-align: left;
+}
+
+.brief header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.brief header small {
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brief-rank {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.brief-headline {
+  margin: 4px 0 8px;
+  font-size: 0.95rem;
+}
+
+.brief-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.brief-facts div {
+  min-width: 0;
+}
+
+.brief-facts dt {
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+}
+
+.brief-facts dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.brief-good dd {
+  color: #9fd59a;
+}
+
+.brief-warn dd {
+  color: #f0c060;
+}
+
+.brief-bad dd {
+  color: #f08070;
+}
+
+.brief-next {
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  font-size: 0.84rem;
+  color: var(--ink-muted);
+}
+
+.brief-next li + li {
+  margin-top: 3px;
+}
+
+/* On a short screen the drive card keeps just the numbers. */
+@media (max-height: 700px) {
+  .drive .brief-next {
+    display: none;
+  }
+}
