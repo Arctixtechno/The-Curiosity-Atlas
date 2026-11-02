@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { RefineryIcon } from './icons.tsx'
 import { closeOverlay, openOverlay } from '../../world/overlay.ts'
-import { ACADEMY_OVERLAY, BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, PLANNING_OVERLAY, REFORMER_OVERLAY, ROUNDS_OVERLAY, SAFETY_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
+import { ACADEMY_OVERLAY, BLENDING_OVERLAY, CDU_OVERLAY, CONVERSION_OVERLAY, HEAVY_END_OVERLAY, LIGHT_ENDS_OVERLAY, LOGBOOK_OVERLAY, PLAN_OVERLAY, PLANNING_OVERLAY, SHIFT_OVERLAY, REFORMER_OVERLAY, ROUNDS_OVERLAY, SAFETY_OVERLAY, SITE_OVERLAY, TREATING_OVERLAY } from './overlayIds.ts'
 import { BOARD_BOX, BOARD_LAYOUT, CDU_BOX, LIVE_STAGE, OUTPUTS, STREAMS, UNITS, type ProductOut, type UnitId } from './units.ts'
 import { usePlantClock } from './clock.ts'
 import { tour } from './tour.ts'
@@ -196,6 +196,15 @@ export function OverviewPanel() {
       <div className="board-foot">
         <button className="button button-primary" onClick={() => openOverlay(SITE_OVERLAY)}>
           Plant manager: margin, tanks and jetty
+        </button>
+        <button className="button button-primary" onClick={() => openOverlay(SHIFT_OVERLAY)}>
+          Take a shift
+        </button>
+        <button className="button" onClick={() => openOverlay(PLAN_OVERLAY)}>
+          Site plan
+        </button>
+        <button className="button" onClick={() => openOverlay(LOGBOOK_OVERLAY)}>
+          Your logbook
         </button>
         <button
           className="button"

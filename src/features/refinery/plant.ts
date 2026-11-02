@@ -657,6 +657,14 @@ export const controls = {
   resetTanks() {
     publish({ ...plant, tanks: freshTankFarm() })
   },
+  /** Puts back a whole plant kept earlier: a shift scenario hands the site back as it found it. */
+  replace(next: Plant) {
+    carry = 0
+    tankSeconds = 0
+    targets = null
+    targetsFrom = null
+    publish(next)
+  },
   /** Starts the whole plant afresh, and forgets the saved one. */
   reset() {
     carry = 0

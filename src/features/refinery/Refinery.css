@@ -3349,6 +3349,129 @@
   overflow-x: auto;
 }
 
+/* The live readouts of the unit you're standing at, top right. */
+.unit-readout {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 28;
+  display: grid;
+  gap: 6px;
+  width: min(280px, calc(100vw - 32px));
+  padding: 10px 14px 12px;
+  border: 1px solid rgba(120, 190, 210, 0.45);
+  border-radius: 12px;
+  background: rgba(14, 22, 28, 0.88);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  animation: coach-in 0.35s ease both;
+}
+
+.unit-readout.alarmed {
+  border-color: rgba(240, 160, 60, 0.7);
+}
+
+.unit-readout small {
+  color: #8fc8d8;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.unit-readout strong {
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.unit-readout dl {
+  display: grid;
+  gap: 5px;
+  margin: 2px 0 0;
+}
+
+.unit-readout dl div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  column-gap: 10px;
+}
+
+.unit-readout dt {
+  color: rgba(244, 234, 216, 0.7);
+}
+
+.unit-readout dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: #9fe0b0;
+}
+
+.unit-readout .ur-hi dd,
+.unit-readout .ur-lo dd {
+  color: #f4c050;
+}
+
+.unit-readout .ur-hh dd,
+.unit-readout .ur-ll dd {
+  color: #ff6a50;
+  animation: ur-blink 1s steps(2) infinite;
+}
+
+@keyframes ur-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ur-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  margin-top: 2px;
+  border-radius: 2px;
+  background: rgba(244, 234, 216, 0.1);
+  overflow: hidden;
+}
+
+.ur-bar i {
+  display: block;
+  height: 100%;
+  background: #6fb8c8;
+  transition: width 0.4s ease;
+}
+
+.ur-hi .ur-bar i,
+.ur-lo .ur-bar i {
+  background: #f4c050;
+}
+
+.ur-hh .ur-bar i,
+.ur-ll .ur-bar i {
+  background: #ff6a50;
+}
+
+.ur-key {
+  color: rgba(244, 234, 216, 0.55);
+  font-size: 0.72rem;
+}
+
+.ur-key kbd {
+  padding: 0 5px;
+  border: 1px solid rgba(244, 234, 216, 0.35);
+  border-radius: 4px;
+  font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unit-readout .ur-hh dd,
+  .unit-readout .ur-ll dd {
+    animation: none;
+  }
+}
+
 /* On touch screens the walk stick and buttons own the bottom corners, so the cards sit at the top. */
 @media (pointer: coarse) {
   .coach,
@@ -3367,8 +3490,854 @@
     display: none;
   }
 
+  /* Tap the card to open the unit's screen; it sits under the round chip's place, kept small. */
+  .unit-readout {
+    top: 64px;
+    width: min(220px, calc(100vw - 24px));
+    right: 12px;
+    font-size: 0.72rem;
+  }
+
+  .unit-readout .ur-key {
+    display: none;
+  }
+
   .drill-banner {
     top: 8px;
     font-size: 0.72rem;
+  }
+}
+
+/* The site plan: the refinery from above, drawn in site metres. */
+.spl-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.spl-strip div {
+  padding: 8px 12px;
+  border: 1px solid rgba(244, 234, 216, 0.12);
+  border-radius: 10px;
+  background: rgba(12, 18, 22, 0.55);
+}
+
+.spl-strip dt {
+  color: var(--muted, rgba(244, 234, 216, 0.6));
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.spl-strip dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+}
+
+.spl-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .spl-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.spl-map {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 234, 216, 0.12);
+}
+
+.spl-marsh {
+  fill: #2c3628;
+}
+
+.spl-water {
+  fill: #1f3646;
+}
+
+.spl-water-label {
+  fill: rgba(170, 210, 230, 0.45);
+  font-size: 2.2px;
+  font-style: italic;
+  letter-spacing: 0.1px;
+}
+
+.spl-site {
+  fill: #3a3835;
+}
+
+.spl-road {
+  fill: #2b2a28;
+}
+
+.spl-rack {
+  fill: rgba(150, 156, 160, 0.35);
+}
+
+.spl-fence {
+  fill: none;
+  stroke: rgba(200, 205, 210, 0.5);
+  stroke-width: 0.25;
+  stroke-dasharray: 0.8 0.5;
+}
+
+.spl-gate {
+  stroke: #3a3835;
+  stroke-width: 0.6;
+}
+
+.spl-jetty {
+  fill: #6a6862;
+}
+
+.spl-ship rect {
+  fill: #7a2a20;
+  stroke: #1a1c20;
+  stroke-width: 0.4;
+}
+
+.spl-ship text,
+.spl-label,
+.spl-compass text,
+.spl-post text {
+  fill: rgba(244, 234, 216, 0.8);
+  font-size: 1.7px;
+  pointer-events: none;
+}
+
+.spl-unit {
+  stroke: rgba(0, 0, 0, 0.5);
+  stroke-width: 0.2;
+  cursor: pointer;
+  transition: fill 0.4s;
+}
+
+.spl-unit:hover,
+.spl-unit:focus-visible {
+  stroke: #fff;
+  stroke-width: 0.4;
+  outline: none;
+}
+
+.spl-unit.spl-selected {
+  stroke: #ffd060;
+  stroke-width: 0.6;
+}
+
+.spl-running {
+  fill: #4f9a6a;
+  background: #4f9a6a;
+}
+
+.spl-warning {
+  fill: #d9a83a;
+  background: #d9a83a;
+}
+
+.spl-alarm {
+  fill: #d9483a;
+  background: #d9483a;
+}
+
+.spl-unit.spl-alarm {
+  animation: spl-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes spl-pulse {
+  to {
+    fill: #7a2018;
+  }
+}
+
+.spl-off {
+  fill: #5a5a58;
+  background: #5a5a58;
+}
+
+.spl-unit.spl-building {
+  fill: #8a8680;
+}
+
+.spl-muster rect {
+  fill: #1f8a4c;
+}
+
+.spl-muster.spl-drill rect {
+  animation: spl-pulse 0.5s ease-in-out infinite alternate;
+}
+
+.spl-post circle {
+  fill: #e8c020;
+  stroke: #1a1a18;
+  stroke-width: 0.2;
+}
+
+.spl-post.done circle {
+  fill: #6a6a5a;
+}
+
+.spl-post text {
+  fill: #1a1a18;
+  font-size: 1.4px;
+  font-weight: 600;
+}
+
+.spl-you circle {
+  fill: #4ac0ff;
+  stroke: #fff;
+  stroke-width: 0.35;
+}
+
+.spl-you path {
+  fill: #4ac0ff;
+}
+
+.spl-compass circle {
+  fill: rgba(10, 16, 20, 0.6);
+  stroke: rgba(244, 234, 216, 0.4);
+  stroke-width: 0.2;
+}
+
+.spl-wind {
+  stroke: #9fd8ff;
+  stroke-width: 0.45;
+}
+
+.spl-wind-head {
+  fill: #9fd8ff;
+}
+
+.spl-card h3 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.spl-status {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+}
+
+.spl-text-running {
+  color: #7fd09a;
+}
+
+.spl-text-warning {
+  color: #f4c050;
+}
+
+.spl-text-alarm {
+  color: #ff7a60;
+}
+
+.spl-text-off {
+  color: rgba(244, 234, 216, 0.55);
+}
+
+.spl-readings {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+}
+
+.spl-readings div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(244, 234, 216, 0.08);
+}
+
+.spl-readings dt {
+  color: rgba(244, 234, 216, 0.7);
+}
+
+.spl-readings dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: #9fe0b0;
+}
+
+.spl-readings .ur-hi dd,
+.spl-readings .ur-lo dd {
+  color: #f4c050;
+}
+
+.spl-readings .ur-hh dd,
+.spl-readings .ur-ll dd {
+  color: #ff6a50;
+}
+
+.spl-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.spl-legend {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.spl-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.spl-legend .spl-you-key {
+  border-radius: 50%;
+  background: #4ac0ff;
+  border: 1px solid #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spl-unit.spl-alarm,
+  .spl-muster.spl-drill rect {
+    animation: none;
+  }
+}
+
+/* The shift desk and the running shift's banner. */
+.shd-stars {
+  display: inline-flex;
+  gap: 2px;
+  color: rgba(244, 234, 216, 0.2);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.shd-stars i {
+  font-style: normal;
+}
+
+.shd-stars i.on {
+  color: #f4c040;
+  text-shadow: 0 0 8px rgba(244, 192, 64, 0.45);
+}
+
+.shd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.shd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(244, 234, 216, 0.12);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(40, 32, 22, 0.75), rgba(16, 20, 24, 0.75));
+}
+
+.shd-card header,
+.shd-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.shd-card header small {
+  color: #8fc8d8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.shd-card h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.shd-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.shd-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.shd-card footer {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 0.8rem;
+}
+
+.shd-running {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 12px;
+}
+
+@media (max-width: 760px) {
+  .shd-running {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.shd-running h3,
+.shd-report h3 {
+  margin: 2px 0 8px;
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+
+.shd-progress {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(244, 234, 216, 0.1);
+}
+
+.shd-progress i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #4f9a6a, #8fd0a0);
+}
+
+.shd-progress b {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: #f4c040;
+}
+
+.shd-goals {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shd-goals li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 6px;
+  align-items: start;
+  font-size: 0.9rem;
+}
+
+.shd-goals li > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  background: rgba(244, 234, 216, 0.1);
+}
+
+.shd-met > span:first-child {
+  background: #2f7a4c !important;
+  color: #e8ffe8;
+}
+
+.shd-failing > span:first-child {
+  background: #8a6a1a !important;
+  color: #fff4d0;
+}
+
+.shd-broken > span:first-child {
+  background: #8a2a1e !important;
+  color: #ffe0d8;
+}
+
+.shd-how {
+  display: block;
+  margin-top: 3px;
+  color: #f4c890;
+}
+
+.shd-log {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  margin: 0 0 12px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.shd-log time {
+  margin-right: 6px;
+  color: #8fc8d8;
+  font-variant-numeric: tabular-nums;
+}
+
+.shd-report .shd-stars {
+  font-size: 2rem;
+}
+
+.shift-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 8px 6px 16px;
+  border: 1px solid rgba(143, 200, 216, 0.4);
+  border-radius: 999px;
+  background: rgba(14, 24, 30, 0.92);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+  font-size: 0.85rem;
+  transform: translateX(-50%);
+  animation: coach-in 0.35s ease both;
+}
+
+.shift-banner-clock {
+  color: #8fc8d8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.shift-banner-goals {
+  display: flex;
+  gap: 4px;
+}
+
+.shift-banner-goals i {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(244, 234, 216, 0.12);
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.shift-banner-goals i.shd-met {
+  background: #2f7a4c;
+}
+
+.shift-banner-goals i.shd-failing {
+  background: #8a6a1a;
+}
+
+.shift-banner-goals i.shd-broken {
+  background: #8a2a1e;
+}
+
+.shift-banner-news {
+  max-width: 360px;
+  overflow: hidden;
+  color: #f4d890;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .shift-banner {
+    top: 8px;
+    gap: 8px;
+    font-size: 0.75rem;
+  }
+
+  .shift-banner-news {
+    display: none;
+  }
+}
+
+/* The operator's logbook: rank and medals. */
+.lgb-rank {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px;
+  border: 1px solid rgba(244, 192, 64, 0.3);
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(60, 44, 20, 0.7), rgba(18, 22, 26, 0.7));
+}
+
+.lgb-rank > div:last-child {
+  flex: 1;
+}
+
+.lgb-rank h3 {
+  margin: 2px 0 8px;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.lgb-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border: 3px solid #f4c040;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #5a4a20, #2a2010);
+  box-shadow: 0 0 18px rgba(244, 192, 64, 0.35);
+  color: #f4d880;
+  font-size: 1.6rem;
+}
+
+.lgb-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(244, 234, 216, 0.1);
+}
+
+.lgb-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #c08a30, #f4d060);
+  transition: width 0.6s ease;
+}
+
+.lgb-rank p {
+  margin: 6px 0 0;
+}
+
+.lgb-medals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+  margin: 16px 0 10px;
+}
+
+.lgb-medal {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid rgba(244, 234, 216, 0.1);
+  border-radius: 14px;
+  background: rgba(14, 18, 22, 0.55);
+}
+
+.lgb-medal > button {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.lgb-medal svg {
+  width: 48px;
+  height: 60px;
+}
+
+.lgb-medal h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.lgb-medal p {
+  margin: 2px 0 6px;
+  font-size: 0.82rem;
+  color: rgba(244, 234, 216, 0.75);
+}
+
+.lgb-ribbon {
+  fill: #4a5a7a;
+}
+
+.lgb-disc {
+  fill: #3a3a38;
+  stroke: #5a5a56;
+  stroke-width: 1.5;
+}
+
+.lgb-inner {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1;
+}
+
+.lgb-medal text {
+  fill: rgba(30, 20, 10, 0.75);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lgb-bronze .lgb-disc {
+  fill: #b8763a;
+  stroke: #8a5424;
+}
+
+.lgb-bronze .lgb-ribbon {
+  fill: #8a3a2a;
+}
+
+.lgb-silver .lgb-disc {
+  fill: #c8ccd2;
+  stroke: #8a9098;
+}
+
+.lgb-silver .lgb-ribbon {
+  fill: #2a4a8a;
+}
+
+.lgb-gold .lgb-disc {
+  fill: #f0c040;
+  stroke: #b08a20;
+}
+
+.lgb-gold .lgb-ribbon {
+  fill: #8a1a2a;
+}
+
+.lgb-gold {
+  border-color: rgba(244, 192, 64, 0.45);
+  box-shadow: 0 0 16px rgba(244, 192, 64, 0.12);
+}
+
+.lgb-steps {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.lgb-steps span {
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(244, 234, 216, 0.08);
+  font-size: 0.72rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.lgb-steps span:nth-child(1).done {
+  background: #8a5424;
+}
+
+.lgb-steps span:nth-child(2).done {
+  background: #6a7078;
+}
+
+.lgb-steps span:nth-child(3).done {
+  background: #a07a18;
+}
+
+.medal-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  border: 1px solid rgba(244, 192, 64, 0.55);
+  border-radius: 16px;
+  background: rgba(30, 24, 12, 0.94);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(244, 192, 64, 0.2);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transform: translateX(-50%);
+  animation: medal-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.medal-toast svg {
+  width: 36px;
+  height: 45px;
+}
+
+.medal-toast span {
+  display: grid;
+}
+
+.medal-toast small {
+  color: #f4d080;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.medal-toast strong {
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+@keyframes medal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 30px) scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medal-toast {
+    animation: none;
+  }
+}
+
+/* Narrower screens: the shift banner and the readout card take turns at the top. */
+@media (max-width: 1100px) {
+  body:has(.shift-banner) .unit-readout {
+    top: 72px;
+  }
+}
+
+@media (max-width: 700px) {
+  .shift-banner {
+    top: 46px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    padding: 4px 4px 4px 12px;
+    transform: none;
+    animation: none;
+  }
+
+  .shift-banner strong,
+  .shift-banner .button {
+    white-space: nowrap;
+  }
+
+  .shift-banner .button {
+    margin-left: auto;
+    padding: 4px 10px;
+  }
+
+  .shift-banner-goals i {
+    width: 18px;
+    height: 18px;
+  }
+
+  body:has(.shift-banner) .unit-readout {
+    top: 100px;
   }
 }

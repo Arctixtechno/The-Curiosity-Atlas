@@ -1,6 +1,6 @@
 // The flare: how much heat a relief load releases, how long the flame is, and
 // how much of its heat reaches people on the ground, by the simple point-source
-// method of API 521. The flame stands straight up (no wind), with its centre
+// method of API 521. The flame leans over in the wind, with its centre
 // halfway along it.
 
 /** Lower heating value of typical relief gas, MJ/kg. */
@@ -40,18 +40,43 @@ export const flareHeat = (load: number) => ((load * 1000) / 3600) * LHV
 /** Flame length, m, from the heat released: an approximate fit to API 521's chart. */
 export const flameLength = (mw: number) => (mw <= 0 ? 0 : 0.00326 * (mw * 1e6) ** 0.478)
 
-/** Radiation at ground level, kW/m², a horizontal distance (m) from the stack's foot. */
-export function radiation(mw: number, distance: number, height = STACK_HEIGHT) {
-  const centre = height + flameLength(mw) / 2
-  const d2 = distance * distance + centre * centre
+/** The flare tip's diameter, m, and the relief gas's density as it leaves, kg/m³. */
+export const TIP_DIAMETER = 0.9
+export const GAS_DENSITY = 1.2
+
+/** How fast the gas leaves the tip, m/s, for a relief load in t/h. */
+export const exitVelocity = (load: number) => (load * 1000) / 3600 / (GAS_DENSITY * Math.PI * (TIP_DIAMETER / 2) ** 2)
+
+/**
+ * How far the wind bends the flame over from upright, radians, by the ratio of the wind's speed to the gas's: a
+ * fit to the shape of API 521's flame-distortion chart. A pilot-sized flame lies almost flat in any breeze; a big
+ * relief stands up nearly straight against it.
+ */
+export function flameTilt(load: number, wind: number) {
+  if (wind <= 0) return 0
+  if (load <= 0) return (80 * Math.PI) / 180
+  return Math.min((80 * Math.PI) / 180, Math.atan(2 * Math.sqrt(wind / exitVelocity(load))))
+}
+
+/** The flame's centre, m: how far downwind of the stack and how high. */
+export function flameCentre(mw: number, height = STACK_HEIGHT, tilt = 0) {
+  const half = flameLength(mw) / 2
+  return { x: half * Math.sin(tilt), y: height + half * Math.cos(tilt) }
+}
+
+/** Radiation at ground level, kW/m², a horizontal distance (m) from the stack's foot: downwind if positive. */
+export function radiation(mw: number, distance: number, height = STACK_HEIGHT, tilt = 0) {
+  const c = flameCentre(mw, height, tilt)
+  const d2 = (distance - c.x) ** 2 + c.y * c.y
   return (RADIATED * mw * 1000) / (4 * Math.PI * d2)
 }
 
-/** How close to the stack (m, horizontal) anyone can stand for a given radiation limit; 0 if it's safe even at the foot. */
-export function safeDistance(mw: number, limit: number, height = STACK_HEIGHT) {
-  const centre = height + flameLength(mw) / 2
+/** How close to the stack (m, horizontal, downwind) anyone can stand for a given radiation limit; 0 if it's safe even at the foot. */
+export function safeDistance(mw: number, limit: number, height = STACK_HEIGHT, tilt = 0) {
+  const c = flameCentre(mw, height, tilt)
   const d2 = (RADIATED * mw * 1000) / (4 * Math.PI * limit)
-  return Math.sqrt(Math.max(0, d2 - centre * centre))
+  if (d2 <= c.y * c.y) return 0
+  return Math.max(0, c.x + Math.sqrt(d2 - c.y * c.y))
 }
 
 /** Steam to the tip, kg per kg of gas: too little smokes, too much snuffs and roars. */

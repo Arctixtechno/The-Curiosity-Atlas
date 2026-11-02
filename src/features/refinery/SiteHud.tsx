@@ -1,14 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { openOverlay } from '../../world/overlay.ts'
-import { gameStore, useGame } from '../../world/store.ts'
+import { gameStore, playerPose, useGame } from '../../world/store.ts'
+import { stationAt, stationReadings, type FieldReading, type Station } from './fieldReadouts.ts'
+import { getPlant } from './plant.ts'
+import { getSafety } from './safetyStore.ts'
 import { ROUNDS_OVERLAY } from './overlayIds.ts'
 import { CHECKPOINTS } from './rounds.ts'
 import { useRounds } from './roundStore.ts'
 import { tour, TOUR, useTourStop, yawTowards } from './tour.ts'
 import './Refinery.css'
 
-// What the refinery puts on screen while you walk the site: the round sheet's
-// progress, and the tour's caption card.
+// What the refinery puts on screen while you walk the site: the live readouts
+// of the unit you're standing at, the round sheet's progress, and the tour's
+// caption card.
 
 /** The operator's round in the corner: how far through, and the next checkpoint. */
 export function RoundChip() {
@@ -91,5 +95,58 @@ export function TourCard() {
         <kbd>T</kbd> next stop · <kbd>Shift</kbd>+<kbd>T</kbd> back · <kbd>Esc</kbd> frees the mouse to click the buttons
       </p>
     </aside>
+  )
+}
+
+/** The live readouts of the unit you're standing at, in the corner, refreshed a few times a second. R opens its screen. */
+export function UnitReadout() {
+  const overlay = useGame((s) => s.overlay)
+  const [view, setView] = useState<{ station: Station; readings: FieldReading[] } | null>(null)
+
+  useEffect(() => {
+    const look = () => {
+      const station = stationAt(playerPose.x, playerPose.z)
+      setView(station ? { station, readings: stationReadings(station, getPlant(), getSafety()) } : null)
+    }
+    look()
+    const timer = setInterval(look, 400)
+    return () => clearInterval(timer)
+  }, [])
+
+  const station = view?.station
+  useEffect(() => {
+    if (!station) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyR' || e.repeat || gameStore.get().overlay) return
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea')) return
+      openOverlay(station.overlay)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [station])
+
+  if (!view || overlay) return null
+  const alarmed = view.readings.some((r) => r.state !== 'ok')
+  return (
+    <button className={`unit-readout${alarmed ? ' alarmed' : ''}`} onClick={() => openOverlay(view.station.overlay)} aria-label={`${view.station.name}: open its screen`}>
+      <small>Field readouts</small>
+      <strong>{view.station.name}</strong>
+      <dl>
+        {view.readings.map((r) => (
+          <div key={r.label} className={`ur-${r.state}`}>
+            <dt>{r.label}</dt>
+            <dd>{r.value}</dd>
+            {r.share !== undefined && (
+              <span className="ur-bar" aria-hidden="true">
+                <i style={{ width: `${r.share * 100}%` }} />
+              </span>
+            )}
+          </div>
+        ))}
+      </dl>
+      <span className="ur-key">
+        <kbd>R</kbd> opens its screen · <kbd>P</kbd> site plan
+      </span>
+    </button>
   )
 }

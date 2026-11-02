@@ -1,5 +1,4 @@
-import { Sky } from '@react-three/drei'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
   CanvasTexture,
@@ -21,6 +20,7 @@ import {
   PLANNING_OVERLAY,
   ROUNDS_OVERLAY,
   SAFETY_OVERLAY,
+  SHIFT_OVERLAY,
   BLENDING_OVERLAY,
   CDU_OVERLAY,
   CONVERSION_OVERLAY,
@@ -42,15 +42,18 @@ import { drumCycle } from '../features/refinery/heavyEnd.ts'
 import { LESSONS } from '../features/refinery/academy.ts'
 import { useAcademy } from '../features/refinery/academyStore.ts'
 import { liveFlare, PURGE } from '../features/refinery/drills.ts'
+import { flameTilt } from '../features/refinery/flare.ts'
+import { downwind, windOn } from '../features/refinery/weather.ts'
 import { getSafety, useSafety } from '../features/refinery/safetyStore.ts'
 import { useInteractable } from '../world/InteractionSystem.tsx'
 import { openOverlay } from '../world/overlay.ts'
-import { Atmosphere } from './Atmosphere.tsx'
+import { DistantLights, Halo, LightPools, ObstructionLights, SITE_LIGHT, SiteSky } from './RefinerySky.tsx'
+import { useDayPhase } from '../world/clock.ts'
 import { roomSounds } from '../world/Ambience.tsx'
 import { playerPose } from '../world/store.ts'
 import { REFINERY } from './dimensions.ts'
 
-// Marshgate Refinery at dusk: an open site on the Thames estuary marshes,
+// Marshgate Refinery, through the house's day and night: an open site on the Thames estuary marshes,
 // behind a chain-link fence. The crude unit stands in the middle (furnace,
 // column, strippers and reflux drum, tied together by a pipe rack), with the
 // units still to come around it, a tank farm and a flare.
@@ -60,9 +63,6 @@ import { REFINERY } from './dimensions.ts'
 
 const W = REFINERY.width
 const L = REFINERY.length
-/** Low sun in the west, for a long orange dusk. */
-const SUN: [number, number, number] = [-80, 6, -30]
-const HORIZON = '#c08a74'
 
 /**
  * Steel, concrete and insulation, shared by every unit. Metalness is kept
@@ -549,6 +549,7 @@ function ControlRoom({ m }: { m: Materials }) {
   return (
     <group position={[at[0], 0, at[1]]}>
       <AlarmBeacon position={[size[0] / 2 - 0.6, height + 0.5, size[1] / 2 - 0.6]} />
+      <Windsock position={[-size[0] / 2 + 0.6, height + 0.3, size[1] / 2 - 0.6]} />
       <mesh position={[0, height / 2, 0]} material={m.concrete} castShadow receiveShadow>
         <boxGeometry args={[size[0], height, size[1]]} />
       </mesh>
@@ -570,6 +571,7 @@ function ControlRoom({ m }: { m: Materials }) {
       </mesh>
       <pointLight position={[0, 2.6, size[1] / 2 + 1.2]} color="#ffd8a0" intensity={6} distance={8} decay={1.8} />
       <Label3D text="Control room" position={[0, 3.4, size[1] / 2 + 0.05]} scale={2} />
+      <UnitSign at={[-4.6, size[1] / 2 + 1.6]} text="Shift desk · take a shift" prompt="Press E for the shift desk: take a shift and be judged at handover" overlay={SHIFT_OVERLAY} height={2} />
     </group>
   )
 }
@@ -1145,7 +1147,7 @@ function Tanks({ m }: { m: Materials }) {
 }
 
 /** The flare stack, with its flame flickering at the top. */
-function Flare({ m }: { m: Materials }) {
+function Flare({ m, glow }: { m: Materials; glow: number }) {
   const [x, z] = REFINERY.flare
   const height = 45
   const flame = useRef<Group>(null)
@@ -1153,15 +1155,26 @@ function Flare({ m }: { m: Materials }) {
   /** How big the flame is drawn, eased towards what the flare is burning. */
   const size = useRef(1)
   const target = useRef(1)
+  const lean = useRef<Group>(null)
+  const tilt = useRef(0)
+  const targetTilt = useRef(0)
   const since = useRef(1)
   useFrame(({ clock }, dt) => {
     since.current += dt
     if (since.current > 0.25) {
       since.current = 0
       // Purge gas alone draws the usual pilot-sized flame; a relief load grows it with the square root of the flow.
-      const load = liveFlare(getSafety(), getPlant().furnace.time)
+      const p = getPlant()
+      const load = liveFlare(getSafety(), p.furnace.time)
       target.current = Math.min(5, 0.6 + 0.4 * Math.sqrt(load / PURGE))
+      // The wind lays it over: the small flame nearly flat, a big relief standing up against it.
+      const wind = windOn(p.tanks.day)
+      const [dx, dz] = downwind(wind)
+      if (lean.current) lean.current.rotation.y = Math.atan2(-dz, dx)
+      targetTilt.current = flameTilt(load, wind.speed)
     }
+    tilt.current += (targetTilt.current - tilt.current) * Math.min(1, dt)
+    if (flame.current) flame.current.rotation.z = -tilt.current
     size.current += (target.current - size.current) * Math.min(1, dt * 1.5)
     const t = clock.elapsedTime
     const s = size.current
@@ -1178,16 +1191,20 @@ function Flare({ m }: { m: Materials }) {
           <torusGeometry args={[0.9, 0.05, 4, 20]} />
         </mesh>
       ))}
-      <group ref={flame} position={[0, height, 0]}>
-        <mesh position={[0, 2.2, 0]}>
-          <coneGeometry args={[1.1, 4.4, 12, 1, true]} />
-          <meshBasicMaterial color="#ffb34a" transparent opacity={0.9} side={DoubleSide} toneMapped={false} />
-        </mesh>
-        <mesh position={[0, 1.4, 0]}>
-          <sphereGeometry args={[0.8, 12, 12]} />
-          <meshBasicMaterial color="#fff0b0" toneMapped={false} />
-        </mesh>
+      <group ref={lean} position={[0, height, 0]}>
+        <group ref={flame}>
+          <mesh position={[0, 2.2, 0]}>
+            <coneGeometry args={[1.1, 4.4, 12, 1, true]} />
+            <meshBasicMaterial color="#ffb34a" transparent opacity={0.9} side={DoubleSide} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 1.4, 0]}>
+            <sphereGeometry args={[0.8, 12, 12]} />
+            <meshBasicMaterial color="#fff0b0" toneMapped={false} />
+          </mesh>
+        </group>
       </group>
+      {/* At night the flame lights the air round it. */}
+      <Halo position={[0, height + 2.2, 0]} size={16} colour="#ff9a40" level={() => glow * size.current * 0.7} />
       <pointLight ref={light} position={[0, height + 2, 0]} color="#ff9a3a" intensity={60} distance={90} decay={1.4} />
       <UnitSign at={[-3, 3.5]} text="Flare · relief and safety" prompt="Press E for safety and emergencies: drills, the flare, permits and HAZOP" overlay={SAFETY_OVERLAY} />
     </group>
@@ -1250,37 +1267,102 @@ function MusterPoint() {
  * A plume rising from a stack: puffs that drift up and downwind, swell and fade. `strength` (0 to 1) is read from the
  * plant twice a second and eased, so a furnace that cuts back visibly smokes less.
  */
-function Plume({ at, strength, colour = '#ecebe6', rise = 1, spread = 1 }: { at: [number, number, number]; strength: () => number; colour?: string; rise?: number; spread?: number }) {
+function Plume({
+  at,
+  strength,
+  colour = '#ecebe6',
+  rise = 1,
+  spread = 1,
+}: {
+  at: [number, number, number]
+  strength: () => number
+  colour?: string
+  rise?: number
+  spread?: number
+}) {
   const COUNT = 12
+  const group = useRef<Group>(null)
   const puffs = useRef<(Mesh | null)[]>([])
   const level = useRef(0)
   const target = useRef(0)
+  /** How far the wind carries a puff over its life, and how high it climbs. */
+  const drift = useRef(7)
+  const climb = useRef(11)
   const since = useRef(1)
   useFrame(({ clock }, dt) => {
     since.current += dt
     if (since.current > 0.5) {
       since.current = 0
       target.current = strength()
+      // Puffs drift along the group's −x, so it's turned to face downwind.
+      const wind = windOn(getPlant().tanks.day)
+      const [dx, dz] = downwind(wind)
+      if (group.current) group.current.rotation.y = Math.atan2(dz, -dx)
+      // A strong wind lays the plume over: it travels further and climbs less.
+      drift.current = 2 + wind.speed * 1.1
+      climb.current = 12 / (1 + wind.speed / 8)
     }
     level.current += (target.current - level.current) * Math.min(1, dt * 0.8)
     const t = clock.elapsedTime
     puffs.current.forEach((puff, i) => {
       if (!puff) return
       const age = (t * 0.09 + i / COUNT) % 1
-      // The wind off the estuary carries it west.
-      puff.position.set(-age * 7 + Math.sin(i * 1.7) * age * 1.2, age * 11 * rise, Math.cos(i * 2.3) * age * 1.2)
+      puff.position.set(-age * drift.current + Math.sin(i * 1.7) * age * 1.2, age * climb.current * rise, Math.cos(i * 2.3) * age * 1.2)
       puff.scale.setScalar((0.5 + age * 2.6) * spread)
       ;(puff.material as MeshBasicMaterial).opacity = level.current * 0.32 * (1 - age) * Math.min(1, age * 8)
     })
   })
   return (
-    <group position={at}>
+    <group position={at} ref={group}>
       {Array.from({ length: COUNT }, (_, i) => (
         <mesh key={i} ref={(el) => void (puffs.current[i] = el)}>
           <sphereGeometry args={[1, 10, 8]} />
           <meshBasicMaterial color={colour} transparent opacity={0} depthWrite={false} />
         </mesh>
       ))}
+    </group>
+  )
+}
+
+/** A windsock on a mast: it swings round to point downwind and droops in a light breeze. */
+function Windsock({ position }: { position: [number, number, number] }) {
+  // Drawn at half as big again as a real 2.4 m sock, so it reads from across the site.
+  const swing = useRef<Group>(null)
+  const sock = useRef<Group>(null)
+  const heading = useRef<number | null>(null)
+  const droop = useRef(0.6)
+  useFrame(({ clock }, dt) => {
+    const wind = windOn(getPlant().tanks.day)
+    const [dx, dz] = downwind(wind)
+    // The sock's length runs along the group's +x.
+    const want = Math.atan2(-dz, dx)
+    if (heading.current === null) heading.current = want
+    const turn = Math.atan2(Math.sin(want - heading.current), Math.cos(want - heading.current))
+    heading.current += turn * Math.min(1, dt * 1.5)
+    const flutter = Math.sin(clock.elapsedTime * (2 + wind.speed * 0.5)) * 0.06
+    if (swing.current) swing.current.rotation.y = heading.current + flutter
+    // Full out at about 8 m/s (15 knots), hanging nearly straight down in a calm.
+    const wantDroop = (1 - Math.min(1, wind.speed / 8)) * 1.3
+    droop.current += (wantDroop - droop.current) * Math.min(1, dt)
+    if (sock.current) sock.current.rotation.z = -droop.current + flutter * 0.5
+  })
+  return (
+    <group position={position} scale={1.5}>
+      <mesh position={[0, 1.6, 0]}>
+        <cylinderGeometry args={[0.04, 0.05, 3.2, 8]} />
+        <meshStandardMaterial color="#c8c8c0" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <group ref={swing} position={[0, 3.15, 0]}>
+        <group ref={sock}>
+          {/* Five bands, orange and white, narrowing to the tail. */}
+          {[0, 1, 2, 3, 4].map((i) => (
+            <mesh key={i} position={[0.22 + i * 0.36, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.2 - (i + 1) * 0.022, 0.2 - i * 0.022, 0.36, 12, 1, true]} />
+              <meshStandardMaterial color={i % 2 ? '#f4f2ec' : '#ff6a1a'} side={DoubleSide} roughness={0.8} />
+            </mesh>
+          ))}
+        </group>
+      </group>
     </group>
   )
 }
@@ -1487,18 +1569,20 @@ function useRefinerySounds() {
 }
 
 /** Tall lamp posts along the roads, all one instanced mesh. */
+const LAMP_SPOTS: [number, number][] = [
+  [3.6, 24],
+  [3.6, 14],
+  [-3.6, 4],
+  [3.6, -10],
+  [-3.6, -24],
+  [-12, 13.6],
+  [12, 8.4],
+  [24, 13.6],
+  [-26, 8.4],
+]
+
 function Lamps({ m }: { m: Materials }) {
-  const spots: [number, number][] = [
-    [3.6, 24],
-    [3.6, 14],
-    [-3.6, 4],
-    [3.6, -10],
-    [-3.6, -24],
-    [-12, 13.6],
-    [12, 8.4],
-    [24, 13.6],
-    [-26, 8.4],
-  ]
+  const spots = LAMP_SPOTS
   const poles = useRef<InstancedMesh>(null)
   const heads = useRef<InstancedMesh>(null)
   useLayoutEffect(() => {
@@ -1526,71 +1610,63 @@ function Lamps({ m }: { m: Materials }) {
   )
 }
 
-/** Other plants along the estuary, beyond the fence: dark shapes in the haze with a few lights. */
-function Distance({ m }: { m: Materials }) {
-  const shapes = useMemo(() => {
-    let seed = 3
-    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-    return Array.from({ length: 34 }, () => {
-      const angle = rand() * Math.PI * 2
-      const r = 70 + rand() * 60
-      const tall = rand() > 0.6
-      return {
-        x: Math.cos(angle) * r,
-        z: Math.sin(angle) * r,
-        w: tall ? 2 + rand() * 3 : 8 + rand() * 14,
-        h: tall ? 15 + rand() * 30 : 4 + rand() * 8,
-      }
-    })
-  }, [])
+/** Other plants along the estuary, beyond the fence: dark shapes in the haze, with their lights on at night. */
+const DISTANT = (() => {
+  let seed = 3
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+  return Array.from({ length: 34 }, () => {
+    const angle = rand() * Math.PI * 2
+    const r = 70 + rand() * 60
+    const tall = rand() > 0.6
+    return {
+      x: Math.cos(angle) * r,
+      z: Math.sin(angle) * r,
+      w: tall ? 2 + rand() * 3 : 8 + rand() * 14,
+      h: tall ? 15 + rand() * 30 : 4 + rand() * 8,
+    }
+  })
+})()
+
+function Distance({ m, night }: { m: Materials; night: boolean }) {
   return (
     <group>
-      {shapes.map((s, i) => (
+      {DISTANT.map((s, i) => (
         <mesh key={i} position={[s.x, s.h / 2, s.z]} material={m.haze}>
           <boxGeometry args={[s.w, s.h, s.w]} />
         </mesh>
       ))}
+      {night && <DistantLights shapes={DISTANT} />}
     </group>
   )
 }
 
-/** Draws the shadow map once: nothing that casts a shadow here moves, and the sun is fixed. */
-function StaticShadows() {
-  const gl = useThree((s) => s.gl)
-  useEffect(() => {
-    gl.shadowMap.autoUpdate = false
-    gl.shadowMap.needsUpdate = true
-    return () => {
-      gl.shadowMap.autoUpdate = true
-    }
-  }, [gl])
-  return null
-}
+/** The tops of the tallest things on site, where red obstruction lights warn low-flying aircraft. */
+const OBSTRUCTION_LIGHTS: [number, number, number][] = [
+  [REFINERY.flare[0], 45.3, REFINERY.flare[1] + 0.8],
+  [REFINERY.column.at[0], REFINERY.column.height + 0.5, REFINERY.column.at[1]],
+  [REFINERY.vacuum.at[0], REFINERY.vacuum.height + 0.5, REFINERY.vacuum.at[1]],
+  [REFINERY.furnace.at[0], 2 + REFINERY.furnace.height + 3.8 + 18.6, REFINERY.furnace.at[1]],
+  [REFINERY.fcc.at[0] + REFINERY.fcc.size / 2, 28.3, REFINERY.fcc.at[1] + REFINERY.fcc.size / 2],
+  [REFINERY.smr.at[0] - 1.4, 24.4, REFINERY.smr.at[1] - 3.4],
+]
 
 export default function Refinery() {
   const m = useMaterials()
   // The plant runs while you're on site, so the tanks and furnace move as you walk round.
   usePlantClock()
   useRefinerySounds()
+  const phase = useDayPhase()
+  const light = SITE_LIGHT[phase]
+  // Lamps and lit windows brighten as the light goes.
+  useEffect(() => {
+    m.lamp.emissiveIntensity = light.lamps
+    m.window.emissiveIntensity = light.windows
+  }, [m, light])
   return (
     <group>
-      <Atmosphere background={HORIZON} fog={[50, 210]} />
-      <Sky sunPosition={SUN} turbidity={8} rayleigh={2.5} mieCoefficient={0.006} mieDirectionalG={0.9} />
-      <hemisphereLight args={['#cdc6e4', '#6a5a44', 2.1]} />
-      <directionalLight
-        position={SUN}
-        intensity={2.6}
-        color="#ffb27a"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-45}
-        shadow-camera-right={45}
-        shadow-camera-top={45}
-        shadow-camera-bottom={-45}
-        shadow-camera-far={200}
-        shadow-bias={-0.0008}
-      />
-      <StaticShadows />
+      <SiteSky phase={phase} />
+      <LightPools spots={LAMP_SPOTS} strength={light.lamps > 1 ? (phase === 'night' ? 0.55 : 0.25) : 0} />
+      <ObstructionLights tops={OBSTRUCTION_LIGHTS} night={phase === 'night'} />
       <Ground />
       <Fence />
       <Lamps m={m} />
@@ -1612,14 +1688,14 @@ export default function Refinery() {
       <Hydrocracker m={m} />
       <HydrogenPlant m={m} />
       <Tanks m={m} />
-      <Flare m={m} />
+      <Flare m={m} glow={phase === 'night' ? 1 : phase === 'day' ? 0.15 : 0.5} />
       <Plumes />
       <ChargePumps m={m} />
       {CHECKPOINTS.map((c) => (
         <RoundPost key={c.id} checkpoint={c} />
       ))}
       <Estuary m={m} />
-      <Distance m={m} />
+      <Distance m={m} night={phase === 'night'} />
       <Label3D text="Atmospheric distillation column" position={[REFINERY.column.at[0], 6, REFINERY.column.at[1] + REFINERY.column.radius + 0.4]} scale={2} />
     </group>
   )

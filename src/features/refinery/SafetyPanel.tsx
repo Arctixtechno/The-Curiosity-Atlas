@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { Panel } from '../../components/Panel.tsx'
 import { usePlantClock } from './clock.ts'
 import { assessDrill, DRILLS, liveFlare, type Drill, type DrillAction } from './drills.ts'
-import { flameLength, flareHeat, radiation, RADIATION_LIMITS, RECEIVERS, RELIEF_CASES, safeDistance, steamVerdict } from './flare.ts'
+import { flameCentre, flameLength, flameTilt, flareHeat, radiation, RADIATION_LIMITS, RECEIVERS, RELIEF_CASES, safeDistance, steamVerdict } from './flare.ts'
+import { beaufort, compassName, windOn } from './weather.ts'
 import { SafetyIcon } from './icons.tsx'
 import { checkPermit, DEVIATIONS, GAS_LIMITS, HAZOP_NODE, hazopOptions, INCIDENTS, PERMIT_JOBS, type HazopColumn, type PermitCheck, type PermitJob } from './permits.ts'
 import { controls, usePlant, type Plant } from './plant.ts'
@@ -79,7 +80,7 @@ function Drills({ plant, state }: { plant: Plant; state: SafetyState }) {
               <p>{d.briefing}</p>
               <div className="ac-lesson-foot">
                 <span className={best !== undefined && best >= 80 ? 'cdu-good' : 'muted'}>
-                  {best === undefined ? (d.deadline ? `${Math.round(d.deadline / 60 * 10) / 10} minutes to act` : 'No clock') : `Best ${best} of 100`}
+                  {best === undefined ? (d.deadline ? `${Math.round((d.deadline / 60) * 10) / 10} minutes to act` : 'No clock') : `Best ${best} of 100`}
                 </span>
                 <button className="button button-primary" onClick={() => startDrill(d, plant)}>
                   Start the drill
@@ -132,7 +133,8 @@ function LiveDrill({ drill, run, plant, state }: { drill: Drill; run: RunningDri
           {drill.deadline !== null && (
             <div className="sf-timer">
               <span>
-                {clock(Math.min(elapsed, a.status === 'running' || a.status === 'escalated' ? elapsed : (a.log.at(-1)?.at ?? elapsed)))} of {clock(drill.deadline)}
+                {clock(Math.min(elapsed, a.status === 'running' || a.status === 'escalated' ? elapsed : (a.log.at(-1)?.at ?? elapsed)))} of{' '}
+                {clock(drill.deadline)}
               </span>
               <div className="sf-timer-bar" aria-hidden="true">
                 <i className={elapsed > drill.deadline ? 'late' : elapsed > drill.deadline * 0.7 ? 'close' : ''} style={{ width: `${Math.min(100, (elapsed / drill.deadline) * 100)}%` }} />
@@ -188,7 +190,8 @@ function LiveDrill({ drill, run, plant, state }: { drill: Drill; run: RunningDri
           {a.log.map((l, i) => (
             <li key={i} className={`sf-log-${l.verdict}`}>
               <span className="sf-log-time">{clock(l.at)}</span>
-              <strong>{VERDICTS[l.verdict]}:</strong> {l.action.label}. <span className="muted">{l.verdict === 'early' ? 'Something else has to come first.' : l.action.why}</span>
+              <strong>{VERDICTS[l.verdict]}:</strong> {l.action.label}.{' '}
+              <span className="muted">{l.verdict === 'early' ? 'Something else has to come first.' : l.action.why}</span>
             </li>
           ))}
         </ol>
@@ -231,24 +234,29 @@ function Flare({ plant, state }: { plant: Plant; state: SafetyState }) {
   const [load, setLoad] = useState(120)
   const [height, setHeight] = useState(60)
   const [steam, setSteam] = useState(0.4)
+  const today = windOn(plant.tanks.day)
+  // Starts at the wind blowing on site now; the slider tries others.
+  const [wind, setWind] = useState(() => Math.round(today.speed))
   const mw = flareHeat(load)
   const length = flameLength(mw)
+  const tilt = flameTilt(load, wind)
   const verdict = steamVerdict(steam)
   const testing = state.flareTest && plant.furnace.time < state.flareTest.until
   const live = liveFlare(state, plant.furnace.time)
 
   const curve = useMemo(() => {
     const points: [number, number][] = []
-    for (let d = 0; d <= 300; d += 5) points.push([d, radiation(mw, d, height)])
+    for (let d = 0; d <= 300; d += 5) points.push([d, radiation(mw, d, height, tilt)])
     return points
-  }, [mw, height])
+  }, [mw, height, tilt])
   const peak = Math.max(2, ...curve.map((p) => p[1]))
 
   return (
     <div className="sf-flare">
       <p className="cdu-note">
-        Relief valves protect every vessel from overpressure, and the flare burns what they release, high enough that its heat is safe on the ground. This is API
-        521’s simple method: the flame’s heat, a quarter of it radiated, spreading from the flame’s centre.
+        Relief valves protect every vessel from overpressure, and the flare burns what they release, high enough that its heat is safe on the ground. This is
+        API 521’s simple method: the flame’s heat, a quarter of it radiated, spreading from the flame’s centre. The wind bends the flame over and carries its
+        centre downwind, so everything here is worked out downwind of the stack, where it’s worst.
       </p>
       <div className="sf-cases segmented" role="group" aria-label="Relief case">
         {RELIEF_CASES.map((c) => (
@@ -267,11 +275,20 @@ function Flare({ plant, state }: { plant: Plant; state: SafetyState }) {
       </div>
       <p className="cdu-note">{RELIEF_CASES.find((c) => c.id === caseId)?.why}</p>
       <div className="sf-flare-grid">
-        <FlareDrawing mw={mw} length={length} height={height} steam={verdict.state} />
+        <FlareDrawing mw={mw} length={length} height={height} steam={verdict.state} tilt={tilt} />
         <div>
           <Slider label="Relief load" unit="t/h" min={0} max={300} step={5} value={load} onChange={(v) => (setLoad(v), setCaseId(''))} />
           <Slider label="Stack height" unit="m" min={30} max={120} step={5} value={height} onChange={setHeight} />
           <Slider label="Steam to the tip" unit="kg/kg" min={0} max={1.2} step={0.05} value={steam} onChange={setSteam} digits={2} />
+          <Slider label="Wind" unit="m/s" min={0} max={25} step={1} value={wind} onChange={setWind} />
+          <p className="cdu-note sf-wind-note">
+            On site now: {beaufort(today.speed).name.toLowerCase()} from the {compassName(today.from)}, {today.speed.toFixed(0)} m/s.{' '}
+            {wind !== Math.round(today.speed) && (
+              <button className="link" onClick={() => setWind(Math.round(today.speed))}>
+                Use it
+              </button>
+            )}
+          </p>
           <dl className="sf-readings">
             <div>
               <dt>Heat released</dt>
@@ -282,8 +299,12 @@ function Flare({ plant, state }: { plant: Plant; state: SafetyState }) {
               <dd>{length.toFixed(0)} m</dd>
             </div>
             <div>
+              <dt>Flame leans</dt>
+              <dd>{((tilt * 180) / Math.PI).toFixed(0)}° downwind</dd>
+            </div>
+            <div>
               <dt>At the stack’s foot</dt>
-              <dd>{radiation(mw, 0, height).toFixed(2)} kW/m²</dd>
+              <dd>{radiation(mw, 0, height, tilt).toFixed(2)} kW/m²</dd>
             </div>
           </dl>
           <p className={`cdu-note sf-steam-${verdict.state}`}>{verdict.text}</p>
@@ -303,13 +324,13 @@ function Flare({ plant, state }: { plant: Plant; state: SafetyState }) {
         <table className="sf-table">
           <thead>
             <tr>
-              <th>Where, on a full-size site</th>
+              <th>Where, downwind on a full-size site</th>
               <th>kW/m²</th>
             </tr>
           </thead>
           <tbody>
             {RECEIVERS.map((r) => {
-              const k = radiation(mw, r.distance, height)
+              const k = radiation(mw, r.distance, height, tilt)
               return (
                 <tr key={r.name}>
                   <td>
@@ -324,7 +345,7 @@ function Flare({ plant, state }: { plant: Plant; state: SafetyState }) {
                 <td>
                   {l.label} ({l.kw})
                 </td>
-                <td>{safeDistance(mw, l.kw, height) > 0 ? `${safeDistance(mw, l.kw, height).toFixed(0)} m out` : 'everywhere'}</td>
+                <td>{safeDistance(mw, l.kw, height, tilt) > 0 ? `${safeDistance(mw, l.kw, height, tilt).toFixed(0)} m out` : 'everywhere'}</td>
               </tr>
             ))}
           </tbody>
@@ -343,18 +364,31 @@ function Flare({ plant, state }: { plant: Plant; state: SafetyState }) {
 }
 
 /** The stack and its flame side on, to scale, with the radiation contours where they reach the ground. */
-function FlareDrawing({ mw, length, height, steam }: { mw: number; length: number; height: number; steam: 'smoky' | 'smokeless' | 'oversteamed' }) {
+function FlareDrawing({
+  mw,
+  length,
+  height,
+  steam,
+  tilt,
+}: {
+  mw: number
+  length: number
+  height: number
+  steam: 'smoky' | 'smokeless' | 'oversteamed'
+  tilt: number
+}) {
   const ground = 236
   const x0 = 26
   const k = 1
   const tip = ground - height * k
-  const flameTop = tip - length * k
-  const centre = { x: x0, y: tip - (length * k) / 2 }
+  const c = flameCentre(mw, height, tilt)
+  const centre = { x: x0 + c.x * k, y: ground - c.y * k }
+  const flameEnd = { x: x0 + length * Math.sin(tilt) * k, y: tip - length * Math.cos(tilt) * k }
   const width = Math.max(4, length * 0.22)
   const lift = steam === 'oversteamed' ? 6 : 0
   const band = []
   for (let d = 0; d < 340; d += 4) {
-    const r = radiation(mw, d, height)
+    const r = radiation(mw, d, height, tilt)
     const colour = r > 6.31 ? '#d9442b' : r > 4.73 ? '#f07a3a' : r > 1.58 ? '#e8c050' : '#4f8f5f'
     band.push(<rect key={d} x={x0 + d * k} y={ground} width={4 * k + 0.5} height={8} fill={colour} />)
   }
@@ -376,12 +410,21 @@ function FlareDrawing({ mw, length, height, steam }: { mw: number; length: numbe
       <line x1="0" x2="360" y1={ground} y2={ground} className="sf-ground" />
       <rect x={x0 - 2} y={tip} width="4" height={height * k} className="sf-stack" />
       {length > 0.5 && (
-        <ellipse cx={x0} cy={tip - (length * k) / 2 - lift} rx={width / 2} ry={(length * k) / 2} fill="url(#sf-flame)" className={`sf-flame sf-flame-${steam}`} />
+        <g transform={`rotate(${(tilt * 180) / Math.PI} ${x0} ${tip})`}>
+          <ellipse
+            cx={x0}
+            cy={tip - (length * k) / 2 - lift}
+            rx={width / 2}
+            ry={(length * k) / 2}
+            fill="url(#sf-flame)"
+            className={`sf-flame sf-flame-${steam}`}
+          />
+        </g>
       )}
       {steam === 'smoky' && length > 2 && (
         <g className="sf-smoke">
           {[0, 1, 2, 3].map((i) => (
-            <circle key={i} cx={x0 + 6 + i * 9} cy={flameTop - 4 - i * 7} r={5 + i * 3} />
+            <circle key={i} cx={flameEnd.x + 6 + i * 9} cy={flameEnd.y - 4 - i * 7 * Math.cos(tilt)} r={5 + i * 3} />
           ))}
         </g>
       )}
@@ -396,6 +439,11 @@ function FlareDrawing({ mw, length, height, steam }: { mw: number; length: numbe
       <text x={x0 + 6} y={tip + 10} className="sf-receiver-label">
         {height} m
       </text>
+      {tilt > 0 && (
+        <text x="354" y="14" textAnchor="end" className="sf-receiver-label">
+          wind →
+        </text>
+      )}
       <text x="354" y="252" textAnchor="end" className="sf-receiver-label">
         to scale · 340 m across
       </text>
@@ -591,7 +639,11 @@ function Hazop({ state }: { state: SafetyState }) {
               <strong>{right}</strong> of {total} right.{' '}
             </>
           ) : null}
-          {state.hazop > 0 && <span className="muted">Best {Math.round(state.hazop * total)} of {total}.</span>}
+          {state.hazop > 0 && (
+            <span className="muted">
+              Best {Math.round(state.hazop * total)} of {total}.
+            </span>
+          )}
         </span>
         <button className="button button-primary" onClick={check}>
           Check the worksheet

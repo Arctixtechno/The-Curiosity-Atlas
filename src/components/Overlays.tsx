@@ -15,11 +15,14 @@ import {
   DCS_OVERLAY,
   HEAVY_END_OVERLAY,
   LIGHT_ENDS_OVERLAY,
+  LOGBOOK_OVERLAY,
   OVERVIEW_OVERLAY,
+  PLAN_OVERLAY,
   PLANNING_OVERLAY,
   REFORMER_OVERLAY,
   ROUNDS_OVERLAY,
   SAFETY_OVERLAY,
+  SHIFT_OVERLAY,
   SITE_OVERLAY,
   TREATING_OVERLAY,
 } from '../features/refinery/overlayIds.ts'
@@ -58,12 +61,17 @@ const AcademyPanel = lazy(() => import('../features/refinery/AcademyPanel.tsx').
 const SafetyPanel = lazy(() => import('../features/refinery/SafetyPanel.tsx').then((m) => ({ default: m.SafetyPanel })))
 const PlanningPanel = lazy(() => import('../features/refinery/PlanningPanel.tsx').then((m) => ({ default: m.PlanningPanel })))
 const RoundsPanel = lazy(() => import('../features/refinery/RoundsPanel.tsx').then((m) => ({ default: m.RoundsPanel })))
+const SitePlanPanel = lazy(() => import('../features/refinery/SitePlanPanel.tsx').then((m) => ({ default: m.SitePlanPanel })))
+const ShiftPanel = lazy(() => import('../features/refinery/ShiftPanel.tsx').then((m) => ({ default: m.ShiftPanel })))
+const LogbookPanel = lazy(() => import('../features/refinery/LogbookPanel.tsx').then((m) => ({ default: m.LogbookPanel })))
 const SitePanel = lazy(() => import('../features/refinery/SitePanel.tsx').then((m) => ({ default: m.SitePanel })))
 const OverviewPanel = lazy(() => import('../features/refinery/OverviewPanel.tsx').then((m) => ({ default: m.OverviewPanel })))
 const BuoyancyPanel = lazy(() => import('../features/experiments/BuoyancyPanel.tsx').then((m) => ({ default: m.BuoyancyPanel })))
 
 /** Keys that open a panel from anywhere: M for the map, O for settings, L for the library, V for your visit. */
 const SHORTCUTS: Record<string, string> = { KeyM: MAP_OVERLAY, KeyO: SETTINGS_OVERLAY, KeyL: 'library', KeyV: VISIT_OVERLAY }
+/** Keys that only mean something in one room: P for the refinery's site plan. */
+const ROOM_SHORTCUTS: Record<string, Record<string, string>> = { refinery: { KeyP: PLAN_OVERLAY } }
 
 /** Shows whichever full-screen panel is open, and handles the keys that open them. */
 export function Overlays() {
@@ -71,7 +79,7 @@ export function Overlays() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const id = SHORTCUTS[e.code]
+      const id = SHORTCUTS[e.code] ?? ROOM_SHORTCUTS[gameStore.get().activeRoomId]?.[e.code]
       if (!id || e.repeat) return
       // Typing in a text box shouldn't open panels.
       if (e.target instanceof HTMLElement && e.target.closest('input, textarea, [contenteditable]')) return
@@ -107,6 +115,9 @@ export function Overlays() {
     [CDU_OVERLAY]: CduPanel,
     [CONVERSION_OVERLAY]: ConversionPanel,
     [OVERVIEW_OVERLAY]: OverviewPanel,
+    [PLAN_OVERLAY]: SitePlanPanel,
+    [SHIFT_OVERLAY]: ShiftPanel,
+    [LOGBOOK_OVERLAY]: LogbookPanel,
     [REFORMER_OVERLAY]: ReformerPanel,
     [TREATING_OVERLAY]: TreatingPanel,
     [LIGHT_ENDS_OVERLAY]: LightEndsPanel,

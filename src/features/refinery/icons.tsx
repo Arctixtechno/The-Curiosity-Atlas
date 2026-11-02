@@ -154,3 +154,24 @@ export const RoundsIcon = ({ size }: { size?: number }) => (
     <path d="M8 9.5l1.4 1.4L12 8.3M8 15l1.4 1.4 2.6-2.6M14 10h3M14 15.5h3" />
   </Icon>
 )
+
+export const MapPinIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M3 6.5l5.5-2.5 7 2.5L21 4v13.5L15.5 20l-7-2.5L3 20z" />
+    <path d="M8.5 4v13.5M15.5 6.5V20" />
+  </Icon>
+)
+
+export const ShiftIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <circle cx="12" cy="13" r="8" />
+    <path d="M12 9v4l2.6 2.2M9.5 2.5h5M12 2.5V5" />
+  </Icon>
+)
+
+export const LogbookIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <circle cx="12" cy="14" r="6" />
+    <path d="M8.5 3h3l1.4 5M15.5 3h-3M12 11.5l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3z" />
+  </Icon>
+)
