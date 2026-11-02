@@ -7,7 +7,10 @@ import { gameStore, playerPose } from './store.ts'
 // Which sounds each room has, and how loud. The fountain gets louder as you
 // walk up to it; birds sing in the courtyard by day only.
 
-type Levels = Partial<Record<AmbienceName, number>>
+export type Levels = Partial<Record<AmbienceName, number>>
+
+/** Sounds a room works out for itself while it's open, such as the refinery's from its live plant. */
+export const roomSounds = new Map<string, () => Levels>()
 
 /** The fountain's loudness from where the player stands in the courtyard. */
 function fountainNear(): number {
@@ -30,11 +33,11 @@ function roomLevels(roomId: string): Levels {
     case 'cafe':
       return { city: 0.08 }
     default:
-      return {}
+      return roomSounds.get(roomId)?.() ?? {}
   }
 }
 
-const ALL: AmbienceName[] = ['fire', 'rain', 'fountain', 'city', 'birds', 'wind']
+const ALL: AmbienceName[] = ['fire', 'rain', 'fountain', 'city', 'birds', 'wind', 'plant', 'furnace', 'flare', 'siren']
 
 /** What the floor underfoot is made of in each room, for footsteps. */
 const FLOORS: Record<string, Floor> = {

@@ -5,7 +5,7 @@
 // Values are rounded from typical published assays and change from cargo to
 // cargo, so treat them as representative rather than exact.
 
-export type CrudeId = 'brent' | 'wti' | 'arabLight' | 'maya'
+export type CrudeId = 'brent' | 'wti' | 'arabLight' | 'maya' | 'bonny' | 'sverdrup' | 'basrah' | 'wcs'
 
 export interface Crude {
   id: CrudeId
@@ -102,6 +102,86 @@ export const CRUDES: Record<CrudeId, Crude> = {
       [750, 100],
     ],
     note: 'Heavy and sour. Cheap because almost two thirds of it is residue that needs cracking or coking to be worth much.',
+  },
+  bonny: {
+    id: 'bonny',
+    name: 'Bonny Light',
+    origin: 'Nigeria',
+    api: 35,
+    sulphur: 0.15,
+    price: 84,
+    tbp: [
+      [-45, 0],
+      [30, 2.5],
+      [90, 9],
+      [180, 26],
+      [240, 39],
+      [350, 64],
+      [450, 80],
+      [550, 90],
+      [750, 100],
+    ],
+    note: 'Very sweet and rich in middle distillates: prized for jet and diesel, and priced for it.',
+  },
+  sverdrup: {
+    id: 'sverdrup',
+    name: 'Johan Sverdrup',
+    origin: 'Norway',
+    api: 28,
+    sulphur: 0.8,
+    price: 77,
+    tbp: [
+      [-45, 0],
+      [30, 1.5],
+      [90, 6],
+      [180, 17],
+      [240, 26],
+      [350, 48],
+      [450, 66],
+      [550, 80],
+      [750, 100],
+    ],
+    note: 'Medium and only mildly sour, with little naphtha and plenty of gas oil: a cracking refinery’s crude.',
+  },
+  basrah: {
+    id: 'basrah',
+    name: 'Basrah Medium',
+    origin: 'Iraq',
+    api: 29,
+    sulphur: 2.9,
+    price: 72,
+    tbp: [
+      [-45, 0],
+      [30, 2],
+      [90, 7.5],
+      [180, 20],
+      [240, 29],
+      [350, 48],
+      [450, 62],
+      [550, 74],
+      [750, 100],
+    ],
+    note: 'Medium and very sour. Cheap, if the sulphur plant and hydrotreaters have room for it.',
+  },
+  wcs: {
+    id: 'wcs',
+    name: 'Western Canadian Select',
+    origin: 'Canada',
+    api: 20.5,
+    sulphur: 3.5,
+    price: 60,
+    tbp: [
+      [-45, 0],
+      [30, 4],
+      [90, 13],
+      [180, 18],
+      [240, 21],
+      [350, 32],
+      [450, 45],
+      [550, 57],
+      [750, 100],
+    ],
+    note: 'Bitumen thinned with light condensate so it will flow: a “dumbbell” crude, with light ends, a thin middle and a huge, heavy bottom.',
   },
 }
 

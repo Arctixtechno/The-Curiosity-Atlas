@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { Journey } from '../types/room.ts'
 import { DRIVE_MS, skipJourney } from '../world/travel.ts'
 import './DriveScreen.css'
@@ -9,6 +9,9 @@ import './DriveScreen.css'
 
 /** Width of the scenery strip, in pixels. It scrolls past once over the whole drive. */
 const STRIP = 3600
+
+/** How the refinery stands, loaded with the drive: it's the only place far enough away to drive to. */
+const RefineryBriefing = lazy(() => import('../features/refinery/RefineryBriefing.tsx'))
 const HEIGHT = 260
 
 const FACTS = [
@@ -166,6 +169,9 @@ export function DriveScreen({ journey }: { journey: Journey & { homeward: boolea
         <div className="drive-progress">
           <div className="drive-progress-fill" />
         </div>
+        <Suspense fallback={null}>
+          <RefineryBriefing title={journey.homeward ? 'Leaving the site as it stands' : 'Waiting for you at Marshgate'} />
+        </Suspense>
         <p key={fact} className="drive-fact">
           {FACTS[fact]}
         </p>

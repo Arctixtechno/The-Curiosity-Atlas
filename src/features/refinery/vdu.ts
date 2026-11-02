@@ -49,6 +49,10 @@ const HEAVY_END: Record<CrudeId, { carbon: number; metals: number; crackability:
   wti: { carbon: 0.8, metals: 0.7, crackability: 1.05 },
   arabLight: { carbon: 1.6, metals: 2.5, crackability: 0.95 },
   maya: { carbon: 3, metals: 9, crackability: 0.85 },
+  bonny: { carbon: 0.7, metals: 0.5, crackability: 1.1 },
+  sverdrup: { carbon: 1.2, metals: 1.4, crackability: 0.97 },
+  basrah: { carbon: 2, metals: 3.5, crackability: 0.92 },
+  wcs: { carbon: 3.2, metals: 6, crackability: 0.8 },
 }
 
 export interface VduResult {

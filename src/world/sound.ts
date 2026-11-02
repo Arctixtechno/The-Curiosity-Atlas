@@ -6,7 +6,7 @@ import { getSettings, subscribeSettings } from './settings.ts'
 // the city), which fade in and out as you come and go, and footsteps sound
 // on whatever floor you're walking over.
 
-export type AmbienceName = 'fire' | 'rain' | 'fountain' | 'city' | 'birds' | 'wind'
+export type AmbienceName = 'fire' | 'rain' | 'fountain' | 'city' | 'birds' | 'wind' | 'plant' | 'furnace' | 'flare' | 'siren'
 export type Floor = 'wood' | 'carpet' | 'stone' | 'tile'
 
 let ctx: AudioContext | null = null
@@ -114,8 +114,68 @@ interface Bed {
   stop: () => void
 }
 
+/** A tone that runs until the bed stops. */
+function tone(type: OscillatorType, frequency: number) {
+  const osc = ctx!.createOscillator()
+  osc.type = type
+  osc.frequency.value = frequency
+  osc.start()
+  return osc
+}
+
+// The refinery's beds: machinery, a furnace's roar, the flare and the drill siren.
+const REFINERY_BEDS = {
+  // Pumps, compressors and fans: a deep rumble with mains hum under it and a thin hiss of steam leaks.
+  plant() {
+    const out = gain(0)
+    loop(brown!).connect(filter('lowpass', 160)).connect(gain(0.9)).connect(out)
+    const hum = tone('sawtooth', 50)
+    hum.connect(filter('lowpass', 220)).connect(gain(0.035)).connect(out)
+    loop(noise!).connect(filter('bandpass', 3200, 2)).connect(gain(0.012)).connect(out)
+    return { out, stop: () => hum.stop() }
+  },
+  // Burners: a low, breathy roar.
+  furnace() {
+    const out = gain(0)
+    loop(brown!).connect(filter('lowpass', 280)).connect(gain(1)).connect(out)
+    loop(noise!).connect(filter('bandpass', 500, 0.8)).connect(gain(0.05)).connect(out)
+    return { out, stop: () => undefined }
+  },
+  // The flare: a jet-like roar that surges.
+  flare() {
+    const out = gain(0)
+    const band = filter('lowpass', 500)
+    loop(noise!).connect(band).connect(gain(0.3)).connect(out)
+    loop(brown!).connect(filter('lowpass', 120)).connect(gain(1)).connect(out)
+    let timer = 0
+    const tick = () => {
+      band.frequency.setTargetAtTime(380 + Math.random() * 300, ctx!.currentTime, 0.6)
+      timer = window.setTimeout(tick, 900)
+    }
+    tick()
+    return { out, stop: () => clearTimeout(timer) }
+  },
+  // The site siren: a slow rising and falling wail.
+  siren() {
+    const out = gain(0)
+    const wail = tone('sine', 800)
+    const lfo = tone('sine', 0.25)
+    const depth = gain(280)
+    lfo.connect(depth).connect(wail.frequency)
+    wail.connect(gain(0.12)).connect(out)
+    return {
+      out,
+      stop: () => {
+        wail.stop()
+        lfo.stop()
+      },
+    }
+  },
+} satisfies Partial<Record<AmbienceName, () => Bed>>
+
 /** Builds one ambience. Each returns its output node (silent until faded in) and a way to stop its timers. */
 const BUILDERS: Record<AmbienceName, () => Bed> = {
+  ...REFINERY_BEDS,
   // A low roar from brown noise, with crackles and the odd pop scattered over it.
   fire() {
     const out = gain(0)

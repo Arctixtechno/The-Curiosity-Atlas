@@ -8,12 +8,14 @@ import { BEDS, feedOctane, naphthaTonnes, NHT_LIMITS, REFORMER_LIMITS, REFORMER_
 import { ReformerPfd } from './ReformerPfd.tsx'
 import { REFORMING_TASKS } from './reformingTasks.ts'
 import { money, Slider } from './ui.tsx'
+import { usePlantClock } from './clock.ts'
 import './Refinery.css'
 
 type Tab = 'operate' | 'shift' | 'learn'
 
 /** The naphtha hydrotreater and reformer's operator screen, with the catalyst's whole cycle to run through. */
 export function ReformerPanel() {
+  usePlantClock()
   const plant = usePlant((p) => p)
   const result = useMemo(() => reformingResult(plant), [plant])
   const [tab, setTab] = useState<Tab>('operate')
